@@ -1,20 +1,23 @@
-<ion-header [translucent]="true">
+
+<ion-header>
   <ion-toolbar>
-    <ion-title>
-      Blank
-    </ion-title>
+    <ion-title>ValidaDocs</ion-title>
+    <ion-buttons slot="end">
+      <ion-button disabled>Login</ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Blank</ion-title>
-    </ion-toolbar>
-  </ion-header>
-
-  <div id="container">
-    <strong>Ready to create an app?</strong>
-    <p>Start with Ionic <a target="_blank" rel="noopener noreferrer" href="https://ionicframework.com/docs/components">UI Components</a></p>
+<ion-content class="ion-padding">
+  <div class="welcome">
+    <img src="assets/logo-validadocs.svg" alt="ValidaDocs" class="logo" />
+    <h1>Validação de Documentos com Assinatura Digital</h1>
+    <p>
+      Serviço para cartórios de imóveis: valide <b>integridade</b>, <b>assinaturas</b>, <b>cadeia de certificados</b> e <b>padrão PDF/A</b>.
+    </p>
+    <div class="cta">
+      <ion-button color="primary" size="large" [routerLink]="'/validade'">Iniciar validação</ion-button>
+      <ion-button color="medium" disabled>Login</ion-button>
+    </div>
   </div>
 </ion-content>

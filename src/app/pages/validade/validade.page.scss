@@ -1,0 +1,15 @@
+
+.upload-card input[type='file'] { width: 100%; }
+
+.val-grid { max-width: 1280px; margin: 0 auto; }
+.left .summary-card { position: sticky; top: 8px; }
+
+.sig-item { align-items: start; }
+.sig-head { display: flex; gap: 8px; align-items: center; }
+.sig-sub { font-size: 12px; opacity: .8; }
+.mini-card { width: 120px; margin-left: 8px; }
+.danger-text { color: var(--ion-color-danger); }
+.finding ion-icon { margin-right: 8px; }
+.approval { padding: 8px 12px; }
+
+@media (min-width: 992px) { .left { max-width: 420px; } }

@@ -1,0 +1,52 @@
+/* === Cores === */
+$color-primary: #3b82f6;
+$color-success: #16a34a;
+$color-danger:  #ef4444;
+$color-warning: #f59e0b;
+$color-surface: #ffffff;
+$color-bg:      #f6f8fb;
+$color-text:    #0f172a; /* slate-900 */
+$color-muted:   #475569; /* slate-600 */
+$color-border:  #e2e8f0; /* slate-200 */
+
+/* === Espaçamentos === */
+$space-1: .25rem; $space-2: .5rem; $space-3: .75rem; $space-4: 1rem;
+$space-5: 1.25rem; $space-6: 1.5rem; $space-8: 2rem; $space-10: 2.5rem;
+
+/* === Radius & sombra === */
+$radius-xl: 16px;
+$shadow-sm: 0 2px 10px rgba(15, 23, 42, .06);
+$shadow-lg: 0 10px 30px rgba(15, 23, 42, .08);
+
+/* === Tipografia base === */
+$font-stack: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+
+/* === Variáveis CSS para o Ionic === */
+:root{
+  --ion-color-primary: #{$color-primary};
+  --ion-color-primary-contrast: #fff;
+  --ion-color-primary-shade: #{mix(black,$color-primary,12%)};
+  --ion-color-primary-tint:  #{mix(white,$color-primary,18%)};
+
+  --ion-color-success: #{$color-success};
+  --ion-color-danger:  #{$color-danger};
+  --ion-text-color:    #{$color-text};
+  --ion-background-color: #{$color-bg};
+
+  --app-surface: #{$color-surface};
+  --app-border:  #{$color-border};
+  --app-muted:   #{$color-muted};
+
+  --app-radius-xl: #{$radius-xl};
+  --app-shadow-sm: #{$shadow-sm};
+  --app-shadow-lg: #{$shadow-lg};
+}
+
+/* Dark opcional (basta adicionar .dark no <body>) */
+body.dark{
+  --ion-background-color:#0b1220;
+  --ion-text-color:#e5e7eb;
+  --app-surface:#0f172a;
+  --app-border:rgba(148,163,184,.2);
+  --app-shadow-sm:none; --app-shadow-lg:none;
+}
