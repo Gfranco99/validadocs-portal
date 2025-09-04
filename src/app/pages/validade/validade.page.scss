@@ -1,15 +1,74 @@
+:root {
+--space-1: 6px;
+--space-2: 10px;
+--space-3: 14px;
+--radius: 14px;
+}
 
-.upload-card input[type='file'] { width: 100%; }
 
-.val-grid { max-width: 1280px; margin: 0 auto; }
-.left .summary-card { position: sticky; top: 8px; }
+.val-grid { max-width: 1200px; margin: 0 auto; }
+.left .summary-card { position: sticky; top: 12px; }
 
-.sig-item { align-items: start; }
-.sig-head { display: flex; gap: 8px; align-items: center; }
+
+/* ===== Upload minimalista ===== */
+.upload-card { border-radius: var(--radius); }
+.file-drop {
+border: 1.5px dashed var(--ion-color-medium);
+border-radius: var(--radius);
+padding: 22px;
+display: flex; align-items: center; gap: var(--space-3);
+justify-content: center; text-align: center; cursor: pointer;
+background: var(--ion-color-step-50, rgba(0,0,0,.02));
+transition: background .18s ease, border-color .18s ease, transform .08s ease;
+}
+.file-drop:hover { background: var(--ion-color-step-100, rgba(0,0,0,.04)); border-color: var(--ion-color-primary); }
+.file-drop ion-icon { font-size: 26px; color: var(--ion-color-primary); }
+.file-drop strong { display:block; font-weight: 700; }
+.file-drop .muted { opacity: .75; font-size: 12px; }
+.file-drop input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+
+.upload-actions { display: flex; gap: var(--space-2); justify-content: flex-end; margin-top: var(--space-2); flex-wrap: wrap; }
+
+
+/* ===== Tipografia e blocos ===== */
+.muted { opacity: .8; }
+ion-card { border-radius: var(--radius); overflow: hidden; }
+ion-card-header { padding-bottom: 0; }
+ion-card-title { display: flex; align-items: center; gap: var(--space-2); font-weight: 700; }
+
+
+/* KPI simples no resumo */
+.kpi { font-size: 32px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; }
+.kpi-sub { font-size: 12px; opacity: .7; margin-top: -2px; }
+
+
+/* ===== Listas compactas ===== */
+.sig-item { align-items: flex-start; }
+.sig-head { display: flex; gap: var(--space-2); align-items: center; }
 .sig-sub { font-size: 12px; opacity: .8; }
-.mini-card { width: 120px; margin-left: 8px; }
+.mini-card { width: 110px; margin-left: var(--space-2); border-radius: 8px; }
+.finding ion-icon { margin-right: var(--space-2); }
 .danger-text { color: var(--ion-color-danger); }
-.finding ion-icon { margin-right: 8px; }
+
+
+/* ===== Callouts e estados ===== */
+.callout-ok {
+display: flex; align-items: center; gap: var(--space-2);
+border: 1px solid var(--ion-color-success);
+background: color-mix(in srgb, var(--ion-color-success) 10%, transparent);
+border-radius: 12px; padding: 10px 12px;
+}
+.callout-warn {
+display: flex; align-items: center; gap: var(--space-2);
+border: 1px solid var(--ion-color-warning);
+background: color-mix(in srgb, var(--ion-color-warning) 12%, transparent);
+border-radius: 12px; padding: 10px 12px;
+}
+
+
 .approval { padding: 8px 12px; }
 
+
+/* ===== Responsivo ===== */
 @media (min-width: 992px) { .left { max-width: 420px; } }
