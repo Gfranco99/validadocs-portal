@@ -1,15 +1,30 @@
 <ion-header>
-  <ion-toolbar>
+  <ion-toolbar color="primary">
     <ion-title>Validação de Documento</ion-title>
+
     <ion-buttons slot="end">
-      <ion-button routerLink="/">Voltar</ion-button>
+      <!-- Sempre visível: abre o seletor -->
+      <ion-button fill="clear" (click)="fileInput.click()">Selecionar um PDF</ion-button>
+      <!-- Só aparece quando existir arquivo -->
+      <ion-button *ngIf="file" fill="clear" color="light" (click)="reset()">Remover</ion-button>
+
+      <ion-button routerLink="/">Voltar a Home</ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content class="ion-padding">
-  <!-- Upload enxuto com dropzone clicável -->
-  <ion-card class="upload-card">
+  <!-- input oculto (acionado pelos botões e pela dropzone) -->
+  <input
+    #fileInput
+    type="file"
+    accept="application/pdf"
+    (change)="onFileChange($event)"
+    hidden
+  />
+
+  <!-- Upload com auto-validação: fica invisível quando já há arquivo -->
+  <ion-card class="upload-card" *ngIf="!file">
     <ion-card-header>
       <ion-card-title>
         <ion-icon name="document-text-outline"></ion-icon>
@@ -18,21 +33,23 @@
     </ion-card-header>
 
     <ion-card-content>
-      <label class="file-drop">
+      <!-- Dropzone clicável -->
+      <div
+        class="file-drop"
+        (click)="fileInput.click()"
+        (dragover)="onDragOver($event)"
+        (drop)="onDrop($event)"
+        role="button"
+        aria-label="Solte o PDF aqui ou clique para escolher"
+      >
         <ion-icon name="cloud-upload-outline"></ion-icon>
         <div>
           <strong>Solte o PDF aqui</strong>
           <span class="muted">ou clique para escolher</span>
         </div>
-        <input type="file" accept="application/pdf" (change)="onFileChange($event)" />
-      </label>
-
-      <div class="upload-actions">
-        <ion-button color="primary" (click)="submit()" [disabled]="loading">Validar Documento</ion-button>
-        <ion-button color="medium" fill="clear" (click)="reset()">Limpar</ion-button>
       </div>
 
-      <ion-note *ngIf="file">Selecionado: {{ file?.name }}</ion-note>
+      <!-- Removido bloco de botões internos -->
       <ion-note color="danger" *ngIf="error">{{ error }}</ion-note>
       <ion-progress-bar *ngIf="loading" type="indeterminate"></ion-progress-bar>
     </ion-card-content>
@@ -42,7 +59,7 @@
   <ng-container *ngIf="result as r">
     <ion-grid class="val-grid">
       <ion-row>
-        <!-- Lado esquerdo: resumo -->
+        <!-- Resumo -->
         <ion-col size="12" size-lg="4" class="left">
           <ion-card class="summary-card">
             <ion-card-header>
@@ -62,12 +79,8 @@
                       <strong>{{ s.signerCN }}</strong>
                       <ion-badge [color]="sigColor(s)">{{ s.valid ? 'Válida' : 'Inválida' }}</ion-badge>
                     </div>
-                    <div class="sig-sub">
-                      {{ s.standard }} • {{ s.kind }} • {{ s.policy || '—' }}
-                    </div>
-                    <div class="sig-sub" *ngIf="s.time">
-                      {{ s.time | date:'dd/MM/yyyy HH:mm' }}
-                    </div>
+                    <div class="sig-sub">{{ s.standard }} • {{ s.kind }} • {{ s.policy || '—' }}</div>
+                    <div class="sig-sub" *ngIf="s.time">{{ s.time | date:'dd/MM/yyyy HH:mm' }}</div>
                   </ion-label>
                   <img *ngIf="s.cardImageUrl" [src]="s.cardImageUrl" alt="card" class="mini-card" />
                 </ion-item>
@@ -81,7 +94,7 @@
           </ion-card>
         </ion-col>
 
-        <!-- Lado direito: apontamentos e detalhes -->
+        <!-- Apontamentos e detalhes -->
         <ion-col size="12" size-lg="8" class="right">
           <ion-card class="findings-card">
             <ion-card-header>
@@ -97,7 +110,6 @@
                   <ion-label class="danger-text">{{ f }}</ion-label>
                 </ion-item>
               </ion-list>
-
               <ng-template #ok>
                 <div class="callout-ok" aria-live="polite">
                   <ion-icon name="checkmark-circle" color="success"></ion-icon>

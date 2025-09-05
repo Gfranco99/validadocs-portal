@@ -1,0 +1,24 @@
+@use "sass:map";
+
+/* Breakpoints */
+$breakpoints: (
+  sm: 576px,
+  md: 768px,
+  lg: 992px,
+  xl: 1200px
+);
+
+/* Media query helper: usar como @include up(md) { ... } */
+@mixin up($bp) {
+  @media (min-width: map.get($breakpoints, $bp)) {
+    @content;
+  }
+}
+
+/* Superfície em card usada nos painéis/caixas */
+@mixin card-surface {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-xl);
+  box-shadow: var(--app-shadow-sm);
+}

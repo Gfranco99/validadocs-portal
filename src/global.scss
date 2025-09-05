@@ -35,3 +35,62 @@
 /* @import "@ionic/angular/css/palettes/dark.always.css"; */
 /* @import "@ionic/angular/css/palettes/dark.class.css"; */
 @import '@ionic/angular/css/palettes/dark.system.css';
+:root {
+  /* Primária do print */
+  --ion-color-primary: #496e6d;
+  --ion-color-primary-rgb: 73,110,109;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255,255,255;
+  /* ajustes de luz/sombra (aprox. Ionic) */
+  --ion-color-primary-shade: #3f6160;  /* ~10% mais escuro */
+  --ion-color-primary-tint:  #5d817e;  /* ~12% mais claro */
+
+  /* (opcional) neutros levemente “quentes” para combinar */
+  --ion-text-color: #1a1d1c;
+  --ion-color-step-50:  #f6f8f8;
+  --ion-color-step-100: #eef2f1;
+  --ion-color-step-200: #e2e8e7;
+
+  /* cantos e sombreamento suaves */
+  --radius: 14px;
+  --shadow-sm: 0 2px 6px rgba(16,24,40,.06);
+  --shadow-md: 0 6px 18px rgba(16,24,40,.10);
+}
+
+/* Toolbar e header com sua cor de marca */
+ion-header ion-toolbar {
+  --background: var(--ion-color-primary);
+  --color: var(--ion-color-primary-contrast);
+}
+
+/* Botões primários e estados de foco mais elegantes */
+ion-button[color="primary"] {
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+ion-button[color="primary"]:hover {
+  filter: brightness(1.02);
+  box-shadow: var(--shadow-md);
+}
+
+/* Cartões com leve profundidade */
+ion-card { box-shadow: var(--shadow-sm); border-radius: var(--radius); }
+ion-card:hover { box-shadow: var(--shadow-md); }
+
+/* Acessibilidade: foco visível */
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--ion-color-primary) 60%, #fff 40%);
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+
+/* Dark mode (mantém o mesmo matiz) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ion-text-color: #e9edec;
+    --ion-color-step-50:  #171a1a;
+    --ion-color-step-100: #1b1f1f;
+    --ion-color-step-200: #202525;
+  }
+  ion-card { box-shadow: 0 8px 20px rgba(0,0,0,.35); }
+}
