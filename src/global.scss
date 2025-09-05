@@ -94,3 +94,72 @@ ion-card:hover { box-shadow: var(--shadow-md); }
   }
   ion-card { box-shadow: 0 8px 20px rgba(0,0,0,.35); }
 }
+:root {
+  /* Família padrão do app */
+  --ion-font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+                     Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji",
+                     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+
+  /* Escala de tamanhos responsiva */
+  --font-size-base: 16px;
+  --font-size-sm: 14px;
+  --font-size-lg: 18px;
+
+  /* Títulos com clamp para responder ao viewport */
+  --font-h1: clamp(22px, 1.2rem + 1.2vw, 30px);
+  --font-h2: clamp(20px, 1.1rem + 1.0vw, 26px);
+  --font-h3: clamp(18px, 1.0rem + 0.8vw, 22px);
+
+  /* Pesos */
+  --font-weight-regular: 400;
+  --font-weight-medium:  500;
+  --font-weight-semibold:600;
+  --font-weight-bold:    700;
+}
+
+/* Aplica a família globalmente (inclui ion-app/ion-content) */
+html, body, ion-app, ion-content {
+  font-family: var(--ion-font-family) !important;
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Títulos padrão Ionic */
+ion-title {
+  font-size: var(--font-h2);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.01em;
+}
+
+ion-card-title {
+  font-size: var(--font-h3);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.005em;
+}
+
+/* Texto comum */
+ion-label, p, span, li {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-regular);
+}
+
+/* Botões um pouco mais fortes para legibilidade */
+ion-button {
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Títulos internos (se houver <h1..h3>) */
+h1 { font-size: var(--font-h1); font-weight: var(--font-weight-bold);    letter-spacing: -0.01em; }
+h2 { font-size: var(--font-h2); font-weight: var(--font-weight-semibold);letter-spacing: -0.008em; }
+h3 { font-size: var(--font-h3); font-weight: var(--font-weight-semibold);letter-spacing: -0.006em; }
+
+/* Mobile refinado */
+@media (max-width: 575px) {
+  :root {
+    --font-size-base: 15px; /* ligeiramente menor para caber melhor */
+  }
+  ion-title { font-size: var(--font-h3); }
+}

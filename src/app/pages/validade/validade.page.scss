@@ -8,6 +8,9 @@
 .val-grid { max-width: 1200px; margin: 0 auto; }
 .left .summary-card { position: sticky; top: 12px; }
 
+/* Esconde totalmente o input nativo (evita "quadradinho") */
+.upload-card input[type='file'] { display: none !important; }
+
 /* Upload */
 .upload-card { border-radius: var(--radius); }
 .file-drop {
@@ -24,27 +27,19 @@
 .file-drop strong { display:block; font-weight:700; }
 .file-drop .muted { opacity:.75; font-size:12px; }
 
-/* Cartão quando arquivo selecionado */
-.file-selected {
-  display: grid;
-  grid-template-columns: 24px 1fr auto;
-  align-items: center;
-  gap: var(--space-2);
-  border: 1px solid var(--ion-color-step-200, rgba(0,0,0,.08));
-  background: var(--ion-color-step-50, rgba(0,0,0,.02));
-  border-radius: var(--radius);
-  padding: 10px 12px;
-}
-.file-selected ion-icon { font-size: 20px; color: var(--ion-color-primary); }
-.file-selected .meta { min-width: 0; }
-.file-selected .truncate { display:inline-block; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.file-selected .actions { display:flex; gap:4px; }
+/* Listas */
+.sig-item { align-items: flex-start; }
 
-/* Linha de ações do upload */
-.upload-actions { display:flex; gap:var(--space-2); justify-content:flex-end; margin-top:var(--space-2); flex-wrap:wrap; }
+/* Garantir que o texto do badge não seja cortado */
+.sig-item ion-label { overflow: visible !important; white-space: normal; }
 
-/* Tipografia e blocos */
-.muted { opacity: .8; }
+.sig-head { display:flex; align-items:center; gap:var(--space-2); flex-wrap: wrap; }
+.sig-sub { font-size: 12px; opacity: .8; }
+.mini-card { width: 110px; margin-left: var(--space-2); border-radius: 8px; }
+.finding ion-icon { margin-right: var(--space-2); }
+.danger-text { color: var(--ion-color-danger); }
+
+/* Cartões */
 ion-card { border-radius: var(--radius); overflow: hidden; }
 ion-card-header { padding-bottom: 0; }
 ion-card-title { display:flex; align-items:center; gap:var(--space-2); font-weight:700; }
@@ -53,14 +48,6 @@ ion-card-title { display:flex; align-items:center; gap:var(--space-2); font-weig
 .kpi { font-size: 32px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; }
 .kpi-sub { font-size: 12px; opacity: .7; margin-top: -2px; }
 
-/* Listas */
-.sig-item { align-items: flex-start; }
-.sig-head { display:flex; gap:var(--space-2); align-items:center; }
-.sig-sub { font-size: 12px; opacity: .8; }
-.mini-card { width: 110px; margin-left: var(--space-2); border-radius: 8px; }
-.finding ion-icon { margin-right: var(--space-2); }
-.danger-text { color: var(--ion-color-danger); }
-
 /* Callouts */
 .callout-ok {
   display:flex; align-items:center; gap:var(--space-2);
@@ -68,13 +55,22 @@ ion-card-title { display:flex; align-items:center; gap:var(--space-2); font-weig
   background: color-mix(in srgb, var(--ion-color-success) 10%, transparent);
   border-radius: 12px; padding: 10px 12px;
 }
-.callout-warn {
-  display:flex; align-items:center; gap:var(--space-2);
-  border:1px solid var(--ion-color-warning);
-  background: color-mix(in srgb, var(--ion-color-warning) 12%, transparent);
-  border-radius: 12px; padding: 10px 12px;
-}
-.approval { padding: 8px 12px; }
 
-/* Responsivo */
+/* ===== Informações do Arquivo: valores à direita maiores ===== */
+.info-list ion-note[slot='end'] {
+  font-size: 15px;              /* ajuste aqui se quiser 16px */
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ion-text-color);
+  opacity: .95;
+}
+
+/* badges mais encorpados nesse bloco */
+.info-list ion-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
 @media (min-width: 992px) { .left { max-width: 420px; } }

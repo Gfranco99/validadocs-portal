@@ -1,16 +1,24 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
-import { IonHeader, IonToolbar, IonTitle, IonContent, IonButton, IonButtons } from '@ionic/angular/standalone';
+import { Component, inject } from '@angular/core';
+import { Title } from '@angular/platform-browser';
+import {
+  IonHeader, IonToolbar, IonTitle, IonButtons, IonButton,
+  IonContent, IonIcon, IonGrid, IonRow, IonCol
+} from '@ionic/angular/standalone';
+import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-home',
   standalone: true,
+  imports: [
+    IonHeader, IonToolbar, IonTitle, IonButtons, IonButton,
+    IonContent, IonIcon, IonGrid, IonRow, IonCol, RouterModule
+  ],
   templateUrl: './home.page.html',
   styleUrls: ['./home.page.scss'],
-  imports: [CommonModule,RouterLink,IonButtons, IonButton, IonHeader, IonToolbar, IonTitle, IonContent],
 })
 export class HomePage {
-  constructor() {}
+  private title = inject(Title);
+  constructor() {
+    this.title.setTitle('ValidaDocs'); // título da aba
+  }
 }
-

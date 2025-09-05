@@ -49,7 +49,6 @@
         </div>
       </div>
 
-      <!-- Removido bloco de botões internos -->
       <ion-note color="danger" *ngIf="error">{{ error }}</ion-note>
       <ion-progress-bar *ngIf="loading" type="indeterminate"></ion-progress-bar>
     </ion-card-content>
@@ -74,15 +73,18 @@
 
               <ion-list class="ion-margin-top">
                 <ion-item *ngFor="let s of r.signatures" lines="full" class="sig-item">
-                  <ion-label>
+                  <ion-label class="ion-text-wrap">
                     <div class="sig-head">
                       <strong>{{ s.signerCN }}</strong>
-                      <ion-badge [color]="sigColor(s)">{{ s.valid ? 'Válida' : 'Inválida' }}</ion-badge>
                     </div>
                     <div class="sig-sub">{{ s.standard }} • {{ s.kind }} • {{ s.policy || '—' }}</div>
                     <div class="sig-sub" *ngIf="s.time">{{ s.time | date:'dd/MM/yyyy HH:mm' }}</div>
                   </ion-label>
-                  <img *ngIf="s.cardImageUrl" [src]="s.cardImageUrl" alt="card" class="mini-card" />
+
+                  <!-- mantém só o badge (sem a imagem "card") -->
+                  <ion-badge slot="end" [color]="sigColor(s)">
+                    {{ s.valid ? 'Válida' : 'Inválida' }}
+                  </ion-badge>
                 </ion-item>
               </ion-list>
 
@@ -138,6 +140,7 @@
             </ion-card-content>
           </ion-card>
 
+          <!-- Informações do Arquivo (com classe info-list) -->
           <ion-card>
             <ion-card-header>
               <ion-card-title>
@@ -146,7 +149,7 @@
               </ion-card-title>
             </ion-card-header>
             <ion-card-content>
-              <ion-list>
+              <ion-list class="info-list">
                 <ion-item>
                   <ion-label>PDF/A válido</ion-label>
                   <ion-badge [color]="r.pdfa?.conforms ? 'success' : 'danger'">
@@ -154,14 +157,17 @@
                   </ion-badge>
                   <ion-note slot="end">{{ r.pdfa?.level || '—' }}</ion-note>
                 </ion-item>
+
                 <ion-item>
                   <ion-label>LPA válido</ion-label>
                   <ion-badge [color]="r.lpa === 'Sim' ? 'success' : 'medium'">{{ r.lpa }}</ion-badge>
                 </ion-item>
+
                 <ion-item>
                   <ion-label>Tipo de assinatura</ion-label>
                   <ion-note slot="end">{{ r.signatureType }}</ion-note>
                 </ion-item>
+
                 <ion-item>
                   <ion-label>Integridade</ion-label>
                   <ion-badge [color]="r.integrityValid ? 'success' : 'danger'">

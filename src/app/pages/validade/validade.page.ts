@@ -110,7 +110,6 @@ export class ValidadePage {
     const kb = f.size / 1024;
     return kb < 1024 ? `${Math.round(kb)} KB` : `${(kb / 1024).toFixed(2)} MB`;
   }
-
   signatureCount() { return this.result?.signatures?.length ?? 0; }
   sigColor(sig: SignatureSummary) { return sig.valid ? 'success' : 'danger'; }
   allValid(): boolean { return !!this.result && this.result.signatures.every(s => s.valid); }
