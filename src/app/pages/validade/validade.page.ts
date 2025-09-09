@@ -10,6 +10,9 @@ import {
   IonList, IonNote, IonProgressBar, IonRow, IonTitle, IonToolbar
 } from '@ionic/angular/standalone';
 
+// >>> SEL0 MINI para exibir ao lado de cada assinatura no resumo
+import { SeloValidacaoMiniComponent } from '../../components/selo-validacao-mini.component';
+
 @Component({
   selector: 'app-validate',
   templateUrl: './validade.page.html',
@@ -20,7 +23,9 @@ import {
     IonHeader, IonToolbar, IonTitle, IonContent,
     IonCard, IonCardHeader, IonCardTitle, IonCardContent,
     IonButton, IonItem, IonInput, IonNote, IonProgressBar,
-    IonGrid, IonRow, IonCol, IonList, IonLabel, IonBadge, IonIcon, IonButtons
+    IonGrid, IonRow, IonCol, IonList, IonLabel, IonBadge, IonIcon, IonButtons,
+    // componente mini
+    SeloValidacaoMiniComponent
   ]
 })
 export class ValidadePage {
@@ -53,7 +58,9 @@ export class ValidadePage {
     }
 
     // permite selecionar o mesmo arquivo novamente
-    setTimeout(() => this.fileInput?.nativeElement && (this.fileInput.nativeElement.value = ''), 0);
+    setTimeout(() => {
+      if (this.fileInput?.nativeElement) this.fileInput.nativeElement.value = '';
+    }, 0);
   }
 
   onDragOver(ev: DragEvent) { ev.preventDefault(); }
@@ -110,7 +117,14 @@ export class ValidadePage {
     const kb = f.size / 1024;
     return kb < 1024 ? `${Math.round(kb)} KB` : `${(kb / 1024).toFixed(2)} MB`;
   }
+
   signatureCount() { return this.result?.signatures?.length ?? 0; }
+
   sigColor(sig: SignatureSummary) { return sig.valid ? 'success' : 'danger'; }
-  allValid(): boolean { return !!this.result && this.result.signatures.every(s => s.valid); }
+
+  allValid(): boolean {
+    return !!this.result && Array.isArray(this.result.signatures)
+      ? this.result.signatures.every(s => s.valid)
+      : false;
+  }
 }
