@@ -11,7 +11,6 @@
 </ion-header>
 
 <ion-content class="ion-padding">
-  <!-- input oculto (acionado pelos botões e pela dropzone) -->
   <input
     #fileInput
     type="file"
@@ -20,7 +19,6 @@
     hidden
   />
 
-  <!-- Upload com auto-validação -->
   <ion-card class="upload-card" *ngIf="!file">
     <ion-card-header>
       <ion-card-title>
@@ -53,10 +51,9 @@
   <!-- Resultado -->
   <ng-container *ngIf="result as r">
     <ion-grid class="val-grid">
-      <ion-row>
-
-        <!-- Resumo (coluna mais larga para caber o nome completo) -->
-        <ion-col size="12" size-lg="6" class="left">
+      <ion-row class="val-row">
+        <!-- ESQUERDA: Resumo (5/12) -->
+        <ion-col size="12" size-lg="5" class="left">
           <ion-card class="summary-card">
             <ion-card-header>
               <ion-card-title>
@@ -66,12 +63,13 @@
             </ion-card-header>
 
             <ion-card-content>
-              <div class="kpi">{{ signatureCount() }}</div>
-              <div class="kpi-sub">Assinaturas encontradas</div>
+              <div class="summary-metrics">
+                <div class="kpi">{{ signatureCount() }}</div>
+                <div class="kpi-sub">Assinaturas encontradas</div>
+              </div>
 
               <ion-list class="ion-margin-top">
                 <ion-item *ngFor="let s of r.signatures" lines="full" class="sig-item">
-                  <!-- TEXTO ocupa 100% da largura; nome não é truncado -->
                   <ion-label class="ion-text-wrap">
                     <div class="sig-head">
                       <strong class="sig-name">{{ s.signerCN }}</strong>
@@ -84,9 +82,13 @@
                     </div>
                   </ion-label>
 
-                  <!-- SELO à direita (slot=end) – tamanho controlado por ngStyle -->
-                  <div slot="end" class="mini-slot">
-                    <img src="/src/assets/validadocs-logo.png">
+                  <!-- Selo fixo à direita -->
+                  <div slot="end" class="seal-box">
+                    <img
+                      src="assets/selo_validadocs_ICPBrasil.png"
+                      alt="Selo ValidaDocs"
+                      class="seal-img-box"
+                    />
                   </div>
                 </ion-item>
               </ion-list>
@@ -99,8 +101,8 @@
           </ion-card>
         </ion-col>
 
-        <!-- Apontamentos e detalhes -->
-        <ion-col size="12" size-lg="6" class="right">
+        <!-- DIREITA: Apontamentos + Detalhes + Info + Assinaturas (5/12) -->
+        <ion-col size="12" size-lg="5" class="right">
           <ion-card class="findings-card">
             <ion-card-header>
               <ion-card-title>
@@ -143,7 +145,6 @@
             </ion-card-content>
           </ion-card>
 
-          <!-- Informações do Arquivo -->
           <ion-card>
             <ion-card-header>
               <ion-card-title>
