@@ -1,6 +1,7 @@
 
 export type CertAuthority = 'ICP-Brasil' | 'Gov.br' | 'Enotariado' | 'ICP-RC';
 export type SignatureKind = 'Qualificada' | 'Avancada' | 'Desconhecida';
+export type SignatureStandard = 'PAdES' | 'XAdES' | 'CAdES' | 'Outro';
 
 export interface CertificateInfo {
   subjectCN: string;
@@ -11,31 +12,52 @@ export interface CertificateInfo {
   notAfter?: string;
 }
 
-export interface SignatureSummary {
-  signerCN: string;
+export interface ValidaDocsReturn {
+  digitalSignatureValidations: SignatureInfo[]; 
+}
+
+export interface SignatureInfo {
+  endCertSubjectName: string;
   cpf?: string;
-  kind: SignatureKind;
-  standard: 'PAdES' | 'XAdES' | 'CAdES' | 'Outro';
-  policy?: string;
-  qualifiedBy?: CertAuthority;
-  time?: string;
-  valid: boolean;
+  signatureLevel: SignatureKind;
+  standard?: SignatureStandard;  
+  qualified?: CertAuthority;
+  signatureTime?: string;
+  signatureValid: boolean;
   cardImageUrl?: string;
+  isICP: boolean;
+	iseGov: boolean;
+  signatureErrors: string;
+	signatureAlerts: string;
+  certPathValid: true;
+	certPathErrors: string;
+	certPathAlerts: string;
+  rootIssuer: string;
 }
 
 export interface PdfaInfo {
-  conforms: boolean;
+  isValid: boolean;
   level?: string;
+  status: string;	
+	bornDigital: boolean;
+	isPDFACompliant: boolean;
+	errorMessage: string;
+  alertMessage: string;
 }
 
 export interface ValidationResult {
-  documentName: string;
-  validationDate: string;
-  integrityValid: boolean;
-  pdfa: PdfaInfo;
-  lpa: 'Sim' | 'Não' | 'Desconhecido';
-  signatureType: 'PAdES' | 'XAdES' | 'CAdES' | 'Nenhuma/Desconhecida';
-  signatures: SignatureSummary[];
+  fileName: string;
+  validationTime: string;
+  isValid: boolean;  
+  lpaValid: boolean;
+  signatureType: SignatureStandard;
+  status: string;
+  softwareVersion: string;
+  signaturePolicy: string;
+  elapsedTime: number;
+
+  signatures: SignatureInfo[];
   certificates: CertificateInfo[];
-  findings: string[];
+  errorfindings: string[];
+  pdfValidations: PdfaInfo;
 }

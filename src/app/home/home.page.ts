@@ -5,6 +5,7 @@ import {
   IonContent, IonIcon, IonGrid, IonRow, IonCol
 } from '@ionic/angular/standalone';
 import { RouterModule } from '@angular/router';
+import { provideHttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-home',
@@ -14,7 +15,7 @@ import { RouterModule } from '@angular/router';
     IonContent, IonIcon, IonGrid, IonRow, IonCol, RouterModule
   ],
   templateUrl: './home.page.html',
-  styleUrls: ['./home.page.scss'],
+  styleUrls: ['./home.page.scss'],  
 })
 export class HomePage {
   private title = inject(Title);

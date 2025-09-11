@@ -2,39 +2,56 @@
 import { ValidationResult } from '../types/validation.types';
 
 export const MOCK_VALIDATION: ValidationResult = {
-  documentName: 'DOCUMENTO_HERIOBO_assinado.pdf',
-  validationDate: '2025-08-14T12:05:24-03:00',
-  integrityValid: true,
-  pdfa: { conforms: false, level: 'PDF/A-1b' },
-  lpa: 'Não',
+  fileName: 'DOCUMENTO_HERIOBO_assinado.pdf',
+  validationTime: '2025-08-14T12:05:24-03:00',
+  isValid: true,
+  status: '',
+  softwareVersion: '',
+  signaturePolicy: '',
+  elapsedTime: 0,  
+  lpaValid: false,
   signatureType: 'PAdES',
-  findings: [
+  errorfindings: [
     'Erro1: Este documento possui assinatura inválida.',
     'Erro2: Existem assinaturas desencadeadas.',
     'Erro3: Este documento não está no padrão PDF/A conforme ISO19000.'
   ],
   signatures: [
     {
-      signerCN: 'CN=MARCOS DONIZETE FOGAÇA',
+      endCertSubjectName: 'CN=MARCOS DONIZETE FOGAÇA',
       cpf: '***.***.***-**',
-      kind: 'Qualificada',
+      signatureLevel: 'Qualificada',
       standard: 'PAdES',
-      policy: 'ICP-Brasil',
-      qualifiedBy: 'ICP-Brasil',
-      time: '2025-07-10T09:25:24-03:00',
-      valid: true,
-      cardImageUrl: 'assets/cards/qualificada.svg'
+      qualified: 'ICP-Brasil',
+      signatureTime: '2025-07-10T09:25:24-03:00',
+      signatureValid: true,
+      cardImageUrl: 'assets/cards/qualificada.svg',
+      isICP: true,
+      iseGov: false,
+      signatureErrors: '',
+      signatureAlerts: '',
+      certPathValid: true,
+      certPathErrors: '',
+      certPathAlerts: '',
+      rootIssuer: ''
     },
     {
-      signerCN: 'CN= GUILHERME HENRIQUE DIAS FRANCO',
+      endCertSubjectName: 'CN= GUILHERME HENRIQUE DIAS FRANCO',
       cpf: '***.***.***-**',
-      kind: 'Qualificada',
+      signatureLevel: 'Qualificada',
       standard: 'PAdES',
-      policy: 'ICP-Brasil',
-      qualifiedBy: 'ICP-Brasil',
-      time: '2025-10-02T10:15:24-03:00',
-      valid: true,
-      cardImageUrl: 'assets/cards/qualificada.svg'
+      qualified: 'ICP-Brasil',
+      signatureTime: '2025-10-02T10:15:24-03:00',
+      signatureValid: true,
+      cardImageUrl: 'assets/cards/qualificada.svg',
+      isICP: true,
+      iseGov: false,
+      signatureErrors: '',
+      signatureAlerts: '',
+      certPathValid: true,
+      certPathErrors: '',
+      certPathAlerts: '',
+      rootIssuer: ''
     }
   ],
   certificates: [
@@ -52,5 +69,14 @@ export const MOCK_VALIDATION: ValidationResult = {
       notBefore: '2024-04-29T00:00:00-03:00',
       notAfter: '2025-04-29T00:00:00-03:00'
     }
-  ]
+  ],
+  pdfValidations: {
+    isValid: false,
+    level: 'PDF/A-1b',
+    status: "OK",
+    bornDigital: true,
+    isPDFACompliant: true,
+    errorMessage: '',
+    alertMessage: '',
+  }
 };

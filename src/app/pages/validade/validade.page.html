@@ -64,21 +64,20 @@
 
             <ion-card-content>
               <div class="summary-metrics">
-                <div class="kpi">{{ signatureCount() }}</div>
-                <div class="kpi-sub">Assinaturas encontradas</div>
+                <div class="kpi">{{ signatureCount() }} Assinaturas encontradas</div>                
               </div>
 
               <ion-list class="ion-margin-top">
                 <ion-item *ngFor="let s of r.signatures" lines="full" class="sig-item">
                   <ion-label class="ion-text-wrap">
                     <div class="sig-head">
-                      <strong class="sig-name">{{ s.signerCN }}</strong>
+                      <strong class="sig-name">{{ s.endCertSubjectName }}</strong>
                     </div>
                     <div class="sig-sub">
-                      {{ s.standard }} • {{ s.kind }} • {{ s.policy || '—' }}
+                      {{ s.standard }} • {{ s.signatureLevel }} • {{ s.qualified || '—' }}
                     </div>
-                    <div class="sig-sub" *ngIf="s.time">
-                      {{ s.time | date:'dd/MM/yyyy HH:mm' }}
+                    <div class="sig-sub" *ngIf="s.signatureTime">
+                      {{ s.signatureTime | date:'dd/MM/yyyy HH:mm' }}
                     </div>
                   </ion-label>
 
@@ -103,7 +102,7 @@
 
         <!-- DIREITA: Apontamentos + Detalhes + Info + Assinaturas (5/12) -->
         <ion-col size="12" size-lg="5" class="right">
-          <ion-card class="findings-card">
+          <ion-card class="errorfindings-card">
             <ion-card-header>
               <ion-card-title>
                 <ion-icon name="search-outline"></ion-icon>
@@ -111,8 +110,8 @@
               </ion-card-title>
             </ion-card-header>
             <ion-card-content>
-              <ion-list *ngIf="r.findings?.length; else ok">
-                <ion-item *ngFor="let f of r.findings" class="finding">
+              <ion-list *ngIf="r.errorfindings?.length; else ok">
+                <ion-item *ngFor="let f of r.errorfindings" class="finding">
                   <ion-icon name="alert-circle" color="danger"></ion-icon>
                   <ion-label class="danger-text">{{ f }}</ion-label>
                 </ion-item>
@@ -136,11 +135,11 @@
             <ion-card-content>
               <ion-item lines="full">
                 <ion-label position="stacked">Nome do documento</ion-label>
-                <ion-input [value]="r.documentName" readonly></ion-input>
+                <ion-input [value]="r.fileName" readonly></ion-input>
               </ion-item>
               <ion-item>
                 <ion-label>Data de validação</ion-label>
-                <ion-note>{{ r.validationDate | date:'dd/MM/yyyy HH:mm' }}</ion-note>
+                <ion-note>{{ r.validationTime | date:'dd/MM/yyyy HH:mm' }}</ion-note>
               </ion-item>
             </ion-card-content>
           </ion-card>
@@ -156,16 +155,16 @@
               <ion-list class="info-list">
                 <ion-item>
                   <ion-label>PDF/A válido</ion-label>
-                  <ion-badge [color]="r.pdfa?.conforms ? 'success' : 'danger'">
-                    {{ r.pdfa?.conforms ? 'Sim' : 'Não' }}
+                  <ion-badge [color]="r.pdfValidations?.isValid ? 'success' : 'danger'">
+                    {{ r.pdfValidations?.isValid ? 'Sim' : 'Não' }}
                   </ion-badge>
-                  <ion-note slot="end">{{ r.pdfa?.level || '—' }}</ion-note>
+                  <ion-note slot="end">{{ r.pdfValidations?.level || '—' }}</ion-note>
                 </ion-item>
 
                 <ion-item>
                   <ion-label>LPA válido</ion-label>
-                  <ion-badge [color]="r.lpa === 'Sim' ? 'success' : 'medium'">
-                    {{ r.lpa }}
+                  <ion-badge [color]="r.lpaValid ? 'success' : 'medium'">
+                    {{ r.lpaValid }}
                   </ion-badge>
                 </ion-item>
 
@@ -174,12 +173,12 @@
                   <ion-note slot="end">{{ r.signatureType }}</ion-note>
                 </ion-item>
 
-                <ion-item>
+                <!-- <ion-item>
                   <ion-label>Integridade</ion-label>
                   <ion-badge [color]="r.integrityValid ? 'success' : 'danger'">
                     {{ r.integrityValid ? 'OK' : 'Falhou' }}
                   </ion-badge>
-                </ion-item>
+                </ion-item> -->
               </ion-list>
             </ion-card-content>
           </ion-card>
@@ -195,13 +194,13 @@
               <ion-list>
                 <ion-item *ngFor="let s of r.signatures">
                   <ion-label>
-                    <h3>{{ s.signerCN }}</h3>
-                    <p>CPF: {{ s.cpf || '—' }} • Padrão: {{ s.standard }} • Classe: {{ s.kind }}</p>
-                    <p>Política: {{ s.policy || '—' }} • Autoridade: {{ s.qualifiedBy || '—' }}</p>
-                    <p *ngIf="s.time">Data: {{ s.time | date:'dd/MM/yyyy HH:mm' }}</p>
+                    <h3>{{ s.endCertSubjectName }}</h3>
+                    <p>CPF: {{ s.cpf || '—' }} • {{ s.standard }} • {{ s.signatureLevel }}</p>
+                    <p>{{ s.qualified || '—' }}</p>
+                    <p *ngIf="s.signatureTime">Data: {{ s.signatureTime | date:'dd/MM/yyyy HH:mm' }}</p>
                   </ion-label>
                   <ion-badge slot="end" [color]="sigColor(s)">
-                    {{ s.valid ? 'Válida' : 'Inválida' }}
+                    {{ s.signatureValid ? 'Válida' : 'Inválida' }}
                   </ion-badge>
                 </ion-item>
               </ion-list>

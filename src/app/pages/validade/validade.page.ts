@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ValidationService } from '../../services/validation.service';
-import { ValidationResult, SignatureSummary } from '../../types/validation.types';
+import { ValidationResult, SignatureInfo } from '../../types/validation.types';
 import {
   IonBadge, IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardTitle,
   IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonInput, IonItem, IonLabel,
@@ -28,6 +28,7 @@ import { SeloValidacaoMiniComponent } from '../../components/selo-validacao-mini
     SeloValidacaoMiniComponent
   ]
 })
+
 export class ValidadePage {
   @ViewChild('fileInput', { static: false }) fileInput?: ElementRef<HTMLInputElement>;
 
@@ -120,11 +121,11 @@ export class ValidadePage {
 
   signatureCount() { return this.result?.signatures?.length ?? 0; }
 
-  sigColor(sig: SignatureSummary) { return sig.valid ? 'success' : 'danger'; }
+  sigColor(sig: SignatureInfo) { return sig.signatureValid ? 'success' : 'danger'; }
 
   allValid(): boolean {
     return !!this.result && Array.isArray(this.result.signatures)
-      ? this.result.signatures.every(s => s.valid)
+      ? this.result.signatures.every(s => s.signatureValid)
       : false;
   }
 }
