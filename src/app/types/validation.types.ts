@@ -14,13 +14,14 @@ export interface CertificateInfo {
 
 export interface ValidaDocsReturn {
   digitalSignatureValidations: SignatureInfo[]; 
+  pdfValidations: PdfaInfo;
 }
 
 export interface SignatureInfo {
   endCertSubjectName: string;
   cpf?: string;
   signatureLevel: SignatureKind;
-  standard?: SignatureStandard;  
+  signatureType: SignatureStandard;  
   qualified?: CertAuthority;
   signatureTime?: string;
   signatureValid: boolean;
@@ -37,7 +38,7 @@ export interface SignatureInfo {
 
 export interface PdfaInfo {
   isValid: boolean;
-  level?: string;
+  pdfAStandard: string;
   status: string;	
 	bornDigital: boolean;
 	isPDFACompliant: boolean;
@@ -49,15 +50,15 @@ export interface ValidationResult {
   fileName: string;
   validationTime: string;
   isValid: boolean;  
-  lpaValid: boolean;
+  lpaValid: boolean; //não possui mais LPA no json
   signatureType: SignatureStandard;
   status: string;
   softwareVersion: string;
-  signaturePolicy: string;
+  //signaturePolicy: string; nao possui ais no json
   elapsedTime: number;
 
-  signatures: SignatureInfo[];
+  validaDocsReturn: ValidaDocsReturn;
   certificates: CertificateInfo[];
   errorfindings: string[];
-  pdfValidations: PdfaInfo;
+  
 }

@@ -68,13 +68,13 @@
               </div>
 
               <ion-list class="ion-margin-top">
-                <ion-item *ngFor="let s of r.signatures" lines="full" class="sig-item">
+                <ion-item *ngFor="let s of r.validaDocsReturn.digitalSignatureValidations" lines="full" class="sig-item">
                   <ion-label class="ion-text-wrap">
                     <div class="sig-head">
                       <strong class="sig-name">{{ s.endCertSubjectName }}</strong>
                     </div>
                     <div class="sig-sub">
-                      {{ s.standard }} • {{ s.signatureLevel }} • {{ s.qualified || '—' }}
+                      {{ s.signatureType }} • {{ s.signatureLevel }} • {{ s.qualified || '—' }}
                     </div>
                     <div class="sig-sub" *ngIf="s.signatureTime">
                       {{ s.signatureTime | date:'dd/MM/yyyy HH:mm' }}
@@ -154,11 +154,11 @@
             <ion-card-content>
               <ion-list class="info-list">
                 <ion-item>
-                  <ion-label>PDF/A válido</ion-label>
-                  <ion-badge [color]="r.pdfValidations?.isValid ? 'success' : 'danger'">
-                    {{ r.pdfValidations?.isValid ? 'Sim' : 'Não' }}
+                  <ion-label>PDF/A </ion-label>
+                  <ion-badge [color]="r.validaDocsReturn.pdfValidations?.isValid ? 'success' : 'danger'">
+                    {{ r.validaDocsReturn.pdfValidations?.isValid ? 'Sim' : 'Não' }}
                   </ion-badge>
-                  <ion-note slot="end">{{ r.pdfValidations?.level || '—' }}</ion-note>
+                  <ion-note slot="end">{{ r.validaDocsReturn.pdfValidations?.pdfAStandard || '—' }}</ion-note>
                 </ion-item>
 
                 <ion-item>
@@ -192,10 +192,10 @@
             </ion-card-header>
             <ion-card-content>
               <ion-list>
-                <ion-item *ngFor="let s of r.signatures">
+                <ion-item *ngFor="let s of r.validaDocsReturn.digitalSignatureValidations">
                   <ion-label>
                     <h3>{{ s.endCertSubjectName }}</h3>
-                    <p>CPF: {{ s.cpf || '—' }} • {{ s.standard }} • {{ s.signatureLevel }}</p>
+                    <p>CPF: {{ s.cpf || '—' }} • {{ s.signatureType }} • {{ s.signatureLevel }}</p>
                     <p>{{ s.qualified || '—' }}</p>
                     <p *ngIf="s.signatureTime">Data: {{ s.signatureTime | date:'dd/MM/yyyy HH:mm' }}</p>
                   </ion-label>

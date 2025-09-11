@@ -119,13 +119,13 @@ export class ValidadePage {
     return kb < 1024 ? `${Math.round(kb)} KB` : `${(kb / 1024).toFixed(2)} MB`;
   }
 
-  signatureCount() { return this.result?.signatures?.length ?? 0; }
+  signatureCount() { return this.result?.validaDocsReturn.digitalSignatureValidations?.length ?? 0; }
 
   sigColor(sig: SignatureInfo) { return sig.signatureValid ? 'success' : 'danger'; }
 
   allValid(): boolean {
-    return !!this.result && Array.isArray(this.result.signatures)
-      ? this.result.signatures.every(s => s.signatureValid)
+    return !!this.result && Array.isArray(this.result.validaDocsReturn.digitalSignatureValidations)
+      ? this.result.validaDocsReturn.digitalSignatureValidations.every(s => s.signatureValid)
       : false;
   }
 }
