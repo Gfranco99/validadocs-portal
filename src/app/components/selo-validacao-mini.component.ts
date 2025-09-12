@@ -1,92 +1,114 @@
-import { Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
+// Tamanhos disponíveis do selo
+type Size = 'sm' | 'md' | 'lg';
+
+// Mesma ideia do seu CertAuthority (com fallback)
+export type Authority = 'ICP-Brasil' | 'Gov.br' | 'Enotariado' | 'ICP-RC' | 'Desconhecida';
+
 @Component({
-  selector: 'app-selo-mini',
+  selector: 'app-selo-validacao-mini',
   standalone: true,
   imports: [CommonModule],
   template: `
-  <div class="selo-mini" [class.invalido]="status === 'INVÁLIDO'">
-    <div class="sm-top">
-      <span class="sm-title" title="ASSINATURA ELETRÔNICA">ASSINATURA ELETRÔNICA</span>
-      <span class="sm-sub" [title]="tipo">{{ tipo || 'AVANÇADA' }}</span>
-      <span class="sm-meta" *ngIf="tipoAssinatura" [title]="'Tipo: ' + tipoAssinatura">
-        Tipo: {{ tipoAssinatura }}
+    <div class="selo-mini"
+         [ngClass]="['size-' + size, valid ? 'ok' : 'fail']"
+         role="img"
+         [attr.aria-label]="altText"
+         [attr.title]="altText">
+      <img [src]="iconSrc" class="selo-img" [alt]="altText" />
+      <span class="selo-chip" [ngClass]="valid ? 'chip-ok' : 'chip-fail'">
+        {{ valid ? 'Válida' : 'Inválida' }}
       </span>
     </div>
-
-    <div class="sm-middle">
-      <div class="sm-left">
-        <img [src]="logoSrc" alt="ValidaDocs" (error)="onImgErr($event)" />
-      </div>
-      <div class="sm-right">
-        <span class="sm-conf">Conforme</span>
-        <span class="sm-lei">{{ lei }}</span>
-      </div>
-    </div>
-
-    <!-- Rodapé mostra a política da assinatura -->
-    <div class="sm-bottom" [title]="politica || '—'">{{ politica || '—' }}</div>
-  </div>
   `,
   styles: [`
-  :host{
-    /* tamanho padrão do selo (pode sobrescrever no page.scss) */
-    --mini-w: 180px;  /* antes 200px */
-    --mini-h: 126px;  /* antes 140px */
-  }
+    .selo-mini {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .35rem .5rem;
+      border-radius: 999px;
+      background: #fff;
+      border: 1px solid #E5E7EB; /* neutral-200 */
+      box-shadow: 0 1px 2px rgba(0,0,0,.04);
+      max-width: 100%;
+    }
+    .selo-img { display:block; height:100%; width:auto; object-fit:contain; }
+    .size-sm .selo-img { max-height: 20px; }
+    .size-md .selo-img { max-height: 28px; }
+    .size-lg .selo-img { max-height: 36px; }
 
-  .selo-mini{
-    --vd-dark:#496E6D; --vd-mint:#A7D0B7; --white:#fff;
-    width: var(--mini-w); height: var(--mini-h);
-    border-radius: 14px; overflow: hidden; box-sizing: border-box;
-    background: var(--vd-dark); color: var(--white);
-    box-shadow: 0 6px 16px rgba(0,0,0,.18);
-    display: grid;
-    grid-template-rows: 44px calc(var(--mini-h) - 44px - 24px) 24px; /* topo | meio | rodapé */
-    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  }
-  .selo-mini.invalido{ filter: grayscale(.12) brightness(.97); }
+    .selo-chip {
+      font-size: .75rem;
+      line-height: 1;
+      padding: .35rem .5rem;
+      border-radius: 999px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .chip-ok  { background:#ECFDF5; color:#065F46; border:1px solid #A7F3D0; }
+    .chip-fail{ background:#FEF2F2; color:#7F1D1D; border:1px solid #FECACA; }
 
-  /* TOPO */
-  .sm-top{ padding:8px 8px 4px; text-align:center; line-height:1.05 }
-  .sm-title{ display:block; font-weight:800; letter-spacing:.03em; font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
-  .sm-sub{   display:block; margin-top:2px; font-weight:800; font-size:12px; color:var(--vd-mint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
-  .sm-meta{  display:block; margin-top:2px; font-weight:600; font-size:9.5px; opacity:.95; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
-
-  /* MEIO */
-  .sm-middle{
-    display:grid; grid-template-columns: 56px 1fr; gap:8px;
-    align-items:center; padding: 6px 8px 8px; box-sizing:border-box;
-  }
-  .sm-left{ display:flex; align-items:center; justify-content:center; }
-  .sm-left img{ width:50px; height:40px; object-fit:contain; display:block; }
-  .sm-right{ text-align:right; line-height:1.06 }
-  .sm-conf{ display:block; font-weight:700; font-size:10.5px; opacity:.95; white-space:nowrap }
-  .sm-lei{  display:block; font-weight:800; font-size:12px; white-space:nowrap }
-
-  /* RODAPÉ */
-  .sm-bottom{
-    background: var(--vd-mint); color: var(--vd-dark);
-    display:flex; align-items:center; justify-content:center;
-    font-weight:800; font-size:9.5px; padding:0 6px;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  }
-  `]
+    .ok   { border-color:#A7F3D0; }
+    .fail { border-color:#FECACA; }
+  `],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SeloValidacaoMiniComponent {
-  /** AVANÇADA | SIMPLES | QUALIFICADA (ou outra) */
-  @Input() tipo: string = 'AVANÇADA';
-  /** PAdES, XAdES, CAdES etc. */
-  @Input() tipoAssinatura: string = '';
-  /** VÁLIDO | INVÁLIDO (efeito visual sutil) */
-  @Input() status: 'VÁLIDO' | 'INVÁLIDO' = 'VÁLIDO';
-  /** “Lei 14.063/20” */
-  @Input() lei: string = 'Lei 14.063/20';
-  /** Política exibida no rodapé */
-  @Input() politica: string = '';
-  /** Logo */
-  @Input() logoSrc: string = 'assets/LOGO-AW-LOGOS-371x183-AW-VALIDADOCS.png';
+  /** Estado da assinatura */
+  @Input() valid: boolean = true;
 
-  onImgErr(e: Event){ (e.target as HTMLImageElement).style.visibility = 'hidden'; }
+  /** Tamanho do selo */
+  @Input() size: Size = 'md';
+
+  /**
+   * Forma recomendada: passar a autoridade diretamente.
+   * Ex.: [authority]="s.qualified ?? 'Desconhecida'"
+   */
+  @Input() authority: Authority = 'Desconhecida';
+
+  /**
+   * Compatibilidade (opcional): se você já usa booleans no HTML,
+   * pode continuar usando. Se "authority" vier setado, ela tem prioridade.
+   */
+  @Input() isICP: boolean = false;
+  @Input() isEGov: boolean = false;       // ligue como [isEGov]="s.iseGov"
+  @Input() isEnotariado: boolean = false; // ligue como [isEnotariado]="s.qualified === 'Enotariado'"
+
+  /** Caminhos dos ícones (pode sobrescrever via Input) */
+  @Input() icpSrc        = 'assets/selo_validadocs_ICPBrasil.png';
+  @Input() egovSrc       = 'assets/selo_validadocs_govbr.png';
+  @Input() enotariadoSrc = 'assets/selo_validadocs_enotariado.png';
+  @Input() icprcSrc      = 'assets/selo_validadocs_icprc.png';
+  @Input() genericSrc    = 'assets/selo_validadocs_generico.png';
+
+  /** Resolve a autoridade efetiva (authority > booleans) */
+  private get resolvedAuthority(): Authority {
+    if (this.authority && this.authority !== 'Desconhecida') return this.authority;
+
+    if (this.isEnotariado) return 'Enotariado';
+    if (this.isICP)        return 'ICP-Brasil';
+    if (this.isEGov)       return 'Gov.br';
+
+    // Se quiser mapear ICP-RC por alguma regra, faça aqui
+    return 'Desconhecida';
+  }
+
+  /** Ícone conforme a autoridade */
+  get iconSrc(): string {
+    switch (this.resolvedAuthority) {
+      case 'Enotariado': return this.enotariadoSrc;
+      case 'ICP-Brasil': return this.icpSrc;
+      case 'Gov.br':     return this.egovSrc;
+      case 'ICP-RC':     return this.icprcSrc;
+      default:           return this.genericSrc;
+    }
+  }
+
+  /** Texto acessível */
+  get altText(): string {
+    return `Selo ${this.resolvedAuthority} - ${this.valid ? 'assinatura válida' : 'assinatura inválida'}`;
+  }
 }

@@ -3,8 +3,12 @@
     <ion-title>Validação de Documento</ion-title>
 
     <ion-buttons slot="end">
-      <ion-button fill="clear" (click)="fileInput.click()">Selecionar um PDF</ion-button>
-      <ion-button *ngIf="file" fill="clear" color="light" (click)="reset()">Limpar</ion-button>
+      <ion-button fill="clear" (click)="fileInput.click()" [disabled]="loading">
+        Selecionar um PDF
+      </ion-button>
+      <ion-button *ngIf="file" fill="clear" color="light" (click)="reset()" [disabled]="loading">
+        Limpar
+      </ion-button>
       <ion-button routerLink="/">Voltar a Home</ion-button>
     </ion-buttons>
   </ion-toolbar>
@@ -19,6 +23,7 @@
     hidden
   />
 
+  <!-- Upload -->
   <ion-card class="upload-card" *ngIf="!file">
     <ion-card-header>
       <ion-card-title>
@@ -34,6 +39,8 @@
         (dragover)="onDragOver($event)"
         (drop)="onDrop($event)"
         role="button"
+        tabindex="0"
+        (keyup.enter)="fileInput.click()"
         aria-label="Solte o PDF aqui ou clique para escolher"
       >
         <ion-icon name="cloud-upload-outline"></ion-icon>
@@ -52,7 +59,8 @@
   <ng-container *ngIf="result as r">
     <ion-grid class="val-grid">
       <ion-row class="val-row">
-        <!-- ESQUERDA: Resumo (5/12) -->
+
+        <!-- ESQUERDA: Resumo -->
         <ion-col size="12" size-lg="5" class="left">
           <ion-card class="summary-card">
             <ion-card-header>
@@ -64,27 +72,39 @@
 
             <ion-card-content>
               <div class="summary-metrics">
-                <div class="kpi">{{ signatureCount() }} Assinaturas encontradas</div>                
+                <div class="kpi">{{ signatureCount() }} Assinaturas encontradas</div>
               </div>
 
               <ion-list class="ion-margin-top">
-                <ion-item *ngFor="let s of r.validaDocsReturn.digitalSignatureValidations" lines="full" class="sig-item">
+                <ion-item
+                  *ngFor="let s of r.validaDocsReturn?.digitalSignatureValidations"
+                  lines="full"
+                  class="sig-item"
+                >
                   <ion-label class="ion-text-wrap">
                     <div class="sig-head">
                       <strong class="sig-name">{{ s.endCertSubjectName }}</strong>
                     </div>
                     <div class="sig-sub">
-                      {{ s.signatureType }} • {{ s.signatureLevel }} • {{ s.qualified || '—' }}
+                      {{ s.signatureType }} {{ s.signatureLevel }} {{ s.qualified || '' }}
                     </div>
                     <div class="sig-sub" *ngIf="s.signatureTime">
                       {{ s.signatureTime | date:'dd/MM/yyyy HH:mm' }}
                     </div>
                   </ion-label>
 
-                  <!-- Selo fixo à direita -->
-                  <div slot="end" class="seal-box">
+                  <!-- Selo condicional à direita -->
+                  <div slot="end" class="seal-box" *ngIf="true">
                     <img
-                      src="assets/selo_validadocs_ICPBrasil.png"
+                      [src]="s.qualified === 'Enotariado'
+                        ? 'assets/selo_validadocs_Enotariado.png'
+                        : (s.qualified === 'ICP-RC'
+                            ? 'assets/selo_validadocs_ICPRC.png'
+                            : (s.isICP
+                                ? 'assets/selo_validadocs_ICPBrasil.png'
+                                : (s.iseGov
+                                    ? 'assets/selo_validadocs_GovBr.png'
+                                    : 'assets/selo_validadocs_generico.png')))"
                       alt="Selo ValidaDocs"
                       class="seal-img-box"
                     />
@@ -100,8 +120,9 @@
           </ion-card>
         </ion-col>
 
-        <!-- DIREITA: Apontamentos + Detalhes + Info + Assinaturas (5/12) -->
+        <!-- DIREITA -->
         <ion-col size="12" size-lg="5" class="right">
+          <!-- Apontamentos -->
           <ion-card class="errorfindings-card">
             <ion-card-header>
               <ion-card-title>
@@ -125,6 +146,7 @@
             </ion-card-content>
           </ion-card>
 
+          <!-- Detalhes do Documento -->
           <ion-card>
             <ion-card-header>
               <ion-card-title>
@@ -137,13 +159,30 @@
                 <ion-label position="stacked">Nome do documento</ion-label>
                 <ion-input [value]="r.fileName" readonly></ion-input>
               </ion-item>
+
               <ion-item>
                 <ion-label>Data de validação</ion-label>
                 <ion-note>{{ r.validationTime | date:'dd/MM/yyyy HH:mm' }}</ion-note>
               </ion-item>
+
+              <ion-item>
+                <ion-label>Status</ion-label>
+                <ion-note>{{ r.status }}</ion-note>
+              </ion-item>
+
+              <ion-item>
+                <ion-label>Política</ion-label>
+                <ion-note>{{ r.signatureType }}</ion-note>
+              </ion-item>
+
+              <ion-item>
+                <ion-label>Versão do software</ion-label>
+                <ion-note>{{ r.softwareVersion }}</ion-note>
+              </ion-item>
             </ion-card-content>
           </ion-card>
 
+          <!-- Informações do Arquivo (PDF/A) -->
           <ion-card>
             <ion-card-header>
               <ion-card-title>
@@ -154,35 +193,40 @@
             <ion-card-content>
               <ion-list class="info-list">
                 <ion-item>
-                  <ion-label>PDF/A </ion-label>
-                  <ion-badge [color]="r.validaDocsReturn.pdfValidations?.isValid ? 'success' : 'danger'">
-                    {{ r.validaDocsReturn.pdfValidations?.isValid ? 'Sim' : 'Não' }}
+                  <ion-label>PDF/A válido</ion-label>
+                  <ion-badge
+                    [color]="r.validaDocsReturn?.pdfValidations?.isValid ? 'success' : 'danger'"
+                  >
+                    {{ r.validaDocsReturn?.pdfValidations?.isValid ? 'Sim' : 'Não' }}
                   </ion-badge>
-                  <ion-note slot="end">{{ r.validaDocsReturn.pdfValidations?.pdfAStandard || '—' }}</ion-note>
+                  <ion-note slot="end">
+                    {{ r.validaDocsReturn?.pdfValidations?.pdfAStandard || '—' }}
+                  </ion-note>
+                </ion-item>
+                  
+                <ion-item *ngIf="r.validaDocsReturn?.pdfValidations?.alertMessage">
+                  <ion-label>Alerta</ion-label>
+                  <ion-note slot="end" color="warning">
+                    {{ r.validaDocsReturn?.pdfValidations?.alertMessage }}
+                  </ion-note>
+                </ion-item>
+
+                <ion-item *ngIf="r.validaDocsReturn?.pdfValidations?.errorMessage">
+                  <ion-label>Erro</ion-label>
+                  <ion-note slot="end" color="danger">
+                    {{ r.validaDocsReturn?.pdfValidations?.errorMessage }}
+                  </ion-note>
                 </ion-item>
 
                 <ion-item>
-                  <ion-label>LPA válido</ion-label>
-                  <ion-badge [color]="r.lpaValid ? 'success' : 'medium'">
-                    {{ r.lpaValid }}
-                  </ion-badge>
-                </ion-item>
-
-                <ion-item>
-                  <ion-label>Tipo de assinatura</ion-label>
+                  <ion-label>Tipo de assinaturas</ion-label>
                   <ion-note slot="end">{{ r.signatureType }}</ion-note>
                 </ion-item>
-
-                <!-- <ion-item>
-                  <ion-label>Integridade</ion-label>
-                  <ion-badge [color]="r.integrityValid ? 'success' : 'danger'">
-                    {{ r.integrityValid ? 'OK' : 'Falhou' }}
-                  </ion-badge>
-                </ion-item> -->
               </ion-list>
             </ion-card-content>
           </ion-card>
 
+          <!-- Assinaturas (lista detalhada) -->
           <ion-card>
             <ion-card-header>
               <ion-card-title>
@@ -192,12 +236,16 @@
             </ion-card-header>
             <ion-card-content>
               <ion-list>
-                <ion-item *ngFor="let s of r.validaDocsReturn.digitalSignatureValidations">
+                <ion-item
+                  *ngFor="let s of r.validaDocsReturn?.digitalSignatureValidations; trackBy: trackByName"
+                >
                   <ion-label>
                     <h3>{{ s.endCertSubjectName }}</h3>
-                    <p>CPF: {{ s.cpf || '—' }} • {{ s.signatureType }} • {{ s.signatureLevel }}</p>
-                    <p>{{ s.qualified || '—' }}</p>
-                    <p *ngIf="s.signatureTime">Data: {{ s.signatureTime | date:'dd/MM/yyyy HH:mm' }}</p>
+                    <p>{{ s.signatureType }}  {{ s.signatureLevel }}</p>
+                    <p>{{ s.signatureLevel || '' }}</p>
+                    <p *ngIf="s.signatureTime">
+                      Data: {{ s.signatureTime | date:'dd/MM/yyyy HH:mm' }}
+                    </p>
                   </ion-label>
                   <ion-badge slot="end" [color]="sigColor(s)">
                     {{ s.signatureValid ? 'Válida' : 'Inválida' }}

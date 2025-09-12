@@ -34,6 +34,10 @@ export interface SignatureInfo {
 	certPathErrors: string;
 	certPathAlerts: string;
   rootIssuer: string;
+  certificateStartDate?: string;
+  certificateEndDate?: string;
+  policyURI?: string;
+
 }
 
 export interface PdfaInfo {
@@ -50,11 +54,10 @@ export interface ValidationResult {
   fileName: string;
   validationTime: string;
   isValid: boolean;  
-  lpaValid: boolean; //não possui mais LPA no json
   signatureType: SignatureStandard;
   status: string;
   softwareVersion: string;
-  //signaturePolicy: string; nao possui ais no json
+  policy: string; 
   elapsedTime: number;
 
   validaDocsReturn: ValidaDocsReturn;

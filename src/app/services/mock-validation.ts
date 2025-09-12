@@ -9,8 +9,8 @@ export const MOCK_VALIDATION: ValidationResult = {
   softwareVersion: '',
   //signaturePolicy: '',
   elapsedTime: 0,  
-  lpaValid: false,
   signatureType: 'PAdES',
+  policy: 'string',
   errorfindings: [
     'Erro1: Este documento possui assinatura inválida.',
     'Erro2: Existem assinaturas desencadeadas.',

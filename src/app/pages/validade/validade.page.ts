@@ -10,7 +10,7 @@ import {
   IonList, IonNote, IonProgressBar, IonRow, IonTitle, IonToolbar
 } from '@ionic/angular/standalone';
 
-// >>> SEL0 MINI para exibir ao lado de cada assinatura no resumo
+// Componente de selo mini (se estiver usando no HTML)
 import { SeloValidacaoMiniComponent } from '../../components/selo-validacao-mini.component';
 
 @Component({
@@ -24,11 +24,9 @@ import { SeloValidacaoMiniComponent } from '../../components/selo-validacao-mini
     IonCard, IonCardHeader, IonCardTitle, IonCardContent,
     IonButton, IonItem, IonInput, IonNote, IonProgressBar,
     IonGrid, IonRow, IonCol, IonList, IonLabel, IonBadge, IonIcon, IonButtons,
-    // componente mini
     SeloValidacaoMiniComponent
   ]
 })
-
 export class ValidadePage {
   @ViewChild('fileInput', { static: false }) fileInput?: ElementRef<HTMLInputElement>;
 
@@ -42,6 +40,7 @@ export class ValidadePage {
     this.form = this.fb.group({ file: [null] });
   }
 
+  // ===== Upload =====
   onFileChange(ev: Event) {
     const input = ev.target as HTMLInputElement;
     const f = input?.files?.[0] ?? null;
@@ -83,6 +82,7 @@ export class ValidadePage {
     }
   }
 
+  // ===== Chamada de validação =====
   submit() {
     if (this.loading || !this.file) {
       if (!this.file) this.error = 'Selecione um PDF para validar.';
@@ -95,7 +95,10 @@ export class ValidadePage {
 
     const toValidate = this.file!;
     this.api.validatePdf(toValidate).subscribe({
-      next: (res) => { this.result = res; this.loading = false; },
+      next: (res: ValidationResult) => {
+        this.result = res;
+        this.loading = false;
+      },
       error: (err) => {
         this.error = 'Falha ao validar. Tente novamente.';
         this.loading = false;
@@ -112,20 +115,30 @@ export class ValidadePage {
     if (this.fileInput?.nativeElement) this.fileInput.nativeElement.value = '';
   }
 
-  // Helpers
+  // ===== Helpers de UI =====
   fileSize(f: File | null | undefined): string {
     if (!f) return '';
     const kb = f.size / 1024;
     return kb < 1024 ? `${Math.round(kb)} KB` : `${(kb / 1024).toFixed(2)} MB`;
   }
 
-  signatureCount() { return this.result?.validaDocsReturn.digitalSignatureValidations?.length ?? 0; }
+  signatureCount(): number {
+    return this.result?.validaDocsReturn?.digitalSignatureValidations?.length ?? 0;
+  }
 
-  sigColor(sig: SignatureInfo) { return sig.signatureValid ? 'success' : 'danger'; }
+  // Badge de status da assinatura (inclui "warning" se houver alerta sem erro)
+  sigColor(sig: SignatureInfo): 'success' | 'danger' | 'warning' | 'medium' {
+    if (sig.signatureValid) return 'success';
+    if (!sig.signatureValid && !sig.signatureErrors && !!sig.signatureAlerts) return 'warning';
+    return 'danger';
+  }
+
+  // TrackBy pra estabilizar a lista no *ngFor
+  trackByName = (_: number, s: SignatureInfo) =>
+    (s.endCertSubjectName ?? '') + '|' + (s.cpf ?? '');
 
   allValid(): boolean {
-    return !!this.result && Array.isArray(this.result.validaDocsReturn.digitalSignatureValidations)
-      ? this.result.validaDocsReturn.digitalSignatureValidations.every(s => s.signatureValid)
-      : false;
+    const sigs = this.result?.validaDocsReturn?.digitalSignatureValidations ?? [];
+    return sigs.length > 0 && sigs.every(s => s.signatureValid);
   }
 }
