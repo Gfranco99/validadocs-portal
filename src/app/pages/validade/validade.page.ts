@@ -1,5 +1,4 @@
-// == libs necessaria ('npm i jspdf jspdf-autotable') ==/
-
+// == libs necessárias:  npm i jspdf jspdf-autotable
 
 import { Component, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -41,6 +40,9 @@ export class ValidadePage {
   exporting = false;
   error?: string;
   result?: ValidationResult;
+
+  /** Coloque o PNG do logo em src/assets/validadocs-logo.png (ou ajuste o caminho) */
+  private readonly LOGO_URL = 'assets/validadocs-logo.png';
 
   constructor(private fb: FormBuilder, private api: ValidationService) {
     this.form = this.fb.group({ file: [null] });
@@ -145,23 +147,21 @@ export class ValidadePage {
   }
 
   // ===== Helpers para nomes (mostrar só CN em ICP-Brasil) =====
-  /** Extrai o último CN=... do DN. Ex.: "CN=JOÃO SILVA:123" -> "JOÃO SILVA:123" */
   private extractCN(subject?: string): string {
     if (!subject) return '—';
     const re = /(?:^|[,/])\s*CN\s*=\s*([^,\/]+)/gi;
     let cn = '';
     let m: RegExpExecArray | null;
-    while ((m = re.exec(subject))) cn = (m[1] || '').trim(); // último CN
+    while ((m = re.exec(subject))) cn = (m[1] || '').trim(); // usa o último CN
     return cn || subject || '—';
   }
 
-  /** Nome para exibição: se isICP, retorna apenas o CN; senão, retorna o nome original */
   displayCN(s: SignatureInfo): string {
     const base = s.endCertSubjectName || '—';
     return s.isICP ? this.extractCN(base) : base;
   }
 
-  // ===== Helpers para o PDF =====
+  // ===== Helpers PDF =====
   private brBool(v?: boolean): string { return v === undefined ? '—' : (v ? 'Sim' : 'Não'); }
 
   private brDate(s?: string): string {
@@ -179,17 +179,18 @@ export class ValidadePage {
     return n.replace(/[^\p{L}\p{N}\-_ ]+/gu, '_').slice(0, 80);
   }
 
-  // corta texto para caber (com reticências)
-  private fitText(doc: jsPDF, text: string, maxW: number, font = 'helvetica', style: 'normal' | 'bold' = 'normal', size = 10): string {
-    doc.setFont(font, style);
-    doc.setFontSize(size);
-    if (doc.getTextWidth(text) <= maxW) return text;
-    let t = text;
-    while (t.length > 1 && doc.getTextWidth(t + '…') > maxW) t = t.slice(0, -1);
-    return t + '…';
+  /** Carrega imagem do assets e resolve quando estiver pronta */
+  private loadImage(src: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
   }
 
-  // ===== Exportar PDF =====
+  // ===== Exportar PDF (com selo + LOGO no topo, título centralizado) =====
   async exportPdf() {
     if (!this.result || this.exporting) return;
     this.exporting = true;
@@ -201,13 +202,19 @@ export class ValidadePage {
 
       const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
 
-      // Paleta/estilo
-      const C = {
-        primary: [37, 99, 235] as [number, number, number],
-        ok: [34, 197, 94] as [number, number, number],
-        warn: [245, 158, 11] as [number, number, number],
+      // === Paleta com o tom solicitado (#4E6F70)
+      const BASE: [number, number, number] = [0x4E, 0x6F, 0x70];
+      const lighten = (rgb: [number, number, number], p: number): [number, number, number] => ([
+        Math.round(rgb[0] + (255 - rgb[0]) * p),
+        Math.round(rgb[1] + (255 - rgb[1]) * p),
+        Math.round(rgb[2] + (255 - rgb[2]) * p),
+      ]);
+
+      const BRAND = {
+        dark:  BASE,                    // faixa principal
+        mid:   lighten(BASE, 0.35),     // linha de brilho
         panel: [248, 250, 252] as [number, number, number],
-        border: 230,
+        border: 230
       };
 
       const M = 15;
@@ -216,60 +223,101 @@ export class ValidadePage {
       let y = M;
 
       const addPageIfNeeded = (min = 18) => { if (y > H - M - min) { doc.addPage(); y = M; } };
-      const hr = (space = 6) => { doc.setDrawColor(C.border); doc.line(M, y, W - M, y); y += space; };
+      const hr = (space = 6) => { doc.setDrawColor(BRAND.border); doc.line(M, y, W - M, y); y += space; };
 
-      // ===== Cabeçalho (chip na 2ª linha à direita; arquivo isolado na 1ª)
-      const headerBlock = (
-        fileName: string,
-        metric: string,
-        chipText: string,
-        chipColor: [number, number, number],
-        sub: string
-      ) => {
+      // Carrega o LOGO (se falhar, usa fallback texto)
+      let logoEl: HTMLImageElement | null = null;
+      try { logoEl = await this.loadImage(this.LOGO_URL); } catch { logoEl = null; }
+
+      // ===== Selo ValidaDocs (topo) com LOGO à esquerda e TÍTULO CENTRALIZADO
+      const drawBrandRibbon = (logo: HTMLImageElement | null, fallbackText: string, bigTitle: string) => {
+        const bannerW = W - 2 * M;
+        const bannerH = 26;
+        const radius  = 3;
+
+        doc.setFillColor(...BRAND.dark);
+        doc.roundedRect(M, y, bannerW, bannerH, radius, radius, 'F');
+
+        doc.setTextColor(255);
+
+        // Logo (ou texto de fallback) à esquerda
+        let leftContentRightX = M + 10;
+        if (logo) {
+          const logoH = 16;
+          const logoW = (logo.width / logo.height) * logoH;
+          const logoX = M + 8;
+          const logoY = y + (bannerH - logoH) / 2;
+          doc.addImage(logo, 'PNG', logoX, logoY, logoW, logoH);
+          leftContentRightX = logoX + logoW + 8;
+        } else {
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(12);
+          doc.text(fallbackText, M + 10, y + 16);
+          leftContentRightX = M + 10 + doc.getTextWidth(fallbackText) + 8;
+        }
+
+        // Título CENTRALIZADO (ajusta para não encostar no logo)
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(20);
+        const centerX = M + bannerW / 2;
+        const titleW  = doc.getTextWidth(bigTitle);
+        let titleX = centerX;                    // centro do banner
+        const leftEdge = titleX - titleW / 2;    // borda esquerda do texto
+        if (leftEdge < leftContentRightX + 4) {  // empurra se colidir com o logo
+          titleX = leftContentRightX + 4 + titleW / 2;
+        }
+        doc.text(bigTitle, titleX, y + 17, { align: 'center' });
+
+        // linha inferior de realce
+        doc.setDrawColor(...BRAND.mid);
+        doc.setLineWidth(0.6);
+        doc.line(M + 4, y + bannerH - 2, M + bannerW - 4, y + bannerH - 2);
+
+        doc.setTextColor(0);
+        y += bannerH + 8;
+      };
+
+      drawBrandRibbon(logoEl, 'ValidaDocs', 'Relatório de conformidade');
+
+      // ===== Header com arquivo/contagem/chip
+      const headerBlock = (metric: string, chipText: string, chipOk: boolean, fileName: string, sub: string) => {
         const padX = 6, padY = 5;
         const bannerW = W - 2 * M;
-        const bannerH = 34;
+        const bannerH = 30;
         const yTop = y;
 
-        // fundo
-        doc.setFillColor(...C.panel);
+        doc.setFillColor(...BRAND.panel);
         doc.roundedRect(M, yTop, bannerW, bannerH, 2, 2, 'F');
 
-        // Linha 1: título + arquivo (direita)
+        // Linha 1: nome do arquivo (direita)
         const y1 = yTop + padY + 6;
-        doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(0);
-        doc.text('Relatório de conformidade', M + padX, y1);
-
         doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(100);
-        const fileMaxW = bannerW - padX * 2 - 4;
-        const fileTxt = this.fitText(doc, fileName || '—', fileMaxW, 'helvetica', 'normal', 10);
+        const fileTxt = fileName || '—';
         doc.text(fileTxt, M + bannerW - padX, y1, { align: 'right' });
         doc.setTextColor(0);
 
         // Linha 2: métrica (esq) + chip (dir)
         const y2 = yTop + bannerH - padY - 5;
 
-        // chip (direita)
+        // Chip
         doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
         const chipPadX = 3, chipH = 8;
         const chipW = doc.getTextWidth(chipText) + chipPadX * 2;
         const chipX = M + bannerW - padX - chipW;
         const chipY = y2 - chipH + 2;
-        doc.setFillColor(...chipColor); doc.setTextColor(255);
+        const chipColor = chipOk ? [34, 197, 94] : [245, 158, 11];
+        doc.setFillColor(chipColor[0], chipColor[1], chipColor[2]);
+        doc.setTextColor(255);
         doc.roundedRect(chipX, chipY, chipW, chipH, 2, 2, 'F');
         doc.text(chipText, chipX + chipPadX, y2);
         doc.setTextColor(0);
 
-        // métrica
-        const metricMaxW = (chipX - 8) - (M + padX);
+        // Métrica
         doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
-        const metricTxt = this.fitText(doc, metric, metricMaxW, 'helvetica', 'bold', 18);
-        doc.text(metricTxt, M + padX, y2);
-
-        // avança
-        y = yTop + bannerH + 6;
+        doc.text(metric, M + padX, y2);
 
         // sublinha
+        y = yTop + bannerH + 6;
         doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.setTextColor(90);
         doc.text(sub, M, y);
         doc.setTextColor(0);
@@ -279,21 +327,21 @@ export class ValidadePage {
 
       const chipText = this.allValid() ? 'Todas válidas' : 'Com verificações';
       headerBlock(
-        r.fileName || '—',
         `${this.signatureCount()} assinaturas encontradas`,
         chipText,
-        this.allValid() ? C.ok : C.warn,
+        this.allValid(),
+        r.fileName || '—',
         `Validado em ${this.brDate(r.validationTime)}`
       );
 
       // ==== utilitários de conteúdo
       const kvGridTwoCols = (pairs: Array<[string, string | number]>) => {
-        const colW = (W - 2*M) / 2;
+        const colW = (W - 2 * M) / 2;
         const lineH = 5, labelGap = 4, rowGap = 4;
 
         let i = 0;
         while (i < pairs.length) {
-          const measureCell = (kv?: [string, string | number]) => {
+          const measure = (kv?: [string, string | number]) => {
             if (!kv) return { lines: [] as string[], height: 0, label: '' };
             const [k, v] = kv;
             const lines = doc.splitTextToSize(String(v ?? '—'), colW);
@@ -301,24 +349,24 @@ export class ValidadePage {
             return { lines, height, label: k };
           };
 
-          const left = measureCell(pairs[i]);
-          const right = measureCell(pairs[i + 1]);
-          const rowH = Math.max(left.height, right.height);
+          const L = measure(pairs[i]);
+          const R = measure(pairs[i + 1]);
+          const rowH = Math.max(L.height, R.height);
           addPageIfNeeded(rowH + rowGap);
 
           // esquerda
           let x = M;
           doc.setFont('helvetica','bold'); doc.setFontSize(10);
-          if (left.label) doc.text(left.label, x, y);
+          if (L.label) doc.text(L.label, x, y);
           doc.setFont('helvetica','normal'); doc.setFontSize(11);
-          if (left.lines.length) doc.text(left.lines, x, y + labelGap);
+          if (L.lines.length) doc.text(L.lines, x, y + labelGap);
 
           // direita
           x = M + colW;
           doc.setFont('helvetica','bold'); doc.setFontSize(10);
-          if (right.label) doc.text(right.label, x, y);
+          if (R.label) doc.text(R.label, x, y);
           doc.setFont('helvetica','normal'); doc.setFontSize(11);
-          if (right.lines.length) doc.text(right.lines, x, y + labelGap);
+          if (R.lines.length) doc.text(R.lines, x, y + labelGap);
 
           y += rowH + rowGap;
           i += 2;
@@ -334,7 +382,7 @@ export class ValidadePage {
       };
 
       const para = (text: string) => {
-        const width = W - 2*M;
+        const width = W - 2 * M;
         doc.setFont('helvetica','normal'); doc.setFontSize(11);
         const lines = doc.splitTextToSize(text, width);
         addPageIfNeeded(lines.length * 5 + 2);
@@ -342,7 +390,7 @@ export class ValidadePage {
         y += lines.length * 5 + 2;
       };
 
-      // ===== Dados do documento (SEM tempo ms e SEM SHA-256)
+      // ===== Dados do documento (SEM Tempo ms / SEM hash)
       section('Dados do documento');
       kvGridTwoCols([
         ['Status', r.status || '—'],
@@ -377,7 +425,7 @@ export class ValidadePage {
       }
       hr();
 
-      // ===== Assinaturas (resumo) — usa apenas CN para ICP-Brasil
+      // ===== Assinaturas (resumo) — usa CN em ICP-Brasil
       section('Assinaturas (resumo)');
       if (sigs[0]) {
         const s0 = sigs[0];
@@ -391,7 +439,7 @@ export class ValidadePage {
         y += 2;
       }
 
-      // ===== Tabela com colunas dinâmicas (Titular = CN em ICP-Brasil)
+      // ===== Tabela dinâmica (Titular = CN se ICP)
       const showCPF   = sigs.some(s => !!s.cpf);
       const showLevel = sigs.some(s => !!s.signatureLevel);
       const showTime  = sigs.some(s => !!s.signatureTime);
@@ -426,7 +474,7 @@ export class ValidadePage {
             default:      return '—';
           }
         })),
-        styles: { fontSize: 9, cellPadding: 2, lineColor: 230, lineWidth: 0.2 },
+        styles: { fontSize: 9, cellPadding: 2, lineColor: BRAND.border, lineWidth: 0.2 },
         headStyles: { fillColor: [241, 245, 249], textColor: 30, halign: 'left' },
         alternateRowStyles: { fillColor: [250, 250, 250] },
         margin: { left: M, right: M },
