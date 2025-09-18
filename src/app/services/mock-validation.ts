@@ -2,41 +2,72 @@
 import { ValidationResult } from '../types/validation.types';
 
 export const MOCK_VALIDATION: ValidationResult = {
-  documentName: 'DOCUMENTO_HERIOBO_assinado.pdf',
-  validationDate: '2025-08-14T12:05:24-03:00',
-  integrityValid: true,
-  pdfa: { conforms: false, level: 'PDF/A-1b' },
-  lpa: 'Não',
+  fileName: 'DOCUMENTO_HERIOBO_assinado.pdf',
+  validationTime: '2025-08-14T12:05:24-03:00',
+  isValid: true,
+  status: '',
+  softwareVersion: '',
+  //signaturePolicy: '',
+  elapsedTime: 0,  
   signatureType: 'PAdES',
-  findings: [
+  policy: 'string',
+  errorMessage: '',
+  errorfindings: [
     'Erro1: Este documento possui assinatura inválida.',
     'Erro2: Existem assinaturas desencadeadas.',
     'Erro3: Este documento não está no padrão PDF/A conforme ISO19000.'
   ],
-  signatures: [
-    {
-      signerCN: 'CN=MARCOS DONIZETE FOGAÇA',
-      cpf: '***.***.***-**',
-      kind: 'Qualificada',
-      standard: 'PAdES',
-      policy: 'ICP-Brasil',
-      qualifiedBy: 'ICP-Brasil',
-      time: '2025-07-10T09:25:24-03:00',
-      valid: true,
-      cardImageUrl: 'assets/cards/qualificada.svg'
+  validaDocsReturn: {
+    digitalSignatureValidations: [
+      {
+        endCertSubjectName: 'CN=MARCOS DONIZETE FOGAÇA',
+        signerName:'',
+        cpf: '***.***.***-**',
+        signatureLevel: 'Qualificada',
+        signatureType: 'PAdES',
+        qualified: 'ICP-Brasil',
+        signatureTime: '2025-07-10T09:25:24-03:00',
+        signatureValid: true,
+        cardImageUrl: 'assets/cards/qualificada.svg',
+        isICP: true,
+        iseGov: false,
+        signatureErrors: '',
+        signatureAlerts: '',
+        certPathValid: true,
+        certPathErrors: '',
+        certPathAlerts: '',
+        rootIssuer: ''
+      },
+      {
+        endCertSubjectName: 'CN= GUILHERME HENRIQUE DIAS FRANCO',
+        signerName:'',
+        cpf: '***.***.***-**',
+        signatureLevel: 'Qualificada',
+        signatureType: 'PAdES',
+        qualified: 'ICP-Brasil',
+        signatureTime: '2025-10-02T10:15:24-03:00',
+        signatureValid: true,
+        cardImageUrl: 'assets/cards/qualificada.svg',
+        isICP: true,
+        iseGov: false,
+        signatureErrors: '',
+        signatureAlerts: '',
+        certPathValid: true,
+        certPathErrors: '',
+        certPathAlerts: '',
+        rootIssuer: ''
+      }
+    ], 
+    pdfValidations: {
+      isValid: false,
+      pdfAStandard: 'PDF/A-1b',
+      status: "OK",
+      bornDigital: true,
+      isPDFACompliant: true,
+      errorMessage: '',
+      alertMessage: '',
     },
-    {
-      signerCN: 'CN= GUILHERME HENRIQUE DIAS FRANCO',
-      cpf: '***.***.***-**',
-      kind: 'Qualificada',
-      standard: 'PAdES',
-      policy: 'ICP-Brasil',
-      qualifiedBy: 'ICP-Brasil',
-      time: '2025-10-02T10:15:24-03:00',
-      valid: true,
-      cardImageUrl: 'assets/cards/qualificada.svg'
-    }
-  ],
+  },  
   certificates: [
     {
       subjectCN: 'CN=MARCOS DONIZETE FOGAÇA',
@@ -52,5 +83,5 @@ export const MOCK_VALIDATION: ValidationResult = {
       notBefore: '2024-04-29T00:00:00-03:00',
       notAfter: '2025-04-29T00:00:00-03:00'
     }
-  ]
+  ]    
 };

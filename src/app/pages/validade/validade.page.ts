@@ -1,16 +1,17 @@
-
-import { Component } from '@angular/core';
+import { Component, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ValidationService } from '../../services/validation.service';
-import { ValidationResult, SignatureSummary } from '../../types/validation.types';
+import { ValidationResult, SignatureInfo } from '../../types/validation.types';
 import {
   IonBadge, IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardTitle,
   IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonInput, IonItem, IonLabel,
   IonList, IonNote, IonProgressBar, IonRow, IonTitle, IonToolbar
 } from '@ionic/angular/standalone';
 
+// Componente de selo mini (se estiver usando no HTML)
+import { SeloValidacaoMiniComponent } from '../../components/selo-validacao-mini.component';
 
 @Component({
   selector: 'app-validate',
@@ -22,48 +23,159 @@ import {
     IonHeader, IonToolbar, IonTitle, IonContent,
     IonCard, IonCardHeader, IonCardTitle, IonCardContent,
     IonButton, IonItem, IonInput, IonNote, IonProgressBar,
-    IonGrid, IonRow, IonCol, IonList, IonLabel, IonBadge, IonIcon, IonButtons
+    IonGrid, IonRow, IonCol, IonList, IonLabel, IonBadge, IonIcon, IonButtons,
+    SeloValidacaoMiniComponent
   ]
 })
 export class ValidadePage {
+  @ViewChild('fileInput', { static: false }) fileInput?: ElementRef<HTMLInputElement>;
+
   form: FormGroup;
-  file?: File;
+  file?: File | null;
   loading = false;
   error?: string;
   result?: ValidationResult;
+  tempArray?: SignatureInfo[];
 
   constructor(private fb: FormBuilder, private api: ValidationService) {
     this.form = this.fb.group({ file: [null] });
-    
   }
 
+  // ===== Upload =====
   onFileChange(ev: Event) {
     const input = ev.target as HTMLInputElement;
-    const file = input?.files?.[0];
-    if (file && file.type === 'application/pdf') {
-      this.file = file;
+    const f = input?.files?.[0] ?? null;
+    if (!f) return;
+
+    if (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')) {
+      this.file = f;
       this.error = undefined;
+      this.result = undefined;
+      if (!this.loading) this.submit(); // auto-validar
     } else {
-      this.file = undefined;
+      this.file = null;
+      this.result = undefined;
       this.error = 'Selecione um arquivo PDF válido.';
+    }
+
+    // permite selecionar o mesmo arquivo novamente
+    setTimeout(() => {
+      if (this.fileInput?.nativeElement) this.fileInput.nativeElement.value = '';
+    }, 0);
+  }
+
+  onDragOver(ev: DragEvent) { ev.preventDefault(); }
+
+  onDrop(ev: DragEvent) {
+    ev.preventDefault();
+    const f = ev.dataTransfer?.files?.[0] ?? null;
+    if (!f) return;
+
+    if (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')) {
+      this.file = f;
+      this.error = undefined;
+      this.result = undefined;
+      if (!this.loading) this.submit();
+    } else {
+      this.file = null;
+      this.result = undefined;
+      this.error = 'Selecione um arquivo PDF (.pdf).';
     }
   }
 
+  // ===== Chamada de validação =====
   submit() {
-    if (!this.file) { this.error = 'Selecione um PDF para validar.'; return; }
+    if (this.loading || !this.file) {
+      if (!this.file) this.error = 'Selecione um PDF para validar.';
+      return;
+    }
+
     this.loading = true;
     this.error = undefined;
     this.result = undefined;
-    this.api.validatePdf(this.file).subscribe({
-      next: (res) => { this.result = res; this.loading = false; },
-      error: (err) => { this.error = 'Falha ao validar. Tente novamente.'; this.loading = false; console.error(err); }
+
+    const toValidate = this.file!;
+    this.api.validatePdf(toValidate).subscribe({
+      next: (res: ValidationResult) => {
+        this.result = res;
+        
+        //Tratamento dos Erros
+        if (this.result.errorMessage?.length){
+          this.result['errorfindings'] = [];
+          this.result.errorfindings.push(this.result.errorMessage);
+        }
+
+        // Função para extrair CPF da string CN
+        const extrairCpf = (subject: string): string => {
+          const match = subject.match(/:(\d{11})$/);
+          return match ? match[1] : '';
+        };  
+        // Função para extrair Nome do Signatário da string CN
+        const extrairSigner = (subject: string): string => {
+          const cnPart = subject.split(',').find(part => part.trim().startsWith('CN='));
+          const nameWithCPF = cnPart?.split('=')[1];
+          const nameOnly = nameWithCPF?.split(':')[0];
+          return (nameOnly?.length)? nameOnly : '';
+        };      
+
+        // Realimentar os CPFs no array de assinaturas
+        this.result.validaDocsReturn.digitalSignatureValidations =
+          this.result.validaDocsReturn.digitalSignatureValidations.map((assinatura) => ({
+            ...assinatura,
+            cpf: extrairCpf(assinatura.endCertSubjectName),
+            signerName: extrairSigner(assinatura.endCertSubjectName)
+          }));      
+        
+        //Tratamento dos certificados
+        
+        this.loading = false;
+      },
+      error: (err) => {
+        this.error = 'Falha ao validar. Tente novamente.';
+        this.loading = false;
+        console.error(err);
+      }
     });
   }
 
-  reset() { this.form.reset(); this.file = undefined; this.result = undefined; this.error = undefined; }
+  reset() {
+    this.form.reset();
+    this.file = null;
+    this.result = undefined;
+    this.error = undefined;
+    if (this.fileInput?.nativeElement) this.fileInput.nativeElement.value = '';
+  }
 
-  signatureCount() { return this.result?.signatures?.length ?? 0; }
-  sigColor(sig: SignatureSummary) { return sig.valid ? 'success' : 'danger'; }
+  // ===== Helpers de UI =====
+  fileSize(f: File | null | undefined): string {
+    if (!f) return '';
+    const kb = f.size / 1024;
+    return kb < 1024 ? `${Math.round(kb)} KB` : `${(kb / 1024).toFixed(2)} MB`;
+  }
 
-  allValid(): boolean { return !!this.result && this.result.signatures.every(s => s.valid); }
+  signatureCount(): number {
+    return this.result?.validaDocsReturn?.digitalSignatureValidations?.length ?? 0;
+  }
+
+  // Badge de status da assinatura (inclui "warning" se houver alerta sem erro)
+  sigColor(sig: SignatureInfo): 'success' | 'danger' | 'warning' | 'medium' {
+    if (sig.signatureValid) return 'success';
+    if (!sig.signatureValid && !sig.signatureErrors && !!sig.signatureAlerts) return 'warning';
+    return 'danger';
+  }
+
+  // Badge de status do documento
+  validColor(status:boolean): 'success' | 'danger' | 'warning' | 'medium' {
+    if (status) return 'success';
+    return 'danger';
+  }
+
+  // TrackBy pra estabilizar a lista no *ngFor
+  trackByName = (_: number, s: SignatureInfo) =>
+    (s.endCertSubjectName ?? '') + '|' + (s.cpf ?? '');
+
+  allValid(): boolean {
+    const sigs = this.result?.validaDocsReturn?.digitalSignatureValidations ?? [];
+    return sigs.length > 0 && sigs.every(s => s.signatureValid);
+  }
 }

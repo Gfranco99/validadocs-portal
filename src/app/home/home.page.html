@@ -1,23 +1,68 @@
-
 <ion-header>
   <ion-toolbar>
     <ion-title>ValidaDocs</ion-title>
     <ion-buttons slot="end">
-      <ion-button disabled>Login</ion-button>
+      <ion-button disabled fill="clear">
+        <ion-icon name="log-in-outline" slot="start"></ion-icon>
+        Login
+      </ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content class="ion-padding">
-  <div class="welcome">
-    <img src="assets/logo-validadocs.svg" alt="ValidaDocs" class="logo" />
-    <h1>Validação de Documentos com Assinatura Digital</h1>
-    <p>
-      Serviço para cartórios de imóveis: valide <b>integridade</b>, <b>assinaturas</b>, <b>cadeia de certificados</b> e <b>padrão PDF/A</b>.
+  <section class="hero">
+    <img
+      src="assets/validadocs-logo.png"
+      alt="ValidaDocs"
+      class="logo"
+      width="371"
+      height="183"
+      loading="eager"
+    />
+
+    <h1 class="brand-name">ValidaDocs</h1>
+
+    <p class="sub">
+      Validação de PDFs com <b>assinaturas digitais (PAdES)</b>,
+      <b>cadeia ICP-Brasil</b> e <b>conformidade PDF/A</b>.
     </p>
+
     <div class="cta">
-      <ion-button color="primary" size="large" [routerLink]="'/validade'">Iniciar validação</ion-button>
-      <ion-button color="medium" disabled>Login</ion-button>
+      <ion-button color="primary" size="large" routerLink="/validade">
+        <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
+        Iniciar validação
+      </ion-button>
     </div>
-  </div>
+  </section>
+
+  <section class="features">
+    <ion-grid fixed>
+      <ion-row class="features-row">
+        <ion-col size="12" sizeMd="4">
+          <div class="feature">
+            <ion-icon name="shield-checkmark-outline" aria-hidden="true"></ion-icon>
+            <h3>Integridade & Assinaturas</h3>
+            <p>Confirma a integridade do PDF e valida cada assinatura digital (PAdES, níveis e políticas).</p>
+          </div>
+        </ion-col>
+
+        <ion-col size="12" sizeMd="4">
+          <div class="feature">
+            <ion-icon name="git-branch-outline" aria-hidden="true"></ion-icon>
+            <h3>Cadeia de Certificados</h3>
+            <p>Analisa a cadeia até a raiz (ICP-Brasil), validade, revogação e carimbos do tempo.</p>
+          </div>
+        </ion-col>
+
+        <ion-col size="12" sizeMd="4">
+          <div class="feature">
+            <ion-icon name="document-text-outline" aria-hidden="true"></ion-icon>
+            <h3>Conformidade PDF/A</h3>
+            <p>Detecta o perfil PDF/A e reporta apontamentos que impactam arquivamento de longo prazo.</p>
+          </div>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+  </section>
 </ion-content>
