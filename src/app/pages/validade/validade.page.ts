@@ -72,7 +72,6 @@ export class ValidadePage {
   }
 
   onDragOver(ev: DragEvent) { ev.preventDefault(); }
-
   onDrop(ev: DragEvent) {
     ev.preventDefault();
     const f = ev.dataTransfer?.files?.[0] ?? null;
@@ -104,25 +103,25 @@ export class ValidadePage {
     this.api.validatePdf(this.file!).subscribe({
       next: (res: ValidationResult) => {
         this.result = res;
-        
-        //Tratamento dos Erros
+
+        // Tratamento dos Erros
         if (this.result.errorMessage?.length){
-          this.result['errorfindings'] = [];
-          this.result.errorfindings.push(this.result.errorMessage);
+          (this.result as any)['errorfindings'] = [];
+          this.result!.errorfindings!.push(this.result.errorMessage);
         }
 
         // Função para extrair CPF da string CN
         const extrairCpf = (subject: string): string => {
           const match = subject.match(/:(\d{11})$/);
           return match ? match[1] : '';
-        };  
+        };
         // Função para extrair Nome do Signatário da string CN
         const extrairSigner = (subject: string): string => {
           const cnPart = subject.split(',').find(part => part.trim().startsWith('CN='));
           const nameWithCPF = cnPart?.split('=')[1];
           const nameOnly = nameWithCPF?.split(':')[0];
-          return (nameOnly?.length)? nameOnly : '';
-        };      
+          return (nameOnly?.length) ? nameOnly : '';
+        };
 
         // Realimentar os CPFs no array de assinaturas
         this.result.validaDocsReturn.digitalSignatureValidations =
@@ -130,10 +129,8 @@ export class ValidadePage {
             ...assinatura,
             cpf: extrairCpf(assinatura.endCertSubjectName),
             signerName: extrairSigner(assinatura.endCertSubjectName)
-          }));      
-        
-        //Tratamento dos certificados
-        
+          }));
+
         this.loading = false;
       },
       error: (err) => {
@@ -169,13 +166,10 @@ export class ValidadePage {
     return 'danger';
   }
 
-  // Badge de status do documento
   validColor(status:boolean): 'success' | 'danger' | 'warning' | 'medium' {
-    if (status) return 'success';
-    return 'danger';
+    return status ? 'success' : 'danger';
   }
 
-  // TrackBy pra estabilizar a lista no *ngFor
   trackByName = (_: number, s: SignatureInfo) =>
     (s.endCertSubjectName ?? '') + '|' + (s.cpf ?? '');
 
@@ -184,7 +178,7 @@ export class ValidadePage {
     return sigs.length > 0 && sigs.every(s => s.signatureValid);
   }
 
-  // ===== Helpers para nomes (mostrar só CN em ICP-Brasil) =====
+  // ===== Helpers para nomes =====
   private extractCN(subject?: string): string {
     if (!subject) return '—';
     const re = /(?:^|[,/])\s*CN\s*=\s*([^,\/]+)/gi;
@@ -194,30 +188,41 @@ export class ValidadePage {
     return cn || subject || '—';
   }
 
+  /** remove sufixo ':XXXXXXXXXXX' (CPF) do final, se existir */
+  private stripCpfSuffix(v: string): string {
+    return v.replace(/:\d{11}\s*$/, '');
+  }
+
+  /** UI: sempre que possível mostramos o Subject completo do JSON */
+  displaySubjectFull(s: SignatureInfo): string {
+    return s?.endCertSubjectName || this.displayCN(s);
+  }
+
+  /** Para PDF/tabelas: mostra apenas o NOME (sem CPF) quando for ICP-Brasil */
   displayCN(s: SignatureInfo): string {
     const base = s.endCertSubjectName || '—';
-    return s.isICP ? this.extractCN(base) : base;
+    if (s.isICP) {
+      // usa o signerName calculado, se veio; senão, extrai CN e tira o CPF do final
+      return this.stripCpfSuffix(s.signerName || this.extractCN(base));
+    }
+    return base;
   }
 
   // ===== Helpers PDF =====
   private brBool(v?: boolean): string { return v === undefined ? '—' : (v ? 'Sim' : 'Não'); }
-
   private brDate(s?: string): string {
     if (!s) return '—';
     const d = new Date(s);
     return isNaN(d.getTime()) ? s : d.toLocaleString('pt-BR');
   }
-
   private authorityOf(s: SignatureInfo): string {
     return s.qualified || (s.isICP ? 'ICP-Brasil' : (s.iseGov ? 'Gov.br' : '—'));
   }
-
   private baseName(name?: string): string {
     const n = (name || 'relatorio').replace(/\.[^/.]+$/, '');
     return n.replace(/[^\p{L}\p{N}\-_ ]+/gu, '_').slice(0, 80);
   }
 
-  /** Carrega imagem do assets e resolve quando estiver pronta */
   private loadImage(src: string): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -228,7 +233,7 @@ export class ValidadePage {
     });
   }
 
-  // ===== Exportar PDF (com selo + LOGO no topo, título centralizado) =====
+  // ===== Exportar PDF =====
   async exportPdf() {
     if (!this.result || this.exporting) return;
     this.exporting = true;
@@ -249,8 +254,8 @@ export class ValidadePage {
       ]);
 
       const BRAND = {
-        dark:  BASE,                    // faixa principal
-        mid:   lighten(BASE, 0.35),     // linha de brilho
+        dark:  BASE,
+        mid:   lighten(BASE, 0.35),
         panel: [248, 250, 252] as [number, number, number],
         border: 230
       };
@@ -263,11 +268,11 @@ export class ValidadePage {
       const addPageIfNeeded = (min = 18) => { if (y > H - M - min) { doc.addPage(); y = M; } };
       const hr = (space = 6) => { doc.setDrawColor(BRAND.border); doc.line(M, y, W - M, y); y += space; };
 
-      // Carrega o LOGO (se falhar, usa fallback texto)
+      // Carrega o LOGO
       let logoEl: HTMLImageElement | null = null;
       try { logoEl = await this.loadImage(this.LOGO_URL); } catch { logoEl = null; }
 
-      // ===== Selo ValidaDocs (topo) com LOGO à esquerda e TÍTULO CENTRALIZADO
+      // ===== Faixa de marca
       const drawBrandRibbon = (logo: HTMLImageElement | null, fallbackText: string, bigTitle: string) => {
         const bannerW = W - 2 * M;
         const bannerH = 26;
@@ -275,10 +280,9 @@ export class ValidadePage {
 
         doc.setFillColor(...BRAND.dark);
         doc.roundedRect(M, y, bannerW, bannerH, radius, radius, 'F');
-
         doc.setTextColor(255);
 
-        // Logo (ou texto de fallback) à esquerda
+        // Logo (ou fallback)
         let leftContentRightX = M + 10;
         if (logo) {
           const logoH = 16;
@@ -288,33 +292,27 @@ export class ValidadePage {
           doc.addImage(logo, 'PNG', logoX, logoY, logoW, logoH);
           leftContentRightX = logoX + logoW + 8;
         } else {
-          doc.setFont('helvetica', 'bold');
-          doc.setFontSize(12);
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
           doc.text(fallbackText, M + 10, y + 16);
           leftContentRightX = M + 10 + doc.getTextWidth(fallbackText) + 8;
         }
 
-        // Título CENTRALIZADO (ajusta para não encostar no logo)
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(20);
+        // Título central
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(20);
         const centerX = M + bannerW / 2;
         const titleW  = doc.getTextWidth(bigTitle);
-        let titleX = centerX;                    // centro do banner
-        const leftEdge = titleX - titleW / 2;    // borda esquerda do texto
-        if (leftEdge < leftContentRightX + 4) {  // empurra se colidir com o logo
-          titleX = leftContentRightX + 4 + titleW / 2;
-        }
+        let titleX = centerX;
+        const leftEdge = titleX - titleW / 2;
+        if (leftEdge < leftContentRightX + 4) titleX = leftContentRightX + 4 + titleW / 2;
         doc.text(bigTitle, titleX, y + 17, { align: 'center' });
 
-        // linha inferior de realce
-        doc.setDrawColor(...BRAND.mid);
-        doc.setLineWidth(0.6);
+        // linha inferior de brilho
+        doc.setDrawColor(...BRAND.mid); doc.setLineWidth(0.6);
         doc.line(M + 4, y + bannerH - 2, M + bannerW - 4, y + bannerH - 2);
 
         doc.setTextColor(0);
         y += bannerH + 8;
       };
-
       drawBrandRibbon(logoEl, 'ValidaDocs', 'Relatório de conformidade');
 
       // ===== Header com arquivo/contagem/chip
@@ -327,14 +325,14 @@ export class ValidadePage {
         doc.setFillColor(...BRAND.panel);
         doc.roundedRect(M, yTop, bannerW, bannerH, 2, 2, 'F');
 
-        // Linha 1: nome do arquivo (direita)
+        // Linha 1
         const y1 = yTop + padY + 6;
         doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(100);
         const fileTxt = fileName || '—';
         doc.text(fileTxt, M + bannerW - padX, y1, { align: 'right' });
         doc.setTextColor(0);
 
-        // Linha 2: métrica (esq) + chip (dir)
+        // Linha 2 (métrica + chip)
         const y2 = yTop + bannerH - padY - 5;
 
         // Chip
@@ -372,7 +370,7 @@ export class ValidadePage {
         `Validado em ${this.brDate(r.validationTime)}`
       );
 
-      // ==== utilitários de conteúdo
+      // ==== utilitários
       const kvGridTwoCols = (pairs: Array<[string, string | number]>) => {
         const colW = (W - 2 * M) / 2;
         const lineH = 5, labelGap = 4, rowGap = 4;
@@ -428,7 +426,7 @@ export class ValidadePage {
         y += lines.length * 5 + 2;
       };
 
-      // ===== Dados do documento (SEM Tempo ms / SEM hash)
+      // ===== Dados do documento
       section('Dados do documento');
       kvGridTwoCols([
         ['Status', r.status || '—'],
@@ -450,21 +448,16 @@ export class ValidadePage {
       if (pdfa?.errorMessage) para(`Erro: ${pdfa.errorMessage}`);
       hr();
 
-      // ===== Apontamentos
-      section('Apontamentos da validação');
-      if (r.errorfindings?.length) {
-        r.errorfindings.forEach(f => para('• ' + f));
-      } else {
-        doc.setTextColor(34, 197, 94);
-        doc.setFont('helvetica','bold'); doc.setFontSize(11);
-        doc.text('Nenhum apontamento de falha.', M, y);
-        doc.setTextColor(0);
-        y += 7;
+      // ===== Apontamentos (apenas se houver)
+      const findings = (r.errorfindings || []).filter(Boolean);
+      if (findings.length) {
+        section('Apontamentos da validação');
+        findings.forEach(f => para(String(f)));
+        hr();
       }
-      hr();
 
-      // ===== Assinaturas (resumo) — usa CN em ICP-Brasil
-      section('Assinaturas (resumo)');
+      // ===== Assinaturas
+      section('Assinaturas');
       if (sigs[0]) {
         const s0 = sigs[0];
         doc.setFont('helvetica','bold'); doc.setFontSize(12);
@@ -477,7 +470,7 @@ export class ValidadePage {
         y += 2;
       }
 
-      // ===== Tabela dinâmica (Titular = CN se ICP)
+      // ===== Tabela dinâmica (Titular = CN sem CPF quando ICP)
       const showCPF   = sigs.some(s => !!s.cpf);
       const showLevel = sigs.some(s => !!s.signatureLevel);
       const showTime  = sigs.some(s => !!s.signatureTime);
@@ -495,14 +488,14 @@ export class ValidadePage {
       const columnStyles = cols.reduce<Record<number, any>>((acc, c, idx) => {
         acc[idx] = { cellWidth: c.width, halign: c.align };
         return acc;
-      }, {});
+      }, {} as Record<number, any>);
 
       autoTable(doc, {
         startY: y,
         head: [cols.map(c => c.title)],
         body: sigs.map(s => cols.map(c => {
           switch (c.key) {
-            case 'name':  return this.displayCN(s);
+            case 'name':  return this.displayCN(s);              // <— sem CPF
             case 'cpf':   return s.cpf || '—';
             case 'type':  return s.signatureType ?? '—';
             case 'level': return s.signatureLevel ?? '—';
