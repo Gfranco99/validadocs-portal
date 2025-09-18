@@ -83,13 +83,28 @@
                 >
                   <ion-label class="ion-text-wrap">
                     <div class="sig-head">
-                      <strong class="sig-name">{{ s.endCertSubjectName }}</strong>
+                      Assinado por: {{ s.signerName }}
+                    </div>
+                    <div class="sig-head">
+                      CPF: {{ s.cpf }}
                     </div>
                     <div class="sig-sub">
-                      {{ s.signatureType }} {{ s.signatureLevel }} {{ s.qualified || '' }}
+                      {{ s.signatureType }}
+                    </div>
+                    <div class="sig-sub" *ngIf="s.isICP">
+                      ICP-Brasil
+                    </div>
+                    <div class="sig-sub" *ngIf="s.iseGov">
+                      eGov.br
                     </div>
                     <div class="sig-sub" *ngIf="s.signatureTime">
                       {{ s.signatureTime | date:'dd/MM/yyyy HH:mm' }}
+                    </div>
+                    <div>
+                      <ion-icon name="checkmark-circle" color="success"></ion-icon>
+                      <ion-label  class="ion-text-wrap" [color]="validColor(s.signatureValid)">
+                        {{s.signatureValid ? 'Assinatura aprovada' : 'Assinatura reprovada'}}
+                      </ion-label>
                     </div>
                   </ion-label>
 
@@ -108,14 +123,14 @@
                       alt="Selo ValidaDocs"
                       class="seal-img-box"
                     />
-                  </div>
+                  </div>                  
                 </ion-item>
               </ion-list>
 
-              <ion-item lines="none" class="approval" *ngIf="allValid()">
+              <!-- <ion-item lines="none" class="approval" *ngIf="allValid()">
                 <ion-icon name="checkmark-circle" color="success"></ion-icon>
                 <ion-label>Assinatura aprovada.</ion-label>
-              </ion-item>
+              </ion-item> -->
             </ion-card-content>
           </ion-card>
         </ion-col>
@@ -123,7 +138,7 @@
         <!-- DIREITA -->
         <ion-col size="12" size-lg="5" class="right">
           <!-- Apontamentos -->
-          <ion-card class="errorfindings-card">
+          <ion-card class="errorfindings-card" *ngIf="r.errorfindings?.length;">
             <ion-card-header>
               <ion-card-title>
                 <ion-icon name="search-outline"></ion-icon>
@@ -131,18 +146,12 @@
               </ion-card-title>
             </ion-card-header>
             <ion-card-content>
-              <ion-list *ngIf="r.errorfindings?.length; else ok">
+              <ion-list>
                 <ion-item *ngFor="let f of r.errorfindings" class="finding">
                   <ion-icon name="alert-circle" color="danger"></ion-icon>
                   <ion-label class="danger-text">{{ f }}</ion-label>
                 </ion-item>
-              </ion-list>
-              <ng-template #ok>
-                <div class="callout-ok" aria-live="polite">
-                  <ion-icon name="checkmark-circle" color="success"></ion-icon>
-                  <span>Nenhum apontamento de falha.</span>
-                </div>
-              </ng-template>
+              </ion-list>              
             </ion-card-content>
           </ion-card>
 
@@ -151,7 +160,7 @@
             <ion-card-header>
               <ion-card-title>
                 <ion-icon name="document-outline"></ion-icon>
-                Detalhes do Documento
+                Sobre o Documento
               </ion-card-title>
             </ion-card-header>
             <ion-card-content>
@@ -167,11 +176,13 @@
 
               <ion-item>
                 <ion-label>Status</ion-label>
-                <ion-note>{{ r.status }}</ion-note>
+                <ion-note [color]="validColor(r.isValid)">
+                  {{ r.isValid ? 'Válido' : 'Inválido' }}
+                </ion-note>
               </ion-item>
 
               <ion-item>
-                <ion-label>Política</ion-label>
+                <ion-label>Padrão das assinaturas</ion-label>
                 <ion-note>{{ r.signatureType }}</ion-note>
               </ion-item>
 
@@ -187,7 +198,7 @@
             <ion-card-header>
               <ion-card-title>
                 <ion-icon name="information-circle-outline"></ion-icon>
-                Informações do Arquivo
+                PDF/A Compliance
               </ion-card-title>
             </ion-card-header>
             <ion-card-content>
@@ -198,12 +209,30 @@
                     [color]="r.validaDocsReturn?.pdfValidations?.isValid ? 'success' : 'danger'"
                   >
                     {{ r.validaDocsReturn?.pdfValidations?.isValid ? 'Sim' : 'Não' }}
-                  </ion-badge>
-                  <ion-note slot="end">
-                    {{ r.validaDocsReturn?.pdfValidations?.pdfAStandard || '—' }}
-                  </ion-note>
+                  </ion-badge>                  
                 </ion-item>
-                  
+                <ion-item>
+                  <ion-label>Está em conformidade com padrão?</ion-label>
+                  <ion-badge
+                    [color]="r.validaDocsReturn?.pdfValidations?.isPDFACompliant ? 'success' : 'danger'"
+                  >
+                    {{ r.validaDocsReturn?.pdfValidations?.isPDFACompliant ? 'Sim' : 'Não' }}
+                  </ion-badge>                  
+                </ion-item>
+                <ion-item>
+                  <ion-label>Nato digital</ion-label>
+                  <ion-badge
+                    [color]="r.validaDocsReturn?.pdfValidations?.bornDigital ? 'success' : 'danger'"
+                  >
+                    {{ r.validaDocsReturn?.pdfValidations?.bornDigital ? 'Sim' : 'Não' }}
+                  </ion-badge>
+                </ion-item>
+                <ion-item>
+                  <ion-label>Nível</ion-label>
+                  <ion-note slot="end">
+                    {{ r.validaDocsReturn?.pdfValidations?.pdfAStandard || 'Desconhecido' }}
+                  </ion-note>
+                </ion-item>  
                 <ion-item *ngIf="r.validaDocsReturn?.pdfValidations?.alertMessage">
                   <ion-label>Alerta</ion-label>
                   <ion-note slot="end" color="warning">
@@ -216,12 +245,7 @@
                   <ion-note slot="end" color="danger">
                     {{ r.validaDocsReturn?.pdfValidations?.errorMessage }}
                   </ion-note>
-                </ion-item>
-
-                <ion-item>
-                  <ion-label>Tipo de assinaturas</ion-label>
-                  <ion-note slot="end">{{ r.signatureType }}</ion-note>
-                </ion-item>
+                </ion-item>                
               </ion-list>
             </ion-card-content>
           </ion-card>
@@ -231,7 +255,7 @@
             <ion-card-header>
               <ion-card-title>
                 <ion-icon name="people-outline"></ion-icon>
-                Assinaturas
+                Certificados
               </ion-card-title>
             </ion-card-header>
             <ion-card-content>

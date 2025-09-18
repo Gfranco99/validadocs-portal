@@ -19,7 +19,8 @@ export interface ValidaDocsReturn {
 
 export interface SignatureInfo {
   endCertSubjectName: string;
-  cpf?: string;
+  signerName: string;
+  cpf: string;
   signatureLevel: SignatureKind;
   signatureType: SignatureStandard;  
   qualified?: CertAuthority;
@@ -59,9 +60,9 @@ export interface ValidationResult {
   softwareVersion: string;
   policy: string; 
   elapsedTime: number;
+  errorMessage: string;
 
   validaDocsReturn: ValidaDocsReturn;
   certificates: CertificateInfo[];
   errorfindings: string[];
-  
 }

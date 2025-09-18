@@ -35,6 +35,7 @@ export class ValidadePage {
   loading = false;
   error?: string;
   result?: ValidationResult;
+  tempArray?: SignatureInfo[];
 
   constructor(private fb: FormBuilder, private api: ValidationService) {
     this.form = this.fb.group({ file: [null] });
@@ -97,6 +98,36 @@ export class ValidadePage {
     this.api.validatePdf(toValidate).subscribe({
       next: (res: ValidationResult) => {
         this.result = res;
+        
+        //Tratamento dos Erros
+        if (this.result.errorMessage?.length){
+          this.result['errorfindings'] = [];
+          this.result.errorfindings.push(this.result.errorMessage);
+        }
+
+        // Função para extrair CPF da string CN
+        const extrairCpf = (subject: string): string => {
+          const match = subject.match(/:(\d{11})$/);
+          return match ? match[1] : '';
+        };  
+        // Função para extrair Nome do Signatário da string CN
+        const extrairSigner = (subject: string): string => {
+          const cnPart = subject.split(',').find(part => part.trim().startsWith('CN='));
+          const nameWithCPF = cnPart?.split('=')[1];
+          const nameOnly = nameWithCPF?.split(':')[0];
+          return (nameOnly?.length)? nameOnly : '';
+        };      
+
+        // Realimentar os CPFs no array de assinaturas
+        this.result.validaDocsReturn.digitalSignatureValidations =
+          this.result.validaDocsReturn.digitalSignatureValidations.map((assinatura) => ({
+            ...assinatura,
+            cpf: extrairCpf(assinatura.endCertSubjectName),
+            signerName: extrairSigner(assinatura.endCertSubjectName)
+          }));      
+        
+        //Tratamento dos certificados
+        
         this.loading = false;
       },
       error: (err) => {
@@ -130,6 +161,12 @@ export class ValidadePage {
   sigColor(sig: SignatureInfo): 'success' | 'danger' | 'warning' | 'medium' {
     if (sig.signatureValid) return 'success';
     if (!sig.signatureValid && !sig.signatureErrors && !!sig.signatureAlerts) return 'warning';
+    return 'danger';
+  }
+
+  // Badge de status do documento
+  validColor(status:boolean): 'success' | 'danger' | 'warning' | 'medium' {
+    if (status) return 'success';
     return 'danger';
   }
 

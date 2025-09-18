@@ -11,6 +11,7 @@ export const MOCK_VALIDATION: ValidationResult = {
   elapsedTime: 0,  
   signatureType: 'PAdES',
   policy: 'string',
+  errorMessage: '',
   errorfindings: [
     'Erro1: Este documento possui assinatura inválida.',
     'Erro2: Existem assinaturas desencadeadas.',
@@ -20,6 +21,7 @@ export const MOCK_VALIDATION: ValidationResult = {
     digitalSignatureValidations: [
       {
         endCertSubjectName: 'CN=MARCOS DONIZETE FOGAÇA',
+        signerName:'',
         cpf: '***.***.***-**',
         signatureLevel: 'Qualificada',
         signatureType: 'PAdES',
@@ -38,6 +40,7 @@ export const MOCK_VALIDATION: ValidationResult = {
       },
       {
         endCertSubjectName: 'CN= GUILHERME HENRIQUE DIAS FRANCO',
+        signerName:'',
         cpf: '***.***.***-**',
         signatureLevel: 'Qualificada',
         signatureType: 'PAdES',
