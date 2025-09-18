@@ -1,9 +1,9 @@
 :host {
   /* Selo por assinatura (retângulo à direita) */
-  --seal-w: 300px;  /* ajuste conforme desejar */
+  --seal-w: 300px;
   --seal-h: 140px;
 
-  /* Largura máxima do card de resumo (agora não centralizamos mais) */
+  /* Largura máxima do card de resumo */
   --summary-max-w: 760px;
 
   /* Espaçamentos */
@@ -18,17 +18,15 @@
    =========================== */
 .val-grid {
   width: 100%;
-  /* diminui gutters do grid */
   --ion-grid-padding-start: 8px;
   --ion-grid-padding-end: 8px;
   --ion-grid-column-padding: 8px;
 }
 
 .val-row {
-  align-items: flex-start; /* garante alinhamento no topo */
+  align-items: flex-start;
 }
 
-/* as colunas ocupam a largura sem centralizar cards */
 .left, .right {
   display: block;
 }
@@ -38,10 +36,10 @@
    =========================== */
 .summary-card {
   max-width: var(--summary-max-w);
-  margin: 0;              /* removido o auto-center */
+  width: 100%;
+  margin: 0;
   border-radius: 12px;
   padding: 0;
-  width: 100%;
 }
 
 .summary-card ion-card-header {
@@ -80,11 +78,31 @@
    LISTA DE ASSINATURAS
    =========================== */
 .sig-item {
+  /* alinhar conteúdo à esquerda e reduzir respiros laterais */
+  --inner-padding-start: 0;
   --inner-padding-end: 0;
+  --padding-start: 0;
   --padding-end: 0;
   min-height: 100px;
+
+  .sig-head {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-xs);
+  }
+
+  .sig-name {
+    font-weight: 600;
+  }
+
+  .sig-sub {
+    color: var(--ion-color-medium);
+    font-size: 13px;
+    line-height: 1.2;
+  }
 }
 
+/* bloco do selo no "end" do ion-item */
 .seal-box {
   width: var(--seal-w);
   height: var(--seal-h);
@@ -108,11 +126,12 @@
    =========================== */
 .right ion-card {
   width: 100%;
-  margin-left: 0; /* encosta à esquerda da coluna */
+  margin-left: 0;
   border-radius: 12px;
 }
 
-.findings-card ion-card-title {
+/* Título de apontamentos */
+.errorfindings-card ion-card-title {
   display: flex;
   align-items: center;
   gap: var(--gap-xs);
@@ -126,6 +145,7 @@
 .danger-text {
   color: var(--ion-color-danger);
   font-weight: 500;
+  word-break: break-word;
 }
 
 /* Callout OK */
@@ -135,12 +155,33 @@
   gap: var(--gap-xs);
   color: var(--ion-color-success);
   font-weight: 600;
+
+  ion-icon { font-size: 18px; }
 }
 
-/* Info list */
+/* Info list (valores maiores à direita) */
 .info-list ion-item {
   --inner-padding-start: 0;
   --inner-padding-end: 0;
+
+  ion-label {
+    color: var(--ion-color-medium);
+  }
+
+  ion-badge,
+  ion-note[slot="end"] {
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  ion-badge {
+    padding: 4px 8px;
+    border-radius: 999px;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  ion-note[slot="end"] { margin-left: auto; }
 }
 
 /* ===========================
@@ -169,7 +210,6 @@
    RESPONSIVO
    =========================== */
 @media (max-width: 992px) {
-  /* Em tablets/medium, ainda duas colunas, mas mais próximas */
   .val-grid {
     --ion-grid-padding-start: 6px;
     --ion-grid-padding-end: 6px;
@@ -181,19 +221,58 @@
 }
 
 @media (max-width: 768px) {
-  /* Em telas pequenas, vira 1 coluna naturalmente (size="12") */
   :host {
-    --summary-max-w: 92vw; /* ocupa a largura da coluna à esquerda */
+    --summary-max-w: 92vw;
+    --seal-w: 260px;
+    --seal-h: 120px;
   }
   .summary-card ion-card-content { padding: 12px; }
   .kpi { font-size: 26px; }
 }
 
 @media (max-width: 480px) {
-  /* reduz selo e paddings no mobile */
   :host {
-    --seal-w: 240px;
-    --seal-h: 112px;
+    --seal-w: 220px;
+    --seal-h: 104px;
   }
   .summary-card ion-card-content { padding: 10px; }
+}
+
+/* ===========================
+   ÁREA DE EXPORTAÇÃO (html2canvas)
+   =========================== */
+
+/* fundo branco ajuda na captura */
+.print-area { background: #fff; }
+
+/* fonte maior apenas na exportação (opcional) */
+.print-area.export-big { font-size: 1.12rem; }
+
+/* preset A4 com respiro (igual ao print) */
+.print-area.export-a4 {
+  background: #fff;
+  padding: 24px 64px;  /* top/bottom 24px; laterais 64px */
+  box-sizing: border-box;
+}
+
+/* layout vertical na exportação + Resumo no topo */
+.print-area.export-vertical .val-row {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: var(--gap-sm);
+}
+.print-area.export-vertical .left,
+.print-area.export-vertical .right,
+.print-area.export-vertical ion-col {
+  max-width: 100% !important;
+  flex: 0 0 100% !important;
+}
+.print-area.export-vertical .left { order: 1; }  /* Resumo primeiro */
+.print-area.export-vertical .right { order: 2; }
+
+/* Evita cortes na captura/paginação do jsPDF */
+.print-area.export-vertical ion-card,
+.print-area.export-vertical ion-item {
+  break-inside: avoid;
+  page-break-inside: avoid;
 }

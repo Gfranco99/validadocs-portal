@@ -3,12 +3,9 @@
     <ion-title>Validação de Documento</ion-title>
 
     <ion-buttons slot="end">
-      <ion-button fill="clear" (click)="fileInput.click()" [disabled]="loading">
-        Selecionar um PDF
-      </ion-button>
-      <ion-button *ngIf="file" fill="clear" color="light" (click)="reset()" [disabled]="loading">
-        Limpar
-      </ion-button>
+      <ion-button fill="clear" (click)="fileInput.click()" [disabled]="loading">Selecionar um PDF</ion-button>
+      <ion-button *ngIf="file" fill="clear" color="light" (click)="reset()" [disabled]="loading">Limpar</ion-button>
+      <ion-button (click)="exportPdf()" [disabled]="!result || loading">Exportar PDF</ion-button>
       <ion-button routerLink="/">Voltar a Home</ion-button>
     </ion-buttons>
   </ion-toolbar>
@@ -264,7 +261,8 @@
                   *ngFor="let s of r.validaDocsReturn?.digitalSignatureValidations; trackBy: trackByName"
                 >
                   <ion-label>
-                    <h3>{{ s.endCertSubjectName }}</h3>
+                    <!-- Exibe apenas o CN quando isICP = true -->
+                    <h3>{{ displayCN(s) }}</h3>
                     <p>{{ s.signatureType }}  {{ s.signatureLevel }}</p>
                     <p>{{ s.signatureLevel || '' }}</p>
                     <p *ngIf="s.signatureTime">
