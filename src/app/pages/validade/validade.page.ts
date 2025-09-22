@@ -1,28 +1,27 @@
-// == libs necessárias:  npm i jspdf jspdf-autotable
-
-import { Component, ElementRef, ViewChild } from '@angular/core';
+import { Component, ElementRef, ViewChild, HostListener, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { ValidationService } from '../../services/validation.service';
 import { ValidationResult, SignatureInfo } from '../../types/validation.types';
 import {
   IonBadge, IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardTitle,
   IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonInput, IonItem, IonLabel,
-  IonList, IonNote, IonProgressBar, IonRow, IonTitle, IonToolbar
+  IonList, IonNote, IonProgressBar, IonRow, IonTitle, IonToolbar, IonPopover, IonChip
 } from '@ionic/angular/standalone';
 
 import { SeloValidacaoMiniComponent } from '../../components/selo-validacao-mini.component';
 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { finalize } from 'rxjs/operators';
 
 @Component({
   selector: 'app-validate',
   templateUrl: './validade.page.html',
   styleUrls: ['./validade.page.scss'],
   standalone: true,
-  imports: [
+  imports: [IonChip, IonPopover,
     CommonModule, ReactiveFormsModule, RouterLink,
     IonHeader, IonToolbar, IonTitle, IonContent,
     IonCard, IonCardHeader, IonCardTitle, IonCardContent,
@@ -31,7 +30,7 @@ import autoTable from 'jspdf-autotable';
     SeloValidacaoMiniComponent
   ]
 })
-export class ValidadePage {
+export class ValidadePage implements OnDestroy {
   @ViewChild('fileInput', { static: false }) fileInput?: ElementRef<HTMLInputElement>;
 
   form: FormGroup;
@@ -40,16 +39,33 @@ export class ValidadePage {
   exporting = false;
   error?: string;
   result?: ValidationResult;
-  tempArray?: SignatureInfo[];
 
-  /** Coloque o PNG do logo em src/assets/validadocs-logo.png (ou ajuste o caminho) */
   private readonly LOGO_URL = 'assets/validadocs-logo.png';
 
-  constructor(private fb: FormBuilder, private api: ValidationService) {
+  constructor(
+    private fb: FormBuilder,
+    private api: ValidationService,
+    private router: Router
+  ) {
     this.form = this.fb.group({ file: [null] });
   }
 
-  // ===== Upload =====
+  // ================= Navegação / limpeza =================
+  goHome() {
+    this.reset();
+    this.router.navigateByUrl('/');
+  }
+
+  ngOnDestroy() {
+    this.reset();
+  }
+
+  @HostListener('window:beforeunload')
+  handleUnload() {
+    this.reset();
+  }
+
+  // ================= Upload =================
   onFileChange(ev: Event) {
     const input = ev.target as HTMLInputElement;
     const f = input?.files?.[0] ?? null;
@@ -66,9 +82,7 @@ export class ValidadePage {
       this.error = 'Selecione um arquivo PDF válido.';
     }
 
-    setTimeout(() => {
-      if (this.fileInput?.nativeElement) this.fileInput.nativeElement.value = '';
-    }, 0);
+    setTimeout(() => this.fileInput?.nativeElement && (this.fileInput.nativeElement.value = ''), 0);
   }
 
   onDragOver(ev: DragEvent) { ev.preventDefault(); }
@@ -89,7 +103,7 @@ export class ValidadePage {
     }
   }
 
-  // ===== Chamada de validação =====
+  // ================= Validação =================
   submit() {
     if (this.loading || !this.file) {
       if (!this.file) this.error = 'Selecione um PDF para validar.';
@@ -100,42 +114,47 @@ export class ValidadePage {
     this.error = undefined;
     this.result = undefined;
 
-    this.api.validatePdf(this.file!).subscribe({
+    this.api.validatePdf(this.file!).pipe(
+      finalize(() => this.loading = false)
+    ).subscribe({
       next: (res: ValidationResult) => {
-        this.result = res;
+        const sigs = res.validaDocsReturn?.digitalSignatureValidations ?? [];
 
-        // Tratamento dos Erros
-        if (this.result.errorMessage?.length){
-          (this.result as any)['errorfindings'] = [];
-          this.result!.errorfindings!.push(this.result.errorMessage);
-        }
+        // utilitários seguros
+        const extrairCpf = (subject: string): string =>
+          subject?.match(/:(\d{11})$/)?.[1] ?? '';
 
-        // Função para extrair CPF da string CN
-        const extrairCpf = (subject: string): string => {
-          const match = subject.match(/:(\d{11})$/);
-          return match ? match[1] : '';
-        };
-        // Função para extrair Nome do Signatário da string CN
         const extrairSigner = (subject: string): string => {
-          const cnPart = subject.split(',').find(part => part.trim().startsWith('CN='));
+          const cnPart = subject?.split(',')?.find(p => p.trim().startsWith('CN='));
           const nameWithCPF = cnPart?.split('=')[1];
-          const nameOnly = nameWithCPF?.split(':')[0];
-          return (nameOnly?.length) ? nameOnly : '';
+          return (nameWithCPF?.split(':')[0] ?? '').trim();
         };
 
-        // Realimentar os CPFs no array de assinaturas
-        this.result.validaDocsReturn.digitalSignatureValidations =
-          this.result.validaDocsReturn.digitalSignatureValidations.map((assinatura) => ({
-            ...assinatura,
-            cpf: extrairCpf(assinatura.endCertSubjectName),
-            signerName: extrairSigner(assinatura.endCertSubjectName)
-          }));
+        // enriquece assinaturas (funciona mesmo com 0)
+        const assinaturas: SignatureInfo[] = sigs.map(a => ({
+          ...a,
+          cpf: extrairCpf(a.endCertSubjectName),
+          signerName: extrairSigner(a.endCertSubjectName),
+        }));
 
-        this.loading = false;
+        // consolida apontamentos sem duplicar
+        const findingsSet = new Set<string>();
+        (res as any).errorfindings?.forEach((f: string) => f && findingsSet.add(String(f)));
+        if (res.errorMessage) findingsSet.add(String(res.errorMessage));
+        const errorfindings = Array.from(findingsSet);
+
+        this.result = {
+          ...res,
+          errorfindings,
+          validaDocsReturn: {
+            ...res.validaDocsReturn,
+            digitalSignatureValidations: assinaturas,
+            pdfValidations: res.validaDocsReturn?.pdfValidations ?? undefined
+          }
+        };
       },
       error: (err) => {
         this.error = 'Falha ao validar. Tente novamente.';
-        this.loading = false;
         console.error(err);
       }
     });
@@ -149,26 +168,26 @@ export class ValidadePage {
     if (this.fileInput?.nativeElement) this.fileInput.nativeElement.value = '';
   }
 
-  // ===== Helpers de UI =====
-  fileSize(f: File | null | undefined): string {
-    if (!f) return '';
-    const kb = f.size / 1024;
-    return kb < 1024 ? `${Math.round(kb)} KB` : `${(kb / 1024).toFixed(2)} MB`;
-  }
+  // ================= Helpers de UI =================
+  get hasResult(): boolean { return !!this.result; }
 
   signatureCount(): number {
     return this.result?.validaDocsReturn?.digitalSignatureValidations?.length ?? 0;
   }
 
+  /** "1 Assinatura encontrada" | "N Assinaturas encontradas" */
+  sigMetric(): string {
+    const n = this.signatureCount();
+    return n === 1 ? '1 Assinatura encontrada' : `${n} Assinaturas encontradas`;
+  }
+
   sigColor(sig: SignatureInfo): 'success' | 'danger' | 'warning' | 'medium' {
     if (sig.signatureValid) return 'success';
-    if (!sig.signatureValid && !sig.signatureErrors && !!sig.signatureAlerts) return 'warning';
+    if (!sig.signatureValid && !sig.signatureErrors && !!(sig as any).signatureAlerts) return 'warning';
     return 'danger';
   }
 
-  validColor(status:boolean): 'success' | 'danger' | 'warning' | 'medium' {
-    return status ? 'success' : 'danger';
-  }
+  validColor(status:boolean): 'success' | 'danger' { return status ? 'success' : 'danger'; }
 
   trackByName = (_: number, s: SignatureInfo) =>
     (s.endCertSubjectName ?? '') + '|' + (s.cpf ?? '');
@@ -178,37 +197,134 @@ export class ValidadePage {
     return sigs.length > 0 && sigs.every(s => s.signatureValid);
   }
 
-  // ===== Helpers para nomes =====
+  // -------- Normalização de acentos (corrige mojibake) --------
+  normalizeAccents(v?: string): string {
+    if (!v) return '—';
+    const suspicious = /[ÃÂâÊ¢€™]/.test(v);
+    if (!suspicious) return v;
+    try {
+      const bytes = Uint8Array.from(Array.from(v).map(ch => ch.charCodeAt(0) & 0xff));
+      const fixed = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+      return fixed;
+    } catch {
+      try { return decodeURIComponent(escape(v)); } catch { return v; }
+    }
+  }
+
+  // ================= Tooltips (dinâmicos só p/ Status e Certificado) =================
+  getStatusTooltip(): string {
+    const r = this.result;
+    if (!r || r.isValid !== false) return '';
+    const onlyOne = this.signatureCount() === 1;
+    const sigs = r.validaDocsReturn?.digitalSignatureValidations ?? [];
+    const reasons: string[] = [];
+
+    for (const s of sigs) {
+      if (s.signatureValid === false) {
+        const errs = (s as any)?.signatureErrors as string[] | string | undefined;
+        const alts = (s as any)?.signatureAlerts as string[] | string | undefined;
+        if (errs) Array.isArray(errs) ? reasons.push(...errs) : reasons.push(String(errs));
+        else if (alts) Array.isArray(alts) ? reasons.push(...alts) : reasons.push(String(alts));
+        else {
+          if ((s as any)?.docModified)     reasons.push('O documento foi alterado após a assinatura.');
+          if ((s as any)?.expired)         reasons.push('O certificado do signatário está expirado.');
+          if ((s as any)?.revoked)         reasons.push('O certificado do signatário foi revogado.');
+          if ((s as any)?.chainUntrusted)  reasons.push('Cadeia de certificação não é confiável.');
+        }
+      }
+    }
+
+    if (reasons.length) {
+      const short = reasons.slice(0, 4).join(' · ');
+      return onlyOne
+        ? `A assinatura é inválida. Motivos: ${short}`
+        : `Há pelo menos uma assinatura inválida. Motivos: ${short}`;
+    }
+    return onlyOne
+      ? 'A assinatura é inválida.'
+      : 'Há pelo menos uma assinatura inválida no documento.';
+  }
+
+  getPdfAValidTooltip(): string {
+    const pv = this.result?.validaDocsReturn?.pdfValidations;
+    if (!pv || pv.isValid !== false) return '';
+    const base = 'O arquivo não atende integralmente aos requisitos do PDF/A.';
+    const detail = pv.errorMessage || pv.alertMessage;
+    const commons = 'Causas frequentes: fontes não incorporadas, transparências proibidas para o nível, uso de JavaScript/XFA, criptografia, links externos ou metadados em desacordo.';
+    return [base, detail, commons].filter(Boolean).join(' ');
+  }
+
+  getPdfACompliantTooltip(): string {
+    const pv = this.result?.validaDocsReturn?.pdfValidations;
+    if (!pv || pv.isPDFACompliant !== false) return '';
+    const lvl = pv.pdfAStandard ? ` (${pv.pdfAStandard})` : '';
+    const base = `O arquivo não está conforme o nível PDF/A declarado${lvl}.`;
+    const detail = pv.errorMessage || pv.alertMessage;
+    const commons = 'Geralmente por elementos não permitidos no nível (ex.: transparências/objetos não suportados) ou recursos obrigatórios ausentes (ex.: incorporação de fontes/ICC).';
+    return [base, detail, commons].filter(Boolean).join(' ');
+  }
+
+  getBornDigitalTooltip(): string {
+    const pv = this.result?.validaDocsReturn?.pdfValidations;
+    if (!pv || pv.bornDigital !== false) return '';
+    const base = 'Indícios de que é uma digitalização (páginas como imagem, pouca ou nenhuma camada de texto).';
+    const why  = 'Arquivos nascidos digitais preservam texto/vetores e tendem a ser mais verificáveis e acessíveis.';
+    return `${base} ${why}`;
+  }
+
+  getPdfALevelTooltip(): string {
+    const pv = this.result?.validaDocsReturn?.pdfValidations;
+    const lvl = pv?.pdfAStandard;
+    if (lvl && lvl !== 'Desconhecido') return '';
+    const base = 'Não foi possível identificar o nível PDF/A.';
+    const commons = 'Possíveis motivos: ausência/contradição nos metadados XMP, arquivo não é PDF/A ou perfil não declarado corretamente.';
+    return `${base} ${commons}`;
+  }
+
+  /** Tooltip por certificado: por que a assinatura está inválida */
+  getSignatureTooltip(s: SignatureInfo): string {
+    if (!s || s.signatureValid !== false) return '';
+
+    const msgs: string[] = [];
+    const errs = (s as any)?.signatureErrors as string[] | string | undefined;
+    const alts = (s as any)?.signatureAlerts as string[] | string | undefined;
+
+    if (errs) Array.isArray(errs) ? msgs.push(...errs) : msgs.push(String(errs));
+    if (alts && !errs) Array.isArray(alts) ? msgs.push(...alts) : msgs.push(String(alts));
+
+    if ((s as any)?.docModified)      msgs.push('O documento foi alterado após a assinatura.');
+    if ((s as any)?.expired)          msgs.push('O certificado do signatário está expirado.');
+    if ((s as any)?.revoked)          msgs.push('O certificado do signatário foi revogado.');
+    if ((s as any)?.chainUntrusted)   msgs.push('Cadeia de certificação não é confiável.');
+    if ((s as any)?.timestampInvalid) msgs.push('Carimbo do tempo inválido.');
+    if ((s as any)?.ocspInvalid)      msgs.push('Falha em OCSP/CRL.');
+
+    return msgs.length ? msgs.join(' · ') : 'Falha na verificação criptográfica da assinatura.';
+  }
+
+  // ================= Nomes / formatações =================
   private extractCN(subject?: string): string {
     if (!subject) return '—';
     const re = /(?:^|[,/])\s*CN\s*=\s*([^,\/]+)/gi;
     let cn = '';
     let m: RegExpExecArray | null;
-    while ((m = re.exec(subject))) cn = (m[1] || '').trim(); // usa o último CN
+    while ((m = re.exec(subject))) cn = (m[1] || '').trim();
     return cn || subject || '—';
   }
 
-  /** remove sufixo ':XXXXXXXXXXX' (CPF) do final, se existir */
-  private stripCpfSuffix(v: string): string {
-    return v.replace(/:\d{11}\s*$/, '');
-  }
+  private stripCpfSuffix(v: string): string { return v.replace(/:\d{11}\s*$/, ''); }
 
-  /** UI: sempre que possível mostramos o Subject completo do JSON */
   displaySubjectFull(s: SignatureInfo): string {
-    return s?.endCertSubjectName || this.displayCN(s);
+    return this.normalizeAccents(s?.endCertSubjectName || this.displayCN(s));
   }
 
-  /** Para PDF/tabelas: mostra apenas o NOME (sem CPF) quando for ICP-Brasil */
   displayCN(s: SignatureInfo): string {
     const base = s.endCertSubjectName || '—';
-    if (s.isICP) {
-      // usa o signerName calculado, se veio; senão, extrai CN e tira o CPF do final
-      return this.stripCpfSuffix(s.signerName || this.extractCN(base));
-    }
-    return base;
+    const name = s.isICP ? this.stripCpfSuffix(s.signerName || this.extractCN(base)) : base;
+    return this.normalizeAccents(name);
   }
 
-  // ===== Helpers PDF =====
+  // ================= Helpers PDF =================
   private brBool(v?: boolean): string { return v === undefined ? '—' : (v ? 'Sim' : 'Não'); }
   private brDate(s?: string): string {
     if (!s) return '—';
@@ -218,9 +334,27 @@ export class ValidadePage {
   private authorityOf(s: SignatureInfo): string {
     return s.qualified || (s.isICP ? 'ICP-Brasil' : (s.iseGov ? 'Gov.br' : '—'));
   }
+
+  /*** ÚNICA ALTERAÇÃO: gera nome “safe ASCII” para o download ***/
   private baseName(name?: string): string {
-    const n = (name || 'relatorio').replace(/\.[^/.]+$/, '');
-    return n.replace(/[^\p{L}\p{N}\-_ ]+/gu, '_').slice(0, 80);
+    // tira a extensão
+    const raw = (name || 'relatorio').replace(/\.[^/.]+$/, '').trim();
+
+    // corrige possíveis mojibake (mÃ©dico -> médico)
+    const fixed = this.normalizeAccents(raw);
+
+    // remove diacríticos e qualquer caractere não-ASCII
+    const noMarks = fixed.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const asciiOnly = noMarks.replace(/[^\x20-\x7E]/g, '_');
+
+    // mantém apenas caracteres seguros
+    const safe = asciiOnly
+      .replace(/[^A-Za-z0-9\-_. ]+/g, '_') // limpa símbolos
+      .replace(/\s+/g, ' ')               // colapsa espaços
+      .replace(/_{2,}/g, '_')             // colapsa underscores
+      .trim();
+
+    return (safe || 'relatorio').slice(0, 80);
   }
 
   private loadImage(src: string): Promise<HTMLImageElement> {
@@ -233,7 +367,7 @@ export class ValidadePage {
     });
   }
 
-  // ===== Exportar PDF =====
+  // ================= Exportar PDF =================
   async exportPdf() {
     if (!this.result || this.exporting) return;
     this.exporting = true;
@@ -245,20 +379,14 @@ export class ValidadePage {
 
       const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
 
-      // === Paleta com o tom solicitado (#4E6F70)
+      // Paleta
       const BASE: [number, number, number] = [0x4E, 0x6F, 0x70];
       const lighten = (rgb: [number, number, number], p: number): [number, number, number] => ([
         Math.round(rgb[0] + (255 - rgb[0]) * p),
         Math.round(rgb[1] + (255 - rgb[1]) * p),
         Math.round(rgb[2] + (255 - rgb[2]) * p),
       ]);
-
-      const BRAND = {
-        dark:  BASE,
-        mid:   lighten(BASE, 0.35),
-        panel: [248, 250, 252] as [number, number, number],
-        border: 230
-      };
+      const BRAND = { dark: BASE, mid: lighten(BASE, 0.35), panel: [248, 250, 252] as [number, number, number], border: 230 };
 
       const M = 15;
       const W = doc.internal.pageSize.getWidth();
@@ -268,11 +396,10 @@ export class ValidadePage {
       const addPageIfNeeded = (min = 18) => { if (y > H - M - min) { doc.addPage(); y = M; } };
       const hr = (space = 6) => { doc.setDrawColor(BRAND.border); doc.line(M, y, W - M, y); y += space; };
 
-      // Carrega o LOGO
+      // Logo + faixa
       let logoEl: HTMLImageElement | null = null;
       try { logoEl = await this.loadImage(this.LOGO_URL); } catch { logoEl = null; }
 
-      // ===== Faixa de marca
       const drawBrandRibbon = (logo: HTMLImageElement | null, fallbackText: string, bigTitle: string) => {
         const bannerW = W - 2 * M;
         const bannerH = 26;
@@ -282,7 +409,6 @@ export class ValidadePage {
         doc.roundedRect(M, y, bannerW, bannerH, radius, radius, 'F');
         doc.setTextColor(255);
 
-        // Logo (ou fallback)
         let leftContentRightX = M + 10;
         if (logo) {
           const logoH = 16;
@@ -297,7 +423,6 @@ export class ValidadePage {
           leftContentRightX = M + 10 + doc.getTextWidth(fallbackText) + 8;
         }
 
-        // Título central
         doc.setFont('helvetica', 'bold'); doc.setFontSize(20);
         const centerX = M + bannerW / 2;
         const titleW  = doc.getTextWidth(bigTitle);
@@ -306,7 +431,6 @@ export class ValidadePage {
         if (leftEdge < leftContentRightX + 4) titleX = leftContentRightX + 4 + titleW / 2;
         doc.text(bigTitle, titleX, y + 17, { align: 'center' });
 
-        // linha inferior de brilho
         doc.setDrawColor(...BRAND.mid); doc.setLineWidth(0.6);
         doc.line(M + 4, y + bannerH - 2, M + bannerW - 4, y + bannerH - 2);
 
@@ -315,8 +439,8 @@ export class ValidadePage {
       };
       drawBrandRibbon(logoEl, 'ValidaDocs', 'Relatório de conformidade');
 
-      // ===== Header com arquivo/contagem/chip
-      const headerBlock = (metric: string, chipText: string, chipOk: boolean, fileName: string, sub: string) => {
+      // cabeçalho com chip
+      const headerBlock = (metric: string, chipText: string, chipColorOk: boolean, fileName: string, sub: string) => {
         const padX = 6, padY = 5;
         const bannerW = W - 2 * M;
         const bannerH = 30;
@@ -325,34 +449,31 @@ export class ValidadePage {
         doc.setFillColor(...BRAND.panel);
         doc.roundedRect(M, yTop, bannerW, bannerH, 2, 2, 'F');
 
-        // Linha 1
         const y1 = yTop + padY + 6;
         doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(100);
-        const fileTxt = fileName || '—';
+        const fileTxt = this.normalizeAccents(fileName || '—');
         doc.text(fileTxt, M + bannerW - padX, y1, { align: 'right' });
         doc.setTextColor(0);
 
-        // Linha 2 (métrica + chip)
         const y2 = yTop + bannerH - padY - 5;
-
-        // Chip
         doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
         const chipPadX = 3, chipH = 8;
         const chipW = doc.getTextWidth(chipText) + chipPadX * 2;
         const chipX = M + bannerW - padX - chipW;
         const chipY = y2 - chipH + 2;
-        const chipColor = chipOk ? [34, 197, 94] : [245, 158, 11];
-        doc.setFillColor(chipColor[0], chipColor[1], chipColor[2]);
+
+        const chipColorRgb = (chipColorOk
+          ? [34, 197, 94]
+          : [245, 158, 11]) as [number, number, number];
+        doc.setFillColor(chipColorRgb[0], chipColorRgb[1], chipColorRgb[2]);
         doc.setTextColor(255);
         doc.roundedRect(chipX, chipY, chipW, chipH, 2, 2, 'F');
-        doc.text(chipText, chipX + chipPadX, y2);
+        doc.text(this.normalizeAccents(chipText), chipX + chipPadX, y2);
         doc.setTextColor(0);
 
-        // Métrica
         doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
-        doc.text(metric, M + padX, y2);
+        doc.text(this.normalizeAccents(metric), M + padX, y2);
 
-        // sublinha
         y = yTop + bannerH + 6;
         doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.setTextColor(90);
         doc.text(sub, M, y);
@@ -361,16 +482,27 @@ export class ValidadePage {
         hr();
       };
 
-      const chipText = this.allValid() ? 'Todas válidas' : 'Com verificações';
+      const sigCount = this.signatureCount();
+      const chip =
+        sigCount === 0
+          ? { text: 'Sem assinaturas', ok: false }
+          : sigCount === 1
+            ? (this.allValid()
+                ? { text: 'Assinatura válida', ok: true }
+                : { text: 'Assinatura com verificações', ok: false })
+            : (this.allValid()
+                ? { text: 'Todas válidas', ok: true }
+                : { text: 'Com verificações', ok: false });
+
       headerBlock(
-        `${this.signatureCount()} assinaturas encontradas`,
-        chipText,
-        this.allValid(),
-        r.fileName || '—',
+        this.sigMetric(),
+        chip.text,
+        chip.ok,
+        this.result?.fileName || '—',
         `Validado em ${this.brDate(r.validationTime)}`
       );
 
-      // ==== utilitários
+      // utilitários visuais
       const kvGridTwoCols = (pairs: Array<[string, string | number]>) => {
         const colW = (W - 2 * M) / 2;
         const lineH = 5, labelGap = 4, rowGap = 4;
@@ -380,7 +512,8 @@ export class ValidadePage {
           const measure = (kv?: [string, string | number]) => {
             if (!kv) return { lines: [] as string[], height: 0, label: '' };
             const [k, v] = kv;
-            const lines = doc.splitTextToSize(String(v ?? '—'), colW);
+            const text = typeof v === 'string' ? this.normalizeAccents(v) : v;
+            const lines = doc.splitTextToSize(String(text ?? '—'), colW);
             const height = labelGap + Math.max(1, lines.length) * lineH;
             return { lines, height, label: k };
           };
@@ -418,15 +551,16 @@ export class ValidadePage {
       };
 
       const para = (text: string) => {
+        const t = this.normalizeAccents(text);
         const width = W - 2 * M;
         doc.setFont('helvetica','normal'); doc.setFontSize(11);
-        const lines = doc.splitTextToSize(text, width);
+        const lines = doc.splitTextToSize(t, width);
         addPageIfNeeded(lines.length * 5 + 2);
         doc.text(lines, M, y);
         y += lines.length * 5 + 2;
       };
 
-      // ===== Dados do documento
+      // Dados do documento
       section('Dados do documento');
       kvGridTwoCols([
         ['Status', r.status || '—'],
@@ -436,7 +570,7 @@ export class ValidadePage {
       ]);
       hr();
 
-      // ===== PDF/A
+      // PDF/A
       section('Conformidade PDF/A');
       kvGridTwoCols([
         ['PDF/A válido', this.brBool(pdfa?.isValid)],
@@ -448,7 +582,7 @@ export class ValidadePage {
       if (pdfa?.errorMessage) para(`Erro: ${pdfa.errorMessage}`);
       hr();
 
-      // ===== Apontamentos (apenas se houver)
+      // Apontamentos (se houver)
       const findings = (r.errorfindings || []).filter(Boolean);
       if (findings.length) {
         section('Apontamentos da validação');
@@ -456,9 +590,11 @@ export class ValidadePage {
         hr();
       }
 
-      // ===== Assinaturas
+      // Assinaturas
       section('Assinaturas');
-      if (sigs[0]) {
+      if (sigs.length === 0) {
+        para('Não foram encontradas assinaturas no documento.');
+      } else {
         const s0 = sigs[0];
         doc.setFont('helvetica','bold'); doc.setFontSize(12);
         doc.text(this.displayCN(s0) ?? '—', M, y); y += 6;
@@ -468,49 +604,86 @@ export class ValidadePage {
         if (s0.signatureTime) { doc.text(this.brDate(s0.signatureTime), M, y); y += 6; }
         doc.setTextColor(0);
         y += 2;
+
+        const showCPF   = sigs.some(s => !!s.cpf);
+        const showLevel = sigs.some(s => !!s.signatureLevel);
+        const showTime  = sigs.some(s => !!s.signatureTime);
+
+        const cols = [
+          { key: 'name',  title: 'Titular',    width: 56, align: 'left' as const },
+          ...(showCPF   ? [{ key: 'cpf',   title: 'CPF',       width: 24, align: 'left' as const }] : []),
+          { key: 'type',  title: 'Padrão',     width: 22, align: 'left' as const },
+          ...(showLevel ? [{ key: 'level', title: 'Nível',     width: 22, align: 'left' as const }] : []),
+          { key: 'auth',  title: 'Autoridade', width: 30, align: 'left' as const },
+          { key: 'valid', title: 'Válida',     width: 16, align: 'center' as const },
+          ...(showTime  ? [{ key: 'time',  title: 'Data/Hora', width: 26, align: 'left' as const }] : []),
+        ];
+
+        const columnStyles = cols.reduce<Record<number, any>>((acc, c, idx) => {
+          acc[idx] = { cellWidth: c.width, halign: c.align };
+          return acc;
+        }, {} as Record<number, any>);
+
+        autoTable(doc, {
+          startY: y,
+          head: [cols.map(c => c.title)],
+          body: sigs.map(s => cols.map(c => {
+            switch (c.key) {
+              case 'name':  return this.displayCN(s);
+              case 'cpf':   return s.cpf || '—';
+              case 'type':  return s.signatureType ?? '—';
+              case 'level': return s.signatureLevel ?? '—';
+              case 'auth':  return this.authorityOf(s);
+              case 'valid': return s.signatureValid ? 'Sim' : 'Não';
+              case 'time':  return this.brDate(s.signatureTime);
+              default:      return '—';
+            }
+          })),
+          styles: { fontSize: 9, cellPadding: 2, lineColor: BRAND.border, lineWidth: 0.2 },
+          headStyles: { fillColor: [241, 245, 249], textColor: 30, halign: 'left' },
+          alternateRowStyles: { fillColor: [250, 250, 250] },
+          margin: { left: M, right: M },
+          columnStyles
+        });
+
+        // >>> evita sobreposição do bloco seguinte
+        const tableFinalY =
+          (doc as any).lastAutoTable?.finalY ??
+          (autoTable as any)?.previous?.finalY ?? // compatibilidade
+          y;
+        y = tableFinalY + 10;
+        addPageIfNeeded(18);
       }
 
-      // ===== Tabela dinâmica (Titular = CN sem CPF quando ICP)
-      const showCPF   = sigs.some(s => !!s.cpf);
-      const showLevel = sigs.some(s => !!s.signatureLevel);
-      const showTime  = sigs.some(s => !!s.signatureTime);
+      // Observações e notas da validação (inclui textos dos tooltips)
+      const notas: string[] = [];
+      const statusTip = this.getStatusTooltip();
+      if (this.result?.isValid === false && statusTip) notas.push(statusTip);
 
-      const cols = [
-        { key: 'name',  title: 'Titular',    width: 56, align: 'left' as const },
-        ...(showCPF   ? [{ key: 'cpf',   title: 'CPF',       width: 24, align: 'left' as const }] : []),
-        { key: 'type',  title: 'Padrão',     width: 22, align: 'left' as const },
-        ...(showLevel ? [{ key: 'level', title: 'Nível',     width: 22, align: 'left' as const }] : []),
-        { key: 'auth',  title: 'Autoridade', width: 30, align: 'left' as const },
-        { key: 'valid', title: 'Válida',     width: 16, align: 'center' as const },
-        ...(showTime  ? [{ key: 'time',  title: 'Data/Hora', width: 26, align: 'left' as const }] : []),
-      ];
+      const tipValid = this.getPdfAValidTooltip();
+      if (tipValid) notas.push(tipValid);
 
-      const columnStyles = cols.reduce<Record<number, any>>((acc, c, idx) => {
-        acc[idx] = { cellWidth: c.width, halign: c.align };
-        return acc;
-      }, {} as Record<number, any>);
+      const tipCompliant = this.getPdfACompliantTooltip();
+      if (tipCompliant) notas.push(tipCompliant);
 
-      autoTable(doc, {
-        startY: y,
-        head: [cols.map(c => c.title)],
-        body: sigs.map(s => cols.map(c => {
-          switch (c.key) {
-            case 'name':  return this.displayCN(s);              // <— sem CPF
-            case 'cpf':   return s.cpf || '—';
-            case 'type':  return s.signatureType ?? '—';
-            case 'level': return s.signatureLevel ?? '—';
-            case 'auth':  return this.authorityOf(s);
-            case 'valid': return s.signatureValid ? 'Sim' : 'Não';
-            case 'time':  return this.brDate(s.signatureTime);
-            default:      return '—';
-          }
-        })),
-        styles: { fontSize: 9, cellPadding: 2, lineColor: BRAND.border, lineWidth: 0.2 },
-        headStyles: { fillColor: [241, 245, 249], textColor: 30, halign: 'left' },
-        alternateRowStyles: { fillColor: [250, 250, 250] },
-        margin: { left: M, right: M },
-        columnStyles
-      });
+      const tipBorn = this.getBornDigitalTooltip();
+      if (tipBorn) notas.push(tipBorn);
+
+      const tipLevel = this.getPdfALevelTooltip();
+      if (tipLevel) notas.push(tipLevel);
+
+      for (const s of sigs) {
+        if (s.signatureValid === false) {
+          const t = this.getSignatureTooltip(s);
+          if (t) notas.push(`${this.displayCN(s)}: ${t}`);
+        }
+      }
+
+      if (notas.length) {
+        hr();
+        section('Observações e notas da validação');
+        notas.forEach(n => para('• ' + n));
+      }
 
       // Rodapé
       const pageCount = doc.getNumberOfPages();
