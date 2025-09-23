@@ -49,7 +49,7 @@
       <ion-row class="val-row">
 
         <!-- ESQUERDA: Resumo -->
-        <ion-col size="12" size-lg="5" class="left">
+        <ion-col size="12" size-lg="6" class="left">
           <ion-card class="summary-card">
             <ion-card-header>
               <ion-card-title>
@@ -104,9 +104,16 @@
         </ion-col>
 
         <!-- DIREITA -->
-        <ion-col size="12" size-lg="5" class="right">
+        <ion-col size="12" size-lg="6" class="right">
           <!-- Apontamentos -->
-          <ion-card class="errorfindings-card" *ngIf="r.errorfindings?.length">
+          <ion-card
+            class="errorfindings-card"
+            *ngIf="((r.errorfindings?.length || 0) > 0)
+                   || !!getStatusTooltip()
+                   || !!getPdfAValidTooltip()
+                   || !!getPdfACompliantTooltip()
+                   || !!getBornDigitalTooltip()
+                   || !!getPdfALevelTooltip()">
             <ion-card-header>
               <ion-card-title>
                 <ion-icon name="search-outline"></ion-icon>
@@ -115,10 +122,57 @@
             </ion-card-header>
             <ion-card-content>
               <ion-list>
+                <!-- Itens da API (vermelho) -->
                 <ion-item *ngFor="let f of r.errorfindings" class="finding">
                   <ion-icon name="alert-circle" color="danger"></ion-icon>
                   <ion-label class="danger-text">{{ f }}</ion-label>
                 </ion-item>
+
+                <!-- Itens que vinham dos tooltips (preto) -->
+                <ion-item *ngIf="getStatusTooltip()" class="finding">
+                  <ion-icon name="alert-circle" style="color:#000"></ion-icon>
+                  <ion-label style="color:#000; font-family:'Roboto','Inter',system-ui,-apple-system,'Segoe UI',Arial,sans-serif; font-weight:400;">
+                    {{ getStatusTooltip() }}
+                  </ion-label>
+                </ion-item>
+
+                <ion-item *ngIf="getPdfAValidTooltip()" class="finding">
+                  <ion-icon name="alert-circle" style="color:#000"></ion-icon>
+                  <ion-label style="color:#000; font-family:'Roboto','Inter',system-ui,-apple-system,'Segoe UI',Arial,sans-serif; font-weight:400;">
+                    {{ getPdfAValidTooltip() }}
+                  </ion-label>
+                </ion-item>
+
+                <ion-item *ngIf="getPdfACompliantTooltip()" class="finding">
+                  <ion-icon name="alert-circle" style="color:#000"></ion-icon>
+                  <ion-label style="color:#000; font-family:'Roboto','Inter',system-ui,-apple-system,'Segoe UI',Arial,sans-serif; font-weight:400;">
+                    {{ getPdfACompliantTooltip() }}
+                  </ion-label>
+                </ion-item>
+
+                <ion-item *ngIf="getBornDigitalTooltip()" class="finding">
+                  <ion-icon name="alert-circle" style="color:#000"></ion-icon>
+                  <ion-label style="color:#000; font-family:'Roboto','Inter',system-ui,-apple-system,'Segoe UI',Arial,sans-serif; font-weight:400;">
+                    {{ getBornDigitalTooltip() }}
+                  </ion-label>
+                </ion-item>
+
+                <ion-item *ngIf="getPdfALevelTooltip()" class="finding">
+                  <ion-icon name="alert-circle" style="color:#000"></ion-icon>
+                  <ion-label style="color:#000; font-family:'Roboto','Inter',system-ui,-apple-system,'Segoe UI',Arial,sans-serif; font-weight:400;">
+                    {{ getPdfALevelTooltip() }}
+                  </ion-label>
+                </ion-item>
+
+                <ng-container *ngFor="let s of r.validaDocsReturn?.digitalSignatureValidations">
+                  <ion-item *ngIf="s.signatureValid === false" class="finding">
+                    <ion-icon name="alert-circle" style="color:#000"></ion-icon>
+                    <ion-label style="color:#000; font-family:'Roboto','Inter',system-ui,-apple-system,'Segoe UI',Arial,sans-serif; font-weight:400;">
+                      {{ displayCN(s) }}: {{ getSignatureTooltip(s) }}
+                    </ion-label>
+                  </ion-item>
+                </ng-container>
+
               </ion-list>
             </ion-card-content>
           </ion-card>
@@ -134,19 +188,11 @@
             <ion-card-content>
               <ion-item lines="full">
                 <ion-label position="stacked">Nome do documento</ion-label>
-                <!-- >>> aqui corrige acentuação do nome do arquivo -->
                 <ion-input [value]="normalizeAccents(r.fileName)" readonly></ion-input>
               </ion-item>
 
               <ion-item>
-                <ion-label class="with-help">
-                  Status
-                  <span *ngIf="r.isValid === false"
-                        class="help-dot"
-                        [title]="getStatusTooltip()"
-                        [attr.aria-label]="'Ajuda: ' + getStatusTooltip()"
-                        tabindex="0"></span>
-                </ion-label>
+                <ion-label class="with-help">Status</ion-label>
                 <ion-note [color]="validColor(r.isValid)">
                   {{ r.isValid ? 'Válido' : 'Inválido' }}
                 </ion-note>
@@ -175,62 +221,29 @@
 
             <ion-card-content>
               <ion-list class="info-list">
-                <!-- PDF/A válido (mensagem fixa) -->
                 <ion-item>
-                  <ion-label class="with-help">
-                    PDF/A válido
-                    <span *ngIf="r.validaDocsReturn?.pdfValidations?.isValid === false"
-                          class="help-dot"
-                          title="O arquivo não atende integralmente ao padrão PDF/A."
-                          aria-label="Ajuda: O arquivo não atende integralmente ao padrão PDF/A."
-                          tabindex="0"></span>
-                  </ion-label>
+                  <ion-label class="with-help">PDF/A válido</ion-label>
                   <ion-badge [color]="r.validaDocsReturn?.pdfValidations?.isValid ? 'success' : 'danger'">
                     {{ r.validaDocsReturn?.pdfValidations?.isValid ? 'Sim' : 'Não' }}
                   </ion-badge>
                 </ion-item>
 
-                <!-- Conformidade com o padrão (mensagem fixa) -->
                 <ion-item>
-                  <ion-label class="with-help">
-                    Está em conformidade com padrão?
-                    <span *ngIf="r.validaDocsReturn?.pdfValidations?.isPDFACompliant === false"
-                          class="help-dot"
-                          title="Não está conforme o nível PDF/A declarado."
-                          aria-label="Ajuda: Não está conforme o nível PDF/A declarado."
-                          tabindex="0"></span>
-                  </ion-label>
+                  <ion-label class="with-help">Está em conformidade com padrão?</ion-label>
                   <ion-badge [color]="r.validaDocsReturn?.pdfValidations?.isPDFACompliant ? 'success' : 'danger'">
                     {{ r.validaDocsReturn?.pdfValidations?.isPDFACompliant ? 'Sim' : 'Não' }}
                   </ion-badge>
                 </ion-item>
 
-                <!-- Nato digital (mensagem fixa) -->
                 <ion-item>
-                  <ion-label class="with-help">
-                    Nato digital
-                    <span *ngIf="r.validaDocsReturn?.pdfValidations?.bornDigital === false"
-                          class="help-dot"
-                          title="Pode ser uma digitalização; não foi gerado originalmente em meio digital."
-                          aria-label="Ajuda: Pode ser uma digitalização; não foi gerado originalmente em meio digital."
-                          tabindex="0"></span>
-                  </ion-label>
+                  <ion-label class="with-help">Nato digital</ion-label>
                   <ion-badge [color]="r.validaDocsReturn?.pdfValidations?.bornDigital ? 'success' : 'danger'">
                     {{ r.validaDocsReturn?.pdfValidations?.bornDigital ? 'Sim' : 'Não' }}
                   </ion-badge>
                 </ion-item>
 
-                <!-- Nível (mensagem fixa) -->
                 <ion-item>
-                  <ion-label class="with-help">
-                    Nível
-                    <span *ngIf="!(r.validaDocsReturn?.pdfValidations?.pdfAStandard) ||
-                                 r.validaDocsReturn?.pdfValidations?.pdfAStandard === 'Desconhecido'"
-                          class="help-dot"
-                          title="Não foi possível identificar o nível PDF/A."
-                          aria-label="Ajuda: Não foi possível identificar o nível PDF/A."
-                          tabindex="0"></span>
-                  </ion-label>
+                  <ion-label class="with-help">Nível</ion-label>
                   <ion-note slot="end">
                     {{ r.validaDocsReturn?.pdfValidations?.pdfAStandard || 'Desconhecido' }}
                   </ion-note>
@@ -267,7 +280,6 @@
                 <ion-item *ngFor="let s of r.validaDocsReturn?.digitalSignatureValidations; trackBy: trackByName"
                           lines="full" class="cert-item">
                   <ion-label class="ion-text-wrap">
-                    <!-- Fonte normal (sem negrito) + acentuação corrigida -->
                     <p class="cert-subject ion-text-wrap" style="font-weight: 400; margin: 0;">
                       {{ normalizeAccents(s.endCertSubjectName) || '—' }}
                     </p>
@@ -286,12 +298,6 @@
                   <ion-badge slot="end" [color]="sigColor(s)">
                     {{ s.signatureValid ? 'Válida' : 'Inválida' }}
                   </ion-badge>
-                  <span *ngIf="s.signatureValid === false"
-                        slot="end"
-                        class="help-dot"
-                        [title]="getSignatureTooltip(s)"
-                        [attr.aria-label]="'Ajuda: ' + getSignatureTooltip(s)"
-                        tabindex="0"></span>
                 </ion-item>
               </ion-list>
             </ion-card-content>
