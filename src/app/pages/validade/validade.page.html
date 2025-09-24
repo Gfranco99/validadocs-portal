@@ -114,60 +114,54 @@
                    || !!getPdfACompliantTooltip()
                    || !!getBornDigitalTooltip()
                    || !!getPdfALevelTooltip()">
+
             <ion-card-header>
               <ion-card-title>
                 <ion-icon name="search-outline"></ion-icon>
                 Apontamentos da Validação
               </ion-card-title>
             </ion-card-header>
+
             <ion-card-content>
               <ion-list>
+
                 <!-- Itens da API (vermelho) -->
                 <ion-item *ngFor="let f of r.errorfindings" class="finding">
                   <ion-icon name="alert-circle" color="danger"></ion-icon>
                   <ion-label class="danger-text">{{ f }}</ion-label>
                 </ion-item>
 
-                <!-- Itens que vinham dos tooltips (preto) -->
+                <!-- Tooltips importados (texto preto) -->
                 <ion-item *ngIf="getStatusTooltip()" class="finding">
-                  <ion-icon name="alert-circle" style="color:#000"></ion-icon>
-                  <ion-label style="color:#000; font-family:'Roboto','Inter',system-ui,-apple-system,'Segoe UI',Arial,sans-serif; font-weight:400;">
-                    {{ getStatusTooltip() }}
-                  </ion-label>
+                  <ion-icon name="alert-circle"></ion-icon>
+                  <ion-label class="tooltip-text">{{ getStatusTooltip() }}</ion-label>
                 </ion-item>
 
                 <ion-item *ngIf="getPdfAValidTooltip()" class="finding">
-                  <ion-icon name="alert-circle" style="color:#000"></ion-icon>
-                  <ion-label style="color:#000; font-family:'Roboto','Inter',system-ui,-apple-system,'Segoe UI',Arial,sans-serif; font-weight:400;">
-                    {{ getPdfAValidTooltip() }}
-                  </ion-label>
+                  <ion-icon name="alert-circle"></ion-icon>
+                  <ion-label class="tooltip-text">{{ getPdfAValidTooltip() }}</ion-label>
                 </ion-item>
 
                 <ion-item *ngIf="getPdfACompliantTooltip()" class="finding">
-                  <ion-icon name="alert-circle" style="color:#000"></ion-icon>
-                  <ion-label style="color:#000; font-family:'Roboto','Inter',system-ui,-apple-system,'Segoe UI',Arial,sans-serif; font-weight:400;">
-                    {{ getPdfACompliantTooltip() }}
-                  </ion-label>
+                  <ion-icon name="alert-circle"></ion-icon>
+                  <ion-label class="tooltip-text">{{ getPdfACompliantTooltip() }}</ion-label>
                 </ion-item>
 
                 <ion-item *ngIf="getBornDigitalTooltip()" class="finding">
-                  <ion-icon name="alert-circle" style="color:#000"></ion-icon>
-                  <ion-label style="color:#000; font-family:'Roboto','Inter',system-ui,-apple-system,'Segoe UI',Arial,sans-serif; font-weight:400;">
-                    {{ getBornDigitalTooltip() }}
-                  </ion-label>
+                  <ion-icon name="alert-circle"></ion-icon>
+                  <ion-label class="tooltip-text">{{ getBornDigitalTooltip() }}</ion-label>
                 </ion-item>
 
                 <ion-item *ngIf="getPdfALevelTooltip()" class="finding">
-                  <ion-icon name="alert-circle" style="color:#000"></ion-icon>
-                  <ion-label style="color:#000; font-family:'Roboto','Inter',system-ui,-apple-system,'Segoe UI',Arial,sans-serif; font-weight:400;">
-                    {{ getPdfALevelTooltip() }}
-                  </ion-label>
+                  <ion-icon name="alert-circle"></ion-icon>
+                  <ion-label class="tooltip-text">{{ getPdfALevelTooltip() }}</ion-label>
                 </ion-item>
 
+                <!-- Tooltips por assinatura inválida -->
                 <ng-container *ngFor="let s of r.validaDocsReturn?.digitalSignatureValidations">
                   <ion-item *ngIf="s.signatureValid === false" class="finding">
-                    <ion-icon name="alert-circle" style="color:#000"></ion-icon>
-                    <ion-label style="color:#000; font-family:'Roboto','Inter',system-ui,-apple-system,'Segoe UI',Arial,sans-serif; font-weight:400;">
+                    <ion-icon name="alert-circle"></ion-icon>
+                    <ion-label class="tooltip-text">
                       {{ displayCN(s) }}: {{ getSignatureTooltip(s) }}
                     </ion-label>
                   </ion-item>
@@ -185,6 +179,7 @@
                 Sobre o Documento
               </ion-card-title>
             </ion-card-header>
+
             <ion-card-content>
               <ion-item lines="full">
                 <ion-label position="stacked">Nome do documento</ion-label>
@@ -193,9 +188,9 @@
 
               <ion-item>
                 <ion-label class="with-help">Status</ion-label>
-                <ion-note [color]="validColor(r.isValid)">
+                <ion-badge slot="end" class="pill" [color]="r.isValid ? 'success' : 'danger'">
                   {{ r.isValid ? 'Válido' : 'Inválido' }}
-                </ion-note>
+                </ion-badge>
               </ion-item>
 
               <ion-item>
@@ -223,21 +218,21 @@
               <ion-list class="info-list">
                 <ion-item>
                   <ion-label class="with-help">PDF/A válido</ion-label>
-                  <ion-badge [color]="r.validaDocsReturn?.pdfValidations?.isValid ? 'success' : 'danger'">
+                  <ion-badge class="pill" [color]="r.validaDocsReturn?.pdfValidations?.isValid ? 'success' : 'danger'" slot="end">
                     {{ r.validaDocsReturn?.pdfValidations?.isValid ? 'Sim' : 'Não' }}
                   </ion-badge>
                 </ion-item>
 
                 <ion-item>
                   <ion-label class="with-help">Está em conformidade com padrão?</ion-label>
-                  <ion-badge [color]="r.validaDocsReturn?.pdfValidations?.isPDFACompliant ? 'success' : 'danger'">
+                  <ion-badge class="pill" [color]="r.validaDocsReturn?.pdfValidations?.isPDFACompliant ? 'success' : 'danger'" slot="end">
                     {{ r.validaDocsReturn?.pdfValidations?.isPDFACompliant ? 'Sim' : 'Não' }}
                   </ion-badge>
                 </ion-item>
 
                 <ion-item>
                   <ion-label class="with-help">Nato digital</ion-label>
-                  <ion-badge [color]="r.validaDocsReturn?.pdfValidations?.bornDigital ? 'success' : 'danger'">
+                  <ion-badge class="pill" [color]="r.validaDocsReturn?.pdfValidations?.bornDigital ? 'success' : 'danger'" slot="end">
                     {{ r.validaDocsReturn?.pdfValidations?.bornDigital ? 'Sim' : 'Não' }}
                   </ion-badge>
                 </ion-item>
@@ -280,22 +275,22 @@
                 <ion-item *ngFor="let s of r.validaDocsReturn?.digitalSignatureValidations; trackBy: trackByName"
                           lines="full" class="cert-item">
                   <ion-label class="ion-text-wrap">
-                    <p class="cert-subject ion-text-wrap" style="font-weight: 400; margin: 0;">
+                    <p class="cert-subject ion-text-wrap" style="margin:0;">
                       {{ normalizeAccents(s.endCertSubjectName) || '—' }}
                     </p>
 
-                    <p class="cert-issuer ion-text-wrap" style="font-weight: 400;">
-                      <span class="issuer-label" style="font-weight: 400;">Emissor raiz:</span>
-                      <span class="issuer-value" style="font-weight: 400;">{{ normalizeAccents(s.rootIssuer) || '—' }}</span>
+                    <p class="cert-issuer ion-text-wrap">
+                      <span class="issuer-label">Emissor raiz:</span>
+                      <span class="issuer-value">{{ normalizeAccents(s.rootIssuer) || '—' }}</span>
                     </p>
 
-                    <p class="cert-meta" style="font-weight: 400;">{{ s.signatureType }} {{ s.signatureLevel }}</p>
-                    <p class="cert-meta" *ngIf="s.signatureTime" style="font-weight: 400;">
+                    <p class="cert-meta">{{ s.signatureType }} {{ s.signatureLevel }}</p>
+                    <p class="cert-meta" *ngIf="s.signatureTime">
                       Data: {{ s.signatureTime | date:'dd/MM/yyyy HH:mm' }}
                     </p>
                   </ion-label>
 
-                  <ion-badge slot="end" [color]="sigColor(s)">
+                  <ion-badge slot="end" class="pill" [color]="sigColor(s)">
                     {{ s.signatureValid ? 'Válida' : 'Inválida' }}
                   </ion-badge>
                 </ion-item>

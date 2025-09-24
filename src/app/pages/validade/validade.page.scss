@@ -27,6 +27,30 @@
 .left, .right { display: block; }
 
 /* ===========================
+   BADGES (PILL) – PADRÃO ÚNICO
+   =========================== */
+/* Aplica o estilo pill a TODOS os ion-badge (e também quando tiver class="pill") */
+ion-badge::part(native),
+ion-badge.pill::part(native) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 26px;               /* altura fixa */
+  padding: 0 12px;            /* padding consistente */
+  border-radius: 9999px;      /* pill real */
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.04) inset; /* leve definição */
+}
+
+/* (Opcional) garante que o badge no fim do ion-item fique visualmente alinhado */
+ion-item ion-badge {
+  margin-left: auto;
+}
+
+/* ===========================
    CARD RESUMO (sem centralizar)
    =========================== */
 .summary-card {
@@ -71,23 +95,45 @@
    CARDS DA DIREITA
    =========================== */
 .right ion-card { width: 100%; margin-left: 0; border-radius: 12px; }
-.errorfindings-card ion-card-title { display: flex; align-items: center; gap: var(--gap-xs); }
-.finding { --inner-padding-start: 0; --inner-padding-end: 0; }
-.danger-text { color: var(--ion-color-danger); font-weight: 500; word-break: break-word; }
 
-.callout-ok { display: flex; align-items: center; gap: var(--gap-xs); color: var(--ion-color-success); font-weight: 600;
+/* Apontamentos – alinhado à esquerda e consistentes */
+.errorfindings-card ion-card-title { display: flex; align-items: center; gap: var(--gap-xs); }
+.finding {
+  --inner-padding-start: 0;
+  --inner-padding-end: 0;
+  align-items: flex-start;     /* texto alinha ao topo */
+}
+.finding ion-icon {
+  margin-right: 8px;
+  margin-top: 2px;             /* casa com a 1ª linha do texto */
+  flex: 0 0 auto;
+}
+.danger-text {
+  color: var(--ion-color-danger);
+  font-weight: 500;
+  word-break: break-word;
+  white-space: normal;
+}
+.tooltip-text {
+  color: #000;
+  font-family: var(--ion-font-family);
+  font-weight: 400;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.callout-ok {
+  display: flex; align-items: center; gap: var(--gap-xs);
+  color: var(--ion-color-success); font-weight: 600;
   ion-icon { font-size: 18px; }
 }
 
 /* Info list */
 .info-list ion-item {
   --inner-padding-start: 0; --inner-padding-end: 0;
-
   ion-label { color: var(--ion-color-medium); }
-
-  ion-badge, ion-note[slot="end"] { font-size: 15px; font-weight: 600; }
-  ion-badge { padding: 4px 8px; border-radius: 999px; text-transform: none; letter-spacing: 0; }
-  ion-note[slot="end"] { margin-left: auto; }
+  ion-note[slot="end"] { font-size: 15px; font-weight: 600; margin-left: auto; }
 }
 
 /* ===========================
@@ -119,7 +165,7 @@
   .issuer-value,
   .cert-meta {
     font-family: var(--ion-font-family) !important;
-    color: #000 !important; /* tudo preto */
+    color: #000 !important;
   }
 
   .cert-subject {
@@ -153,56 +199,25 @@ ion-list .cert-item + .cert-item { --inner-padding-top: 10px; }
 /* ==========================================
    TOOLTIP (bolinha “?” estilo label-position)
    ========================================== */
-.with-help {
-  display: inline-flex;
-  align-items: center;
-  gap: .5rem; /* espaço entre o texto e a bolinha */
-}
+.with-help { display: inline-flex; align-items: center; gap: .5rem; }
 
 .help-dot {
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 18px; height: 18px;
   margin-left: .35rem;
   border-radius: 50%;
-  background: #e8edf3;           /* cinza-azulado claro */
-  border: 1px solid #9bb0c3;     /* borda levemente mais escura */
-  color: #55697d;                 /* cor do ? */
-  font-weight: 700;
-  font-size: 12px;
-  line-height: 1;
+  background: #e8edf3;
+  border: 1px solid #9bb0c3;
+  color: #55697d;
+  font-weight: 700; font-size: 12px; line-height: 1;
   user-select: none;
 }
 .help-dot::before { content: "?"; transform: translateY(-.5px); }
-
-/* manter sempre visível (seu HTML usa .show) */
 .help-dot.show { visibility: visible; opacity: 1; }
-
-/* acessibilidade ao focar via teclado */
-.help-dot:focus {
-  outline: 2px solid #7aa2c7;
-  outline-offset: 2px;
-}
-
-/* ===========================
-   (opcional) Chip antigo de dica
-   =========================== */
-.with-tip { display: inline-flex; align-items: center; gap: .5rem; }
-.with-tip .tip-chip {
-  margin-left: .5rem;
-  height: 20px;
-  border-radius: 999px;
-  --padding-start: 6px;
-  --padding-end: 8px;
-  --inner-padding-top: 0;
-  --inner-padding-bottom: 0;
-  --background: transparent;
-}
-.with-tip .tip-chip ion-icon { font-size: 13px; margin-inline-end: 4px; }
-.with-tip .tip-chip ion-label { font-size: 12px; font-weight: 500; }
+.help-dot:focus { outline: 2px solid #7aa2c7; outline-offset: 2px; }
 
 /* ===========================
    RESPONSIVO
