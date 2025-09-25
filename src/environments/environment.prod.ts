@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiBase: 'https://SEU_BACKEND_REAL/api'
+  apiBase: 'http://62.171.128.216:3000/verify'
 };
