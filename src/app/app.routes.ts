@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { AuthGuard } from './guard/auth.guard';
 
 export const routes: Routes = [
   {
@@ -11,7 +12,8 @@ export const routes: Routes = [
     pathMatch: 'full',
   },
   {
-    path: 'validade',
-    loadComponent: () => import('./pages/validade/validade.page').then( m => m.ValidadePage)
+    path: 'validate',
+    loadComponent: () => import('./pages/validate/validate.page').then( m => m.ValidatePage),
+    canActivate: [AuthGuard] // 🚨 guard aplicado
   }
 ];

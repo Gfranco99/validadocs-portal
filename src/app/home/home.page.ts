@@ -5,7 +5,8 @@ import {
   IonContent, IonIcon, IonGrid, IonRow, IonCol
 } from '@ionic/angular/standalone';
 import { RouterModule, Router } from '@angular/router';
-import { AlertController, ToastController } from '@ionic/angular';
+import { AlertController, ToastController, LoadingController } from '@ionic/angular';
+import { AuthService } from '../guard/auth.service';
 
 @Component({
   selector: 'app-home',
@@ -22,12 +23,16 @@ export class HomePage {
   private router = inject(Router);
   private alertCtrl = inject(AlertController);
   private toastCtrl = inject(ToastController);
-
-  constructor() {
+  private loadingController = inject(LoadingController);
+   
+  
+  constructor(
+    private authService: AuthService,
+  ) {
     this.title.setTitle('ValidaDocs');
   }
 
-  // Abre o modal e configura: só números + Enter para validar
+  // Abre o modal
   async startValidation() {
     const alert = await this.alertCtrl.create({
       header: 'Autorização',
@@ -152,19 +157,87 @@ export class HomePage {
 
   // Validação final do token + navegação
   private async handleToken(token: string) {
-    //if (!token || !/^\d+$/.test(token) || !this.tokenService.isValid(token)) {
-    if (!token || !(token == '123')) {
-      const t = await this.toastCtrl.create({
-        message: 'Token inválido.',
-        duration: 2500,
-        color: 'danger'
-      });
-      await t.present();
+
+    const _token = (token ?? '').trim();
+          if (!token) {            
+            // token vazio → não fecha
+            return false;
+          }
+
+    const loading = await this.loadingController.create({
+      message: 'Processando...',
+      spinner: 'crescent', // ou 'dots', 'lines', etc.
+      duration: 3000 // opcional
+    });
+    await loading.present();
+
+
+    const isValid = await this.authService.login(token).toPromise();
+
+    await loading.dismiss();
+
+    if (isValid) {
+      // sucesso → fecha o alert
+      this.router.navigate(['/validate']); // rota protegida
+      return true;
+    } else {
+      // falha → mostra mensagem e mantém aberto
+      this.presentError('Token inválido, tente novamente.');      
       return false;
     }
+   
 
-    // this.tokenService.setToken(token);
-    await this.router.navigateByUrl('/validade');
-    return true;
+    // this.authService.login(token).subscribe({
+    //   next: async (success) => {
+    //     this.isLoading = false;
+    //     if (success) {
+    //       this.router.navigate(['/validate']); // rota protegida
+    //       return true;
+    //     } else {
+    //       this.errorMessage = 'Credencial inválida. Tente novamente.';
+    //       const t = await this.toastCtrl.create({
+    //         message: this.errorMessage,
+    //         duration: 5000,
+    //         color: 'danger'
+    //       });
+
+    //       await t.present();
+    //       return false;
+    //     }
+    //   },
+    //   error: () => {
+    //     this.isLoading = false;
+    //     this.errorMessage = 'Erro ao validar credencial. Tente novamente.';        
+    //     return false;
+    //   }
+    // });
+
+
+
+    // //if (!token || !/^\d+$/.test(token) || !this.tokenService.isValid(token)) {
+    // if (!token || !(token == '123')) {
+    //   const t = await this.toastCtrl.create({
+    //     message: 'Token inválido.',
+    //     duration: 2500,
+    //     color: 'danger'
+    //   });
+    //   await t.present();
+    //   return false;
+    // }
+
+    // // this.tokenService.setToken(token);
+    // await this.router.navigateByUrl('/validate');
+    // return true;
+  }
+
+
+  // método auxiliar para mostrar mensagem de erro no próprio Alert
+  async presentError(msg: string) {
+    const toast = await this.toastCtrl.create({
+      message: msg,
+      duration: 5000,
+      color: 'danger'
+    });
+    toast.present();
   }
 }

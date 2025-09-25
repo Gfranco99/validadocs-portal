@@ -18,8 +18,8 @@ import { finalize } from 'rxjs/operators';
 
 @Component({
   selector: 'app-validate',
-  templateUrl: './validade.page.html',
-  styleUrls: ['./validade.page.scss'],
+  templateUrl: './validate.page.html',
+  styleUrls: ['./validate.page.scss'],
   standalone: true,
   imports: [IonChip, IonPopover,
     CommonModule, ReactiveFormsModule, RouterLink,
@@ -30,7 +30,7 @@ import { finalize } from 'rxjs/operators';
     SeloValidacaoMiniComponent
   ]
 })
-export class ValidadePage implements OnDestroy {
+export class ValidatePage implements OnDestroy {
   @ViewChild('fileInput', { static: false }) fileInput?: ElementRef<HTMLInputElement>;
 
   form: FormGroup;
