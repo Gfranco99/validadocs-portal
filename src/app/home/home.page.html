@@ -16,17 +16,13 @@
 
     <p class="sub">
       Validação de PDFs com <b>assinaturas digitais (PAdES)</b>,
-      <b>cadeia ICP-Brasil</b> e <b>conformidade PDF/A</b>.
+      <b>cadeia ICP-Brasil, eGov-BR, ICP-RC e eNotariado</b> e <b>conformidade PDF/A</b>.
     </p>
 
     <div class="cta">
-      <ion-button
-        color="primary"
-        size="large"
-        (click)="startValidation()"
-        aria-label="Iniciar validação"
-      >
-        <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
+      <ion-button 
+        color="primary" size="large" class="btn-centered"
+        (click)="startValidation()"      >
         Iniciar validação        
       </ion-button>
     </div>

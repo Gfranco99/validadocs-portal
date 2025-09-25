@@ -91,7 +91,7 @@ export class HomePage {
       if (!isInput(ev.target)) return;
       if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
       if (isCtrlKey(ev.key)) return;
-      if (!/^\d$/.test(ev.key)) ev.preventDefault(); // BLOQUEIA letras/símbolos
+      if (!/^[a-zA-Z0-9]$/.test(ev.key)) ev.preventDefault(); // BLOQUEIA letras/símbolos
     };
 
     const onBeforeInput = (ev: InputEvent) => {
@@ -100,7 +100,7 @@ export class HomePage {
       const data = (ev as any).data ?? '';
 
       // Digitação direta: barra se não for dígito
-      if (type === 'insertText' && data && !/^\d+$/.test(data)) {
+      if (type === 'insertText' && data && !/^[a-zA-Z0-9]$/.test(data)) {
         ev.preventDefault();
         return;
       }
@@ -113,7 +113,7 @@ export class HomePage {
           (type === 'insertFromPaste'
             ? (ev as any)?.clipboardData?.getData?.('text')
             : (ev as any)?.dataTransfer?.getData?.('text')) ?? '';
-        const digits = String(raw).replace(/\D+/g, '');
+        const digits = String(raw).replace(/[^a-zA-Z0-9]+/g, '');
         const s = input.selectionStart ?? input.value.length;
         const e = input.selectionEnd ?? input.value.length;
         input.setRangeText(digits, s, e, 'end');
@@ -126,7 +126,7 @@ export class HomePage {
       ev.preventDefault();
       const input = ev.target as HTMLInputElement;
       const raw = ev.clipboardData?.getData('text') ?? '';
-      const digits = raw.replace(/\D+/g, '');
+      const digits = raw.replace(/[^a-zA-Z0-9]+/g, '');
       const s = input.selectionStart ?? input.value.length;
       const e = input.selectionEnd ?? input.value.length;
       input.setRangeText(digits, s, e, 'end');
@@ -136,7 +136,7 @@ export class HomePage {
     const onInput = (ev: Event) => {
       if (!isInput(ev.target)) return;
       const input = ev.target as HTMLInputElement;
-      const digits = input.value.replace(/\D+/g, '');
+      const digits = input.value.replace(/[^a-zA-Z0-9]+/g, '');
       if (input.value !== digits) input.value = digits; // SANITIZA ESCAPES/IME
     };
 

@@ -209,3 +209,24 @@ ion-alert.blur-backdrop::after {
     backdrop-filter: blur(18px) saturate(120%);
   }
 }
+
+ion-button.btn-centered::part(native) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1; /* evita “descer” do texto */
+}
+
+/* Padding simétrico para não deslocar o texto */
+ion-button.btn-centered {
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --padding-top: 10px;
+  --padding-bottom: 10px;
+}
+
+/* Se usar ícone, mantém o espaçamento equilibrado */
+ion-button.btn-centered ion-icon[slot="start"],
+ion-button.btn-centered ion-icon[slot="end"] {
+  margin-inline: 8px;
+}
