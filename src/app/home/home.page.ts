@@ -6,7 +6,6 @@ import {
 } from '@ionic/angular/standalone';
 import { RouterModule, Router } from '@angular/router';
 import { AlertController, ToastController } from '@ionic/angular';
-import { TokenService } from '../services/token.service';
 
 @Component({
   selector: 'app-home',
@@ -23,7 +22,6 @@ export class HomePage {
   private router = inject(Router);
   private alertCtrl = inject(AlertController);
   private toastCtrl = inject(ToastController);
-  private tokenService = inject(TokenService);
 
   constructor() {
     this.title.setTitle('ValidaDocs');
@@ -32,24 +30,24 @@ export class HomePage {
   // Abre o modal e configura: só números + Enter para validar
   async startValidation() {
     const alert = await this.alertCtrl.create({
-      header: 'Token de acesso',
+      header: 'Autorização',
       message: 'Informe o token para continuar.',
       cssClass: 'blur-backdrop',   // fundo desfocado (via global.scss)
       backdropDismiss: false,      // não fecha clicando fora
       inputs: [
         {
           name: 'token',
-          type: 'number',          // number ajuda em mobile; vamos filtrar no desktop
+          type: 'text',          // number ajuda em mobile; vamos filtrar no desktop
           placeholder: 'Seu token',
-          attributes: {
-            autocapitalize: 'off',
-            autocorrect: 'off',
-            spellcheck: false,
-            inputmode: 'numeric',
-            pattern: '\\d*',
-            enterkeyhint: 'done',
-            autocomplete: 'one-time-code',
-          }
+          // attributes: {
+          //   autocapitalize: 'off',
+          //   autocorrect: 'off',
+          //   spellcheck: false,
+          //   //inputmode: 'numeric',
+          //   //pattern: '\\d*',
+          //   enterkeyhint: 'done',
+          //   autocomplete: 'one-time-code',
+          // }
         }
       ],
       buttons: [
@@ -154,9 +152,10 @@ export class HomePage {
 
   // Validação final do token + navegação
   private async handleToken(token: string) {
-    if (!token || !/^\d+$/.test(token) || !this.tokenService.isValid(token)) {
+    //if (!token || !/^\d+$/.test(token) || !this.tokenService.isValid(token)) {
+    if (!token || !(token == '123')) {
       const t = await this.toastCtrl.create({
-        message: 'Token inválido. Use apenas números.',
+        message: 'Token inválido.',
         duration: 2500,
         color: 'danger'
       });
@@ -164,7 +163,7 @@ export class HomePage {
       return false;
     }
 
-    this.tokenService.setToken(token);
+    // this.tokenService.setToken(token);
     await this.router.navigateByUrl('/validade');
     return true;
   }
