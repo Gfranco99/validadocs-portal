@@ -115,7 +115,7 @@ ion-item ion-badge {
   white-space: normal;
 }
 .tooltip-text {
-  color: #000;
+  color: var(--ion-color-danger);
   font-family: var(--ion-font-family);
   font-weight: 400;
   white-space: normal;

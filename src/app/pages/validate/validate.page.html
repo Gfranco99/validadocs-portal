@@ -108,12 +108,7 @@
           <!-- Apontamentos -->
           <ion-card
             class="errorfindings-card"
-            *ngIf="((r.errorfindings?.length || 0) > 0)
-                   || !!getStatusTooltip()
-                   || !!getPdfAValidTooltip()
-                   || !!getPdfACompliantTooltip()
-                   || !!getBornDigitalTooltip()
-                   || !!getPdfALevelTooltip()">
+            *ngIf="((r.errorfindings?.length || 0) > 0)">
 
             <ion-card-header>
               <ion-card-title>
@@ -129,32 +124,6 @@
                 <ion-item *ngFor="let f of r.errorfindings" class="finding">
                   <ion-icon name="alert-circle" color="danger"></ion-icon>
                   <ion-label class="danger-text">{{ f }}</ion-label>
-                </ion-item>
-
-                <!-- Tooltips importados (texto preto) -->
-                <ion-item *ngIf="getStatusTooltip()" class="finding">
-                  <ion-icon name="alert-circle"></ion-icon>
-                  <ion-label class="tooltip-text">{{ getStatusTooltip() }}</ion-label>
-                </ion-item>
-
-                <ion-item *ngIf="getPdfAValidTooltip()" class="finding">
-                  <ion-icon name="alert-circle"></ion-icon>
-                  <ion-label class="tooltip-text">{{ getPdfAValidTooltip() }}</ion-label>
-                </ion-item>
-
-                <ion-item *ngIf="getPdfACompliantTooltip()" class="finding">
-                  <ion-icon name="alert-circle"></ion-icon>
-                  <ion-label class="tooltip-text">{{ getPdfACompliantTooltip() }}</ion-label>
-                </ion-item>
-
-                <ion-item *ngIf="getBornDigitalTooltip()" class="finding">
-                  <ion-icon name="alert-circle"></ion-icon>
-                  <ion-label class="tooltip-text">{{ getBornDigitalTooltip() }}</ion-label>
-                </ion-item>
-
-                <ion-item *ngIf="getPdfALevelTooltip()" class="finding">
-                  <ion-icon name="alert-circle"></ion-icon>
-                  <ion-label class="tooltip-text">{{ getPdfALevelTooltip() }}</ion-label>
                 </ion-item>
 
                 <!-- Tooltips por assinatura inválida -->
