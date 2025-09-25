@@ -7,8 +7,8 @@ exports.createCredential = async (req, res) => {
   try {
     const { cliente, expiresIn } = req.body; // em minutos (opcional)
 
-    const token = uuidv4();
-    const userId = uuidv4();
+    const token = uuidv4().replace(/-/g, '');;
+    const userId = uuidv4().replace(/-/g, '');
 
     let expiresAt = null;
     if (expiresIn) {

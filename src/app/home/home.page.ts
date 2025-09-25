@@ -34,6 +34,19 @@ export class HomePage {
 
   // Abre o modal
   async startValidation() {
+
+    //Verifica usuário logado
+    if(await this.authService.isLoggedIn()) {
+      this.router.navigate(['/validate']); // rota protegida          
+    }  
+    else {
+      this.presentTokenPrompt();
+    }           
+  }
+
+
+  // Prompt para inserir token
+  async presentTokenPrompt() {
     const alert = await this.alertCtrl.create({
       header: 'Autorização',
       message: 'Informe o token para continuar.',
@@ -91,7 +104,7 @@ export class HomePage {
       if (!isInput(ev.target)) return;
       if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
       if (isCtrlKey(ev.key)) return;
-      if (!/^[a-zA-Z0-9]$/.test(ev.key)) ev.preventDefault(); // BLOQUEIA letras/símbolos
+      if (!/^[a-zA-Z0-9]$/.test(ev.key)) ev.preventDefault(); 
     };
 
     const onBeforeInput = (ev: InputEvent) => {
@@ -157,13 +170,14 @@ export class HomePage {
 
   // Validação final do token + navegação
   private async handleToken(token: string) {
-
+    // token vazio → não fecha
     const _token = (token ?? '').trim();
           if (!token) {            
             // token vazio → não fecha
             return false;
           }
 
+    // Mostra loading enquanto valida
     const loading = await this.loadingController.create({
       message: 'Processando...',
       spinner: 'crescent', // ou 'dots', 'lines', etc.
@@ -171,12 +185,12 @@ export class HomePage {
     });
     await loading.present();
 
-
+    // Chama o serviço de autenticação
     const response = await this.authService.login(token).toPromise();
-    console.log(response);
-
+    
     await loading.dismiss();
 
+    // Verifica o resultado
     if (response.valid) {
       // sucesso → fecha o alert
       this.router.navigate(['/validate']); // rota protegida
@@ -186,49 +200,6 @@ export class HomePage {
       this.presentError(response.message || 'Credencial inválida. Tente novamente.');      
       return false;
     }
-   
-
-    // this.authService.login(token).subscribe({
-    //   next: async (success) => {
-    //     this.isLoading = false;
-    //     if (success) {
-    //       this.router.navigate(['/validate']); // rota protegida
-    //       return true;
-    //     } else {
-    //       this.errorMessage = 'Credencial inválida. Tente novamente.';
-    //       const t = await this.toastCtrl.create({
-    //         message: this.errorMessage,
-    //         duration: 5000,
-    //         color: 'danger'
-    //       });
-
-    //       await t.present();
-    //       return false;
-    //     }
-    //   },
-    //   error: () => {
-    //     this.isLoading = false;
-    //     this.errorMessage = 'Erro ao validar credencial. Tente novamente.';        
-    //     return false;
-    //   }
-    // });
-
-
-
-    // //if (!token || !/^\d+$/.test(token) || !this.tokenService.isValid(token)) {
-    // if (!token || !(token == '123')) {
-    //   const t = await this.toastCtrl.create({
-    //     message: 'Token inválido.',
-    //     duration: 2500,
-    //     color: 'danger'
-    //   });
-    //   await t.present();
-    //   return false;
-    // }
-
-    // // this.tokenService.setToken(token);
-    // await this.router.navigateByUrl('/validate');
-    // return true;
   }
 
 

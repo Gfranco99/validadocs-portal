@@ -14,15 +14,15 @@ export class AuthService {
 
   // Faz login validando credencial no backend
   login(credential: string): Observable<any> {
-    return this.http.post<{ valid: boolean, message: string }>(`${this.apiUrl}`, { token: credential })
+    return this.http.post<{ success: boolean, message: string }>(`${this.apiUrl}`, { token: credential })
       .pipe(
         map(res => {
-          if (res.valid) {
+          if (res.success) {
             this.loggedIn$.next(true);
             sessionStorage.setItem('isLogged', 'true');
-            return true;
+            return { valid: true, message: 'OK' };
           }
-          return { valid: false, message: res.message };
+          return { valid: false, message: res.message };          
         }),
         catchError((ex) => {
           this.loggedIn$.next(false);
@@ -39,6 +39,6 @@ export class AuthService {
 
   // Verifica se já está logado
   isLoggedIn(): boolean {
-    return this.loggedIn$.value || sessionStorage.getItem('isLogged') === 'true';
+    return this.loggedIn$.value && sessionStorage.getItem('isLogged') === 'true';    
   }
 }
