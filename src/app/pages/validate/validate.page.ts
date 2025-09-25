@@ -15,6 +15,7 @@ import { SeloValidacaoMiniComponent } from '../../components/selo-validacao-mini
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { finalize } from 'rxjs/operators';
+import { LoadingController } from '@ionic/angular'; 
 
 @Component({
   selector: 'app-validate',
@@ -45,7 +46,8 @@ export class ValidatePage implements OnDestroy {
   constructor(
     private fb: FormBuilder,
     private api: ValidationService,
-    private router: Router
+    private router: Router,
+    private loadingCtrl: LoadingController
   ) {
     this.form = this.fb.group({ file: [null] });
   }
@@ -104,61 +106,69 @@ export class ValidatePage implements OnDestroy {
   }
 
   // ================= Validação =================
-  submit() {
-    if (this.loading || !this.file) {
-      if (!this.file) this.error = 'Selecione um PDF para validar.';
-      return;
-    }
-
-    this.loading = true;
-    this.error = undefined;
-    this.result = undefined;
-
-    this.api.validatePdf(this.file!).pipe(
-      finalize(() => this.loading = false)
-    ).subscribe({
-      next: (res: ValidationResult) => {
-        const sigs = res.validaDocsReturn?.digitalSignatureValidations ?? [];
-
-        // utilitários seguros
-        const extrairCpf = (subject: string): string =>
-          subject?.match(/:(\d{11})$/)?.[1] ?? '';
-
-        const extrairSigner = (subject: string): string => {
-          const cnPart = subject?.split(',')?.find(p => p.trim().startsWith('CN='));
-          const nameWithCPF = cnPart?.split('=')[1];
-          return (nameWithCPF?.split(':')[0] ?? '').trim();
-        };
-
-        // enriquece assinaturas (funciona mesmo com 0)
-        const assinaturas: SignatureInfo[] = sigs.map(a => ({
-          ...a,
-          cpf: extrairCpf(a.endCertSubjectName),
-          signerName: extrairSigner(a.endCertSubjectName),
-        }));
-
-        // consolida apontamentos sem duplicar
-        const findingsSet = new Set<string>();
-        (res as any).errorfindings?.forEach((f: string) => f && findingsSet.add(String(f)));
-        if (res.errorMessage) findingsSet.add(String(res.errorMessage));
-        const errorfindings = Array.from(findingsSet);
-
-        this.result = {
-          ...res,
-          errorfindings,
-          validaDocsReturn: {
-            ...res.validaDocsReturn,
-            digitalSignatureValidations: assinaturas,
-            pdfValidations: res.validaDocsReturn?.pdfValidations ?? undefined
-          }
-        };
-      },
-      error: (err) => {
-        this.error = 'Falha ao validar. Tente novamente.';
-        console.error(err);
-      }
-    });
+  async submit() {
+  if (this.loading || !this.file) {
+    if (!this.file) this.error = 'Selecione um PDF para validar.';
+    return;
   }
+
+  this.loading = true;
+  this.error = undefined;
+  this.result = undefined;
+
+  // +++ cria e apresenta o overlay
+  const loading = await this.loadingCtrl.create({
+    message: 'Processando...',
+    spinner: 'crescent'
+  });
+  await loading.present();
+
+  this.api.validatePdf(this.file!).pipe(
+    // +++ garante que o overlay sempre fecha
+    finalize(async () => {
+      this.loading = false;
+      try { await loading.dismiss(); } catch {}
+    })
+  ).subscribe({
+    next: (res: ValidationResult) => {
+      const sigs = res.validaDocsReturn?.digitalSignatureValidations ?? [];
+
+      const extrairCpf = (subject: string): string =>
+        subject?.match(/:(\d{11})$/)?.[1] ?? '';
+
+      const extrairSigner = (subject: string): string => {
+        const cnPart = subject?.split(',')?.find(p => p.trim().startsWith('CN='));
+        const nameWithCPF = cnPart?.split('=')[1];
+        return (nameWithCPF?.split(':')[0] ?? '').trim();
+      };
+
+      const assinaturas: SignatureInfo[] = sigs.map(a => ({
+        ...a,
+        cpf: extrairCpf(a.endCertSubjectName),
+        signerName: extrairSigner(a.endCertSubjectName),
+      }));
+
+      const findingsSet = new Set<string>();
+      (res as any).errorfindings?.forEach((f: string) => f && findingsSet.add(String(f)));
+      if (res.errorMessage) findingsSet.add(String(res.errorMessage));
+      const errorfindings = Array.from(findingsSet);
+
+      this.result = {
+        ...res,
+        errorfindings,
+        validaDocsReturn: {
+          ...res.validaDocsReturn,
+          digitalSignatureValidations: assinaturas,
+          pdfValidations: res.validaDocsReturn?.pdfValidations ?? undefined
+        }
+      };
+    },
+    error: (err) => {
+      this.error = 'Falha ao validar. Tente novamente.';
+      console.error(err);
+    }
+  });
+}
 
   reset() {
     this.form.reset();
