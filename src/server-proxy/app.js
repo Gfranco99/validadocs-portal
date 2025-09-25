@@ -7,8 +7,10 @@ const FormData = require('form-data');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const auth = require("./controller/auth.controller");
 
 const app = express();
+app.use(express.json());
 app.use(cors());
 
 const upload = multer({ dest: 'uploads/' });
@@ -56,6 +58,10 @@ app.post('/verify', upload.single('file'), async (req, res) => {
     });
   }
 });
+
+app.post("/create", auth.createCredential);
+app.post("/auth", auth.validateCredential);
+app.post("/revoke", auth.revokeCredential);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

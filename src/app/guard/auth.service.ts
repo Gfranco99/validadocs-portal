@@ -7,14 +7,14 @@ import { map, catchError } from 'rxjs/operators';
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'https://localhost:3000/auth'; // ajuste para sua API
+  private apiUrl = 'http://localhost:3000/auth'; // ajuste para sua API
   private loggedIn$ = new BehaviorSubject<boolean>(false);
 
   constructor(private http: HttpClient) {}
 
   // Faz login validando credencial no backend
-  login(credential: string): Observable<boolean> {
-    return this.http.post<{ valid: boolean }>(`${this.apiUrl}`, { credential })
+  login(credential: string): Observable<any> {
+    return this.http.post<{ valid: boolean, message: string }>(`${this.apiUrl}`, { token: credential })
       .pipe(
         map(res => {
           if (res.valid) {
@@ -22,11 +22,11 @@ export class AuthService {
             sessionStorage.setItem('isLogged', 'true');
             return true;
           }
-          return false;
+          return { valid: false, message: res.message };
         }),
-        catchError(() => {
+        catchError((ex) => {
           this.loggedIn$.next(false);
-          return [false];
+          return [{ valid: false, message: ex.message || 'Erro ao conectar ao servidor.' }];
         })
       );
   }

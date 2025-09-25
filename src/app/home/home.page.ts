@@ -172,17 +172,18 @@ export class HomePage {
     await loading.present();
 
 
-    const isValid = await this.authService.login(token).toPromise();
+    const response = await this.authService.login(token).toPromise();
+    console.log(response);
 
     await loading.dismiss();
 
-    if (isValid) {
+    if (response.valid) {
       // sucesso → fecha o alert
       this.router.navigate(['/validate']); // rota protegida
       return true;
     } else {
       // falha → mostra mensagem e mantém aberto
-      this.presentError('Token inválido, tente novamente.');      
+      this.presentError(response.message || 'Credencial inválida. Tente novamente.');      
       return false;
     }
    
