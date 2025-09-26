@@ -1,58 +1,31 @@
 :host {
-  /* Selo por assinatura (retângulo à direita) */
-  --seal-w: 300px;
-  --seal-h: 140px;
+  /* Variáveis locais usadas na tela */
+  --seal-w: 300px;          /* largura do selo à direita */
+  --seal-h: 140px;          /* altura do selo à direita */
+  --summary-max-w: 760px;   /* largura máx. do card de resumo */
 
-  /* Largura máxima do card de resumo */
-  --summary-max-w: 760px;
-
-  /* Espaçamentos */
+  /* Espaçamentos utilitários */
   --gap-xxs: 4px;
   --gap-xs: 8px;
   --gap-sm: 12px;
   --gap-md: 16px;
 }
 
-/* ===========================
-   GRID puxado para a ESQUERDA
-   =========================== */
+/* =========================================================
+   GRID (puxado mais para esquerda)
+   ========================================================= */
 .val-grid {
   width: 100%;
   --ion-grid-padding-start: 8px;
   --ion-grid-padding-end: 8px;
   --ion-grid-column-padding: 8px;
 }
-
 .val-row { align-items: flex-start; }
 .left, .right { display: block; }
 
-/* ===========================
-   BADGES (PILL) – PADRÃO ÚNICO
-   =========================== */
-/* Aplica o estilo pill a TODOS os ion-badge (e também quando tiver class="pill") */
-ion-badge::part(native),
-ion-badge.pill::part(native) {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 26px;               /* altura fixa */
-  padding: 0 12px;            /* padding consistente */
-  border-radius: 9999px;      /* pill real */
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-transform: none;
-  box-shadow: 0 0 0 1px rgba(0,0,0,.04) inset; /* leve definição */
-}
-
-/* (Opcional) garante que o badge no fim do ion-item fique visualmente alinhado */
-ion-item ion-badge {
-  margin-left: auto;
-}
-
-/* ===========================
-   CARD RESUMO (sem centralizar)
-   =========================== */
+/* =========================================================
+   CARD DE RESUMO
+   ========================================================= */
 .summary-card {
   max-width: var(--summary-max-w);
   width: 100%;
@@ -62,61 +35,82 @@ ion-item ion-badge {
 }
 .summary-card ion-card-header { padding: var(--gap-sm) var(--gap-md); }
 .summary-card ion-card-title {
-  display: flex; align-items: center; gap: var(--gap-xs); font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: var(--gap-xs);
+  font-weight: 600;
 }
 .summary-card ion-card-content { padding: 14px; }
 
 /* KPI discreto */
-.summary-metrics { display: flex; flex-direction: column; gap: var(--gap-xxs); margin-bottom: var(--gap-sm); }
+.summary-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-xxs);
+  margin-bottom: var(--gap-sm);
+}
 .kpi { font-size: 30px; line-height: 1; font-weight: 700; }
 .kpi-sub { font-size: 12px; color: var(--ion-color-medium); }
 
-/* ===========================
-   LISTA DE ASSINATURAS
-   =========================== */
+/* =========================================================
+   LISTA DE ASSINATURAS (lado esquerdo)
+   ========================================================= */
 .sig-item {
-  --inner-padding-start: 0; --inner-padding-end: 0; --padding-start: 0; --padding-end: 0;
+  --inner-padding-start: 0;
+  --inner-padding-end: 0;
+  --padding-start: 0;
+  --padding-end: 0;
   min-height: 100px;
 
   .sig-head { display: flex; align-items: center; gap: var(--gap-xs); }
   .sig-name { font-weight: 600; }
-  .sig-sub { color: var(--ion-color-medium); font-size: 13px; line-height: 1.2; }
+  .sig-sub  { color: var(--ion-color-medium); font-size: 13px; line-height: 1.2; }
 }
 
-/* selo à direita */
+/* Selo à direita do item de assinatura */
 .seal-box {
-  width: var(--seal-w); height: var(--seal-h);
-  display: flex; align-items: center; justify-content: center;
-  margin-left: var(--gap-sm); border-radius: 14px; overflow: hidden;
+  width: var(--seal-w);
+  height: var(--seal-h);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: var(--gap-sm);
+  border-radius: 14px;
+  overflow: hidden;
 }
-.seal-img-box { width: 100%; height: 100%; object-fit: contain; display: block; }
+.seal-img-box {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
 
-/* ===========================
-   CARDS DA DIREITA
-   =========================== */
-.right ion-card { width: 100%; margin-left: 0; border-radius: 12px; }
-
-/* Apontamentos – alinhado à esquerda e consistentes */
-.errorfindings-card ion-card-title { display: flex; align-items: center; gap: var(--gap-xs); }
+/* =========================================================
+   APONTAMENTOS (lado direito)
+   ========================================================= */
+.errorfindings-card ion-card-title {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-xs);
+}
 .finding {
   --inner-padding-start: 0;
   --inner-padding-end: 0;
-  align-items: flex-start;     /* texto alinha ao topo */
+  align-items: flex-start; /* texto alinha ao topo do item */
 }
 .finding ion-icon {
   margin-right: 8px;
-  margin-top: 2px;             /* casa com a 1ª linha do texto */
+  margin-top: 2px;        /* alinha com a primeira linha do texto */
   flex: 0 0 auto;
 }
 .danger-text {
-  color: red;
+  color: var(--ion-color-danger);
   font-weight: 500;
   word-break: break-word;
   white-space: normal;
 }
 .tooltip-text {
-  color: red ;
-  // color: var(--ion-color-danger);
+  color: var(--ion-color-danger);  /* CHANGED */
   font-family: var(--ion-font-family);
   font-weight: 400;
   white-space: normal;
@@ -124,101 +118,135 @@ ion-item ion-badge {
   overflow-wrap: anywhere;
 }
 
+/* Callout positivo (ok) */
 .callout-ok {
-  display: flex; align-items: center; gap: var(--gap-xs);
-  color: var(--ion-color-success); font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: var(--gap-xs);
+  color: var(--ion-color-success);
+  font-weight: 600;
   ion-icon { font-size: 18px; }
 }
 
-/* Info list */
+/* =========================================================
+   LISTA "Sobre o documento" (rótulos mais neutros)
+   ========================================================= */
 .info-list ion-item {
-  --inner-padding-start: 0; --inner-padding-end: 0;
+  --inner-padding-start: 0;
+  --inner-padding-end: 0;
   ion-label { color: var(--ion-color-medium); }
   ion-note[slot="end"] { font-size: 15px; font-weight: 600; margin-left: auto; }
 }
 
-/* ===========================
+/* =========================================================
    UPLOAD
-   =========================== */
-.upload-card ion-card-title { display: flex; align-items: center; gap: var(--gap-xs); }
+   ========================================================= */
+.upload-card ion-card-title {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-xs);
+}
 .file-drop {
-  display: flex; align-items: center; gap: var(--gap-sm);
-  padding: var(--gap-md); border: 2px dashed rgba(0,0,0,.1); border-radius: 10px;
-  cursor: pointer; transition: border-color .2s ease;
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  padding: var(--gap-md);
+  border: 2px dashed rgba(0,0,0,.1);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color .2s ease;
 }
 .file-drop:hover { border-color: rgba(0,0,0,.2); }
 .file-drop ion-icon { font-size: 28px; }
 .muted { color: var(--ion-color-medium); }
 
-/* ===========================
-   CERTIFICADOS (fonte igual + preto)
-   =========================== */
-.cert-item {
-.cert-subject,
-  .cert-issuer,
-  .issuer-label,
-  .issuer-value,
-  .cert-meta {
-    font-family: var(--ion-font-family) !important;
-    color:  var(--ion-color-medium)!important;
-  }
+/* =========================================================
+   CERTIFICADOS — layout e tipografia
+   ========================================================= */
 
-  .cert-subject {
-    font-weight: 600;
-    font-size: var(--font-size-base);
-    line-height: 1.4;
-    letter-spacing: 0;
-    margin: 0 0 2px 0;
-    white-space: normal; word-break: break-word; overflow-wrap: anywhere;
-  }
-
-  .cert-issuer {
-    font-size: calc(var(--font-size-base) - 1px);
-    line-height: 1.45;
-    margin: 0 0 2px 0;
-    white-space: normal; word-break: break-word; overflow-wrap: anywhere;
-
-    .issuer-label { font-weight: 600; margin-right: 4px; }
-    .issuer-value { font-weight: 400; }
-  }
-
-  .cert-meta {
-    font-size: calc(var(--font-size-base) - 2px);
-    margin: 0 0 2px 0;
-  }
+/* Zera paddings internos do ion-item */
+ion-item.cert-item {
+  --inner-padding-start: 0;
+  --inner-padding-end: 0;
 }
 
-/* mais respiro entre itens de certificados */
-ion-list .cert-item + .cert-item { --inner-padding-top: 10px; }
+/* MÉTODO ÚNICO de espaçamento ENTRE linhas do certificado: */
 
-/* ==========================================
-   TOOLTIP (bolinha “?” estilo label-position)
-   ========================================== */
-.with-help { display: inline-flex; align-items: center; gap: .5rem; }
+ion-item.cert-item ion-label {
+  display: grid;             /* empilha os <p> em coluna */
+  grid-auto-rows: min-content;
+  row-gap: 8px;              /* ajuste aqui o “respiro” (6–12px) */
+}
+/* Evita somar margens dos <p> com o row-gap acima */
+ion-item.cert-item ion-label > p { margin: 0 !important; }
 
-.help-dot {
-  display: inline-flex;
-  flex: 0 0 auto;
+/* Tipos de texto dentro do item de certificado */
+.cert-item .cert-subject,
+.cert-item .cert-issuer,
+.cert-item .issuer-label,
+.cert-item .issuer-value,
+.cert-item .cert-meta {
+  font-family: var(--ion-font-family) !important;
+  color: var(--ion-color-medium) !important;
+}
+
+/* CN (titular) — sem margem; gap cuida do espaço */
+.cert-item .cert-subject {
+  font-weight: 400;
+  font-size: var(--font-size-base);
+  line-height: 1.4;
+  letter-spacing: 0;
+  margin: 0;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* Emissor e metadados */
+.cert-item .cert-issuer {
+  font-size: calc(var(--font-size-base) - 1px);
+  line-height: 1.45;
+  margin: 0;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+
+  .issuer-label { font-weight: 400; margin-right: 4px; }
+  .issuer-value { font-weight: 400; }
+}
+.cert-item .cert-meta {
+  font-size: calc(var(--font-size-base) - 2px);
+  margin: 0;
+}
+
+/* Espaço ENTRE itens de certificado no ion-list
+   (mantemos apenas o método oficial do Ionic) */
+ion-list ion-item.cert-item + ion-item.cert-item {
+  --inner-padding-top: 12px; /* “jeito Ionic” */
+}
+
+/* Header do card de certificado com badge no topo (se usado) */
+.cert-item .cert-title-row {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  width: 18px; height: 18px;
-  margin-left: .35rem;
-  border-radius: 50%;
-  background: #e8edf3;
-  border: 1px solid #9bb0c3;
-  color: #55697d;
-  font-weight: 700; font-size: 12px; line-height: 1;
-  user-select: none;
+  justify-content: space-between;
+  margin-bottom: 8px;
 }
-.help-dot::before { content: "?"; transform: translateY(-.5px); }
-.help-dot.show { visibility: visible; opacity: 1; }
-.help-dot:focus { outline: 2px solid #7aa2c7; outline-offset: 2px; }
+.cert-item .cert-title {
+  font-weight: 600;
+  font-size: var(--font-h3);
+  letter-spacing: -0.005em;
+}
 
-/* ===========================
+/* =========================================================
    RESPONSIVO
-   =========================== */
+   ========================================================= */
 @media (max-width: 992px) {
-  .val-grid { --ion-grid-padding-start: 6px; --ion-grid-padding-end: 6px; --ion-grid-column-padding: 6px; }
+  .val-grid {
+    --ion-grid-padding-start: 6px;
+    --ion-grid-padding-end: 6px;
+    --ion-grid-column-padding: 6px;
+  }
   :host { --summary-max-w: 680px; }
 }
 @media (max-width: 768px) {
@@ -231,27 +259,46 @@ ion-list .cert-item + .cert-item { --inner-padding-top: 10px; }
   .summary-card ion-card-content { padding: 10px; }
 }
 
-/* ===========================
-   ÁREA DE EXPORTAÇÃO (html2canvas)
-   =========================== */
+/* =========================================================
+   ÁREA DE EXPORTAÇÃO (captura com html2canvas/jsPDF)
+   ========================================================= */
 .print-area { background: #fff; }
 .print-area.export-big { font-size: 1.12rem; }
-.print-area.export-a4 { background: #fff; padding: 24px 64px; box-sizing: border-box; }
-
+.print-area.export-a4 {
+  background: #fff;
+  padding: 24px 64px;
+  box-sizing: border-box;
+}
+/* Layout vertical para exportação */
 .print-area.export-vertical .val-row {
-  display: flex !important; flex-direction: column !important; gap: var(--gap-sm);
+  display: flex !important;
+  flex-direction: column !important;
+  gap: var(--gap-sm);
 }
 .print-area.export-vertical .left,
 .print-area.export-vertical .right,
 .print-area.export-vertical ion-col {
-  max-width: 100% !important; flex: 0 0 100% !important;
+  max-width: 100% !important;
+  flex: 0 0 100% !important;
 }
-.print-area.export-vertical .left { order: 1; }
+.print-area.export-vertical .left  { order: 1; }
 .print-area.export-vertical .right { order: 2; }
-
-/* Evita cortes na captura/paginação do jsPDF */
+/* Evita quebra dentro de cards/itens ao paginar no PDF */
 .print-area.export-vertical ion-card,
 .print-area.export-vertical ion-item {
   break-inside: avoid;
   page-break-inside: avoid;
+}
+
+/* =========================================================
+   “Sobre o Documento” com rótulos neutros
+   ========================================================= */
+.details-card ion-item ion-label {
+  color: var(--ion-color-medium);
+  font-weight: 400;           /* tira negrito */
+}
+.details-card ion-input::part(native) {
+  font-weight: 400;           /* tira negrito */
+  color: var(--ion-text-color);
+  /* Se quiser cinza também, troque por: color: var(--ion-color-medium); */
 }

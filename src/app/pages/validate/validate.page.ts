@@ -17,6 +17,11 @@ import autoTable from 'jspdf-autotable';
 import { finalize } from 'rxjs/operators';
 import { LoadingController } from '@ionic/angular'; 
 
+type SigWithValidity = SignatureInfo & {
+  certificateStartDate?: string | number; // ISO ou epoch(ms)
+  certificateEndDate?: string | number;   // ISO ou epoch(ms)
+};
+
 @Component({
   selector: 'app-validate',
   templateUrl: './validate.page.html',
@@ -42,6 +47,7 @@ export class ValidatePage implements OnDestroy {
   result?: ValidationResult;
 
   private readonly LOGO_URL = 'assets/validadocs-logo.png';
+certificateStartDate: any;
 
   constructor(
     private fb: FormBuilder,
@@ -142,11 +148,22 @@ export class ValidatePage implements OnDestroy {
         return (nameWithCPF?.split(':')[0] ?? '').trim();
       };
 
-      const assinaturas: SignatureInfo[] = sigs.map(a => ({
-        ...a,
-        cpf: extrairCpf(a.endCertSubjectName),
-        signerName: extrairSigner(a.endCertSubjectName),
-      }));
+     const assinaturas: SigWithValidity[] = sigs.map(a => ({
+      ...a,
+      cpf: extrairCpf(a.endCertSubjectName),
+      signerName: extrairSigner(a.endCertSubjectName),
+
+      // Tenta vários nomes possíveis que o backend pode usar
+      certificateStartDate:
+        (a as any).certificateStartDate ??
+        (a as any).validFrom ??
+        (a as any).notBefore,
+
+      certificateEndDate:
+        (a as any).certificateEndDate ??
+        (a as any).validTo ??
+        (a as any).notAfter,
+    }));
 
       res.errorfindings = new Array<string>();
       res.errorfindings.push(...(res.errorMessage ? [res.errorMessage] : []));

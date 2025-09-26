@@ -4,7 +4,7 @@
 
     <ion-buttons slot="end">
       <ion-button fill="clear" (click)="fileInput.click()" [disabled]="loading">Selecionar um PDF</ion-button>
-      <ion-button *ngIf="file" fill="clear" color="light" (click)="reset()" [disabled]="loading">Limpar</ion-button>
+      <ion-button *ngIf="file" fill="clear" (click)="reset()" [disabled]="loading">Limpar</ion-button>
       <ion-button (click)="exportPdf()" [disabled]="loading || !hasResult">Exportar PDF</ion-button>
       <ion-button (click)="goHome()">Voltar a Home</ion-button>
     </ion-buttons>
@@ -126,7 +126,7 @@
                   <ion-label class="danger-text">{{ f }}</ion-label>
                 </ion-item>
 
-<<<<<<< HEAD
+
                 <!-- Tooltips importados (texto preto) -->
                 <ion-item *ngIf="getStatusTooltip()" class="finding">
                   <ion-icon name="alert-circle" color="danger"></ion-icon>
@@ -152,9 +152,6 @@
                   <ion-icon name="alert-circle" color="danger"></ion-icon>
                   <ion-label class="tooltip-text">{{ getPdfALevelTooltip() }}</ion-label>
                 </ion-item>
-
-=======
->>>>>>> e91e39a9791d07d9b37d3725a148b3ebe9677de0
                 <!-- Tooltips por assinatura inválida -->
                 <ng-container *ngFor="let s of r.validaDocsReturn?.digitalSignatureValidations">
                   <ion-item *ngIf="s.signatureValid === false" class="finding">
@@ -170,7 +167,7 @@
           </ion-card>
 
           <!-- Detalhes do Documento -->
-          <ion-card>
+          <ion-card class="details-card">
             <ion-card-header>
               <ion-card-title>
                 <ion-icon name="document-outline"></ion-icon>
@@ -181,7 +178,7 @@
             <ion-card-content>
               <ion-item lines="full">
                 <ion-label position="stacked">Nome do documento</ion-label>
-                <ion-input [value]="normalizeAccents(r.fileName)" readonly></ion-input>
+                <ion-input class="doc-name" [value]="normalizeAccents(r.fileName)" readonly></ion-input>
               </ion-item>
 
               <ion-item>
@@ -260,44 +257,54 @@
           </ion-card>
 
           <!-- Certificados -->
-          <ion-card>
-            <ion-card-header>
-              <ion-card-title>
-                <ion-icon name="people-outline"></ion-icon>
-                {{ signatureCount() === 1 ? 'Certificado' : 'Certificados' }}
-              </ion-card-title>
-            </ion-card-header>
+         <ion-card class="cert-card">
+  
+  <ion-card-content>
+    <ion-list>
+      <ion-item *ngFor="let s of r.validaDocsReturn?.digitalSignatureValidations; trackBy: trackByName"
+          lines="full" class="cert-item">
+          <ion-label class="ion-text-wrap">
+            
+            <div class="cert-title-row">
+              <span class="cert-title">Certificado</span>
+              <ion-badge class="pill" [color]="sigColor(s)">
+                {{ s.signatureValid ? 'Válida' : 'Inválida' }}
+              </ion-badge>
+            </div>
 
-            <ion-card-content>
-              <ion-list>
-                <ion-item *ngFor="let s of r.validaDocsReturn?.digitalSignatureValidations; trackBy: trackByName"
-                          lines="full" class="cert-item">
-                  <ion-label class="ion-text-wrap">
-                    <p class="cert-subject ion-text-wrap" style="margin:0;">
-                      {{ normalizeAccents(s.endCertSubjectName) || '—' }}
-                    </p>
+            <p class="cert-subject ion-text-wrap" style="margin:0;">
+              {{ normalizeAccents(s.endCertSubjectName) || '—' }}
+            </p>
 
-                    <p class="cert-issuer ion-text-wrap">
-                      <span class="issuer-label">Emissor raiz:</span>
-                      <span class="issuer-value">{{ normalizeAccents(s.rootIssuer) || '—' }}</span>
-                    </p>
+            <p class="cert-meta" *ngIf="s.certificateStartDate">
+              <span class="issuer-label">Válido de:</span>
+              <span class="issuer-value">{{ s.certificateStartDate | date:'dd/MM/yyyy HH:mm' }}</span>
+            </p>
 
-                    <p class="cert-meta">{{ s.signatureType }} {{ s.signatureLevel }}</p>
-                    <p class="cert-meta" *ngIf="s.signatureTime">
-                      Data: {{ s.signatureTime | date:'dd/MM/yyyy HH:mm' }}
-                    </p>
-                  </ion-label>
+            <p class="cert-meta" *ngIf="s.certificateEndDate">
+              <span class="issuer-label">Válido até:</span>
+              <span class="issuer-value">{{ s.certificateEndDate | date:'dd/MM/yyyy HH:mm' }}</span>
+            </p>
 
-                  <ion-badge slot="end" class="pill" [color]="sigColor(s)">
-                    {{ s.signatureValid ? 'Válida' : 'Inválida' }}
-                  </ion-badge>
-                </ion-item>
-              </ion-list>
-            </ion-card-content>
-          </ion-card>
-        </ion-col>
+            <p class="cert-issuer ion-text-wrap">
+              <span class="issuer-label">Emissor raiz:</span>
+              <span class="issuer-value">{{ normalizeAccents(s.rootIssuer) || '—' }}</span>
+            </p>
 
-      </ion-row>
+            <p class="cert-meta" *ngIf="s.signatureType || s.signatureLevel">
+              <span class="issuer-value">{{ s.signatureType }} / {{ s.signatureLevel }}</span>
+            </p>
+          </ion-label>
+
+          <!-- REMOVIDO: este badge no fim do item não é mais necessário -->
+          <!-- <ion-badge slot="end" class="pill" [color]="sigColor(s)">{{ ... }}</ion-badge> -->
+
+      </ion-item>
+    </ion-list>
+  </ion-card-content>
+</ion-card>
+
+      <!-- </ion-row>
     </ion-grid>
   </ng-container>
-</ion-content>
+</ion-content> -->
