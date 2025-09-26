@@ -117,10 +117,39 @@
                   <ion-label class="danger-text">{{ f }}</ion-label>
                 </ion-item>
 
+<<<<<<< HEAD
+                <!-- Tooltips importados (texto preto) -->
+                <ion-item *ngIf="getStatusTooltip()" class="finding">
+                  <ion-icon name="alert-circle" color="danger"></ion-icon>
+                  <ion-label class="danger-text">{{ getStatusTooltip() }}</ion-label>
+                </ion-item>
+
+                <ion-item *ngIf="getPdfAValidTooltip()" class="finding">
+                  <ion-icon name="alert-circle" color="danger"></ion-icon>
+                  <ion-label class="tooltip-text">{{ getPdfAValidTooltip() }}</ion-label>
+                </ion-item>
+
+                <ion-item *ngIf="getPdfACompliantTooltip()" class="finding">
+                  <ion-icon name="alert-circle" color="danger"></ion-icon>
+                  <ion-label class="tooltip-text">{{ getPdfACompliantTooltip() }}</ion-label>
+                </ion-item>
+
+                <ion-item *ngIf="getBornDigitalTooltip()" class="finding">
+                  <ion-icon name="alert-circle" color="danger"></ion-icon>
+                  <ion-label class="tooltip-text">{{ getBornDigitalTooltip() }}</ion-label>
+                </ion-item>
+
+                <ion-item *ngIf="getPdfALevelTooltip()" class="finding">
+                  <ion-icon name="alert-circle" color="danger"></ion-icon>
+                  <ion-label class="tooltip-text">{{ getPdfALevelTooltip() }}</ion-label>
+                </ion-item>
+
+=======
+>>>>>>> e91e39a9791d07d9b37d3725a148b3ebe9677de0
                 <!-- Tooltips por assinatura inválida -->
                 <ng-container *ngFor="let s of r.validaDocsReturn?.digitalSignatureValidations">
                   <ion-item *ngIf="s.signatureValid === false" class="finding">
-                    <ion-icon name="alert-circle"></ion-icon>
+                    <ion-icon name="alert-circle" color="danger"></ion-icon>
                     <ion-label class="tooltip-text">
                       {{ displayCN(s) }}: {{ getSignatureTooltip(s) }}
                     </ion-label>
