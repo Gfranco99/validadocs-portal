@@ -108,12 +108,7 @@
           <!-- Apontamentos -->
           <ion-card
             class="errorfindings-card"
-            *ngIf="((r.errorfindings?.length || 0) > 0)
-                   || !!getStatusTooltip()
-                   || !!getPdfAValidTooltip()
-                   || !!getPdfACompliantTooltip()
-                   || !!getBornDigitalTooltip()
-                   || !!getPdfALevelTooltip()">
+            *ngIf="((r.errorfindings?.length || 0) > 0)">
 
             <ion-card-header>
               <ion-card-title>
@@ -131,6 +126,7 @@
                   <ion-label class="danger-text">{{ f }}</ion-label>
                 </ion-item>
 
+<<<<<<< HEAD
                 <!-- Tooltips importados (texto preto) -->
                 <ion-item *ngIf="getStatusTooltip()" class="finding">
                   <ion-icon name="alert-circle" color="danger"></ion-icon>
@@ -157,6 +153,8 @@
                   <ion-label class="tooltip-text">{{ getPdfALevelTooltip() }}</ion-label>
                 </ion-item>
 
+=======
+>>>>>>> e91e39a9791d07d9b37d3725a148b3ebe9677de0
                 <!-- Tooltips por assinatura inválida -->
                 <ng-container *ngFor="let s of r.validaDocsReturn?.digitalSignatureValidations">
                   <ion-item *ngIf="s.signatureValid === false" class="finding">

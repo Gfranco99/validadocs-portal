@@ -148,14 +148,11 @@ export class ValidatePage implements OnDestroy {
         signerName: extrairSigner(a.endCertSubjectName),
       }));
 
-      const findingsSet = new Set<string>();
-      (res as any).errorfindings?.forEach((f: string) => f && findingsSet.add(String(f)));
-      if (res.errorMessage) findingsSet.add(String(res.errorMessage));
-      const errorfindings = Array.from(findingsSet);
+      res.errorfindings = new Array<string>();
+      res.errorfindings.push(...(res.errorMessage ? [res.errorMessage] : []));
 
       this.result = {
         ...res,
-        errorfindings,
         validaDocsReturn: {
           ...res.validaDocsReturn,
           digitalSignatureValidations: assinaturas,

@@ -25,6 +25,7 @@ export class ValidationService {
 
     const form = new FormData();
     form.append('file', file, file.name);
+    form.append('userid', sessionStorage.getItem('userid') || ''); // adiciona userId
     //return this.http.post<ValidationResult>(`${environment.apiBase}/api/VerifyPDF`, form, {headers});
     return this.http.post<ValidationResult>(`${environment.apiBase}`, form, {headers});
   }

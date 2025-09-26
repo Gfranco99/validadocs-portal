@@ -1,6 +1,6 @@
 // auth.controller.js
 const { v4: uuidv4 } = require("uuid");
-const pool = require("../infrastructure/db");
+const pool = require("../infrastructure/data/db");
 
 // cria token
 exports.createCredential = async (req, res) => {
