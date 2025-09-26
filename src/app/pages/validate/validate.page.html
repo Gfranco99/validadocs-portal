@@ -33,8 +33,8 @@
            aria-label="Solte o PDF aqui ou clique para escolher">
         <ion-icon name="cloud-upload-outline"></ion-icon>
         <div>
-          <strong>Solte o PDF aqui</strong>
-          <span class="muted">ou clique para escolher</span>
+          <span>Solte o PDF aqui </span>
+          <span class="muted"> ou clique para escolher</span>
         </div>
       </div>
 
@@ -98,64 +98,72 @@
         <ion-col size="12" size-lg="6" class="right">
           <!-- Apontamentos -->
           <ion-card
-            class="errorfindings-card"
-            *ngIf="((r.errorfindings?.length || 0) > 0)">
+          class="errorfindings-card"
+          *ngIf="((r.errorfindings?.length || 0) > 0)">
 
-            <ion-card-header>
-              <ion-card-title>
-                <ion-icon name="search-outline"></ion-icon>
-                Apontamentos da Validação
-              </ion-card-title>
-            </ion-card-header>
+          <ion-card-header class="card-title-row"><!-- alinha título/badge -->
+            <ion-card-title>
+              <ion-icon name="search-outline"></ion-icon>
+              Apontamentos da Validação
+            </ion-card-title>
+          </ion-card-header>
 
-            <ion-card-content>
-              <ion-list>
+          <ion-card-content>
+            <ion-list>
 
-                <!-- Itens da API (vermelho) -->
-                <ion-item *ngFor="let f of r.errorfindings" class="finding">
-                  <ion-icon name="alert-circle" color="danger"></ion-icon>
-                  <ion-label class="danger-text">{{ f }}</ion-label>
-                </ion-item>
+              <!-- Itens da API (vermelho) -->
+              <ion-item *ngFor="let f of r.errorfindings" class="finding">
+                <ion-label class="ion-text-wrap finding-label">
+                  <span class="danger-text">{{ f }}</span>
+                </ion-label>
+              </ion-item>
 
+              <!-- Tooltips importados -->
+              <ion-item *ngIf="getStatusTooltip()" class="finding">
+                <ion-label class="ion-text-wrap finding-label">
+                  <span class="danger-text">{{ getStatusTooltip() }}</span>
+                </ion-label>
+              </ion-item>
 
-                <!-- Tooltips importados (texto preto) -->
-                <ion-item *ngIf="getStatusTooltip()" class="finding">
-                  <ion-icon name="alert-circle" color="danger"></ion-icon>
-                  <ion-label class="danger-text">{{ getStatusTooltip() }}</ion-label>
-                </ion-item>
+              <ion-item *ngIf="getPdfAValidTooltip()" class="finding">
+                <ion-label class="ion-text-wrap finding-label">
+                  <span class="tooltip-text">{{ getPdfAValidTooltip() }}</span>
+                </ion-label>
+              </ion-item>
 
-                <ion-item *ngIf="getPdfAValidTooltip()" class="finding">
-                  <ion-icon name="alert-circle" color="danger"></ion-icon>
-                  <ion-label class="tooltip-text">{{ getPdfAValidTooltip() }}</ion-label>
-                </ion-item>
+              <ion-item *ngIf="getPdfACompliantTooltip()" class="finding">
+                <ion-label class="ion-text-wrap finding-label">
+                  <span class="tooltip-text">{{ getPdfACompliantTooltip() }}</span>
+                </ion-label>
+              </ion-item>
 
-                <ion-item *ngIf="getPdfACompliantTooltip()" class="finding">
-                  <ion-icon name="alert-circle" color="danger"></ion-icon>
-                  <ion-label class="tooltip-text">{{ getPdfACompliantTooltip() }}</ion-label>
-                </ion-item>
+              <ion-item *ngIf="getBornDigitalTooltip()" class="finding">
+                <ion-label class="ion-text-wrap finding-label">
+                  <span class="tooltip-text">{{ getBornDigitalTooltip() }}</span>
+                </ion-label>
+              </ion-item>
 
-                <ion-item *ngIf="getBornDigitalTooltip()" class="finding">
-                  <ion-icon name="alert-circle" color="danger"></ion-icon>
-                  <ion-label class="tooltip-text">{{ getBornDigitalTooltip() }}</ion-label>
-                </ion-item>
+              <ion-item *ngIf="getPdfALevelTooltip()" class="finding">
+                <ion-label class="ion-text-wrap finding-label">
+                  <span class="tooltip-text">{{ getPdfALevelTooltip() }}</span>
+                </ion-label>
+              </ion-item>
 
-                <ion-item *ngIf="getPdfALevelTooltip()" class="finding">
-                  <ion-icon name="alert-circle" color="danger"></ion-icon>
-                  <ion-label class="tooltip-text">{{ getPdfALevelTooltip() }}</ion-label>
-                </ion-item>
-                <!-- Tooltips por assinatura inválida -->
-                <ng-container *ngFor="let s of r.validaDocsReturn?.digitalSignatureValidations">
-                  <ion-item *ngIf="s.signatureValid === false" class="finding">
-                    <ion-icon name="alert-circle" color="danger"></ion-icon>
-                    <ion-label class="tooltip-text">
+              <!-- Tooltips por assinatura inválida -->
+              <ng-container *ngFor="let s of r.validaDocsReturn?.digitalSignatureValidations">
+                <ion-item *ngIf="s.signatureValid === false" class="finding">
+                  <ion-label class="ion-text-wrap finding-label">
+                    <span class="tooltip-text">
                       {{ displayCN(s) }}: {{ getSignatureTooltip(s) }}
-                    </ion-label>
-                  </ion-item>
-                </ng-container>
+                    </span>
+                  </ion-label>
+                </ion-item>
+              </ng-container>
 
-              </ion-list>
-            </ion-card-content>
-          </ion-card>
+            </ion-list>
+          </ion-card-content>
+        </ion-card>
+
 
           <!-- Detalhes do Documento -->
           <ion-card class="details-card">
@@ -286,16 +294,8 @@
               <span class="issuer-value">{{ s.signatureType }} / {{ s.signatureLevel }}</span>
             </p>
           </ion-label>
-
-          <!-- REMOVIDO: este badge no fim do item não é mais necessário -->
-          <!-- <ion-badge slot="end" class="pill" [color]="sigColor(s)">{{ ... }}</ion-badge> -->
-
-      </ion-item>
-    </ion-list>
+        </ion-item>
+     </ion-list>
   </ion-card-content>
 </ion-card>
 
-      <!-- </ion-row>
-    </ion-grid>
-  </ng-container>
-</ion-content> -->

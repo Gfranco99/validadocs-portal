@@ -302,3 +302,35 @@ ion-list ion-item.cert-item + ion-item.cert-item {
   color: var(--ion-text-color);
   /* Se quiser cinza também, troque por: color: var(--ion-color-medium); */
 }
+.errorfindings-card ion-item.finding.no-indent {
+  --padding-start: 0 !important;
+  --inner-padding-start: 0 !important;
+  --padding-end: 0;
+  --inner-padding-end: 0;
+  --min-height: auto;
+  position: relative;               /* base para o ícone absoluto */
+}
+
+/* mantém o padding do card coerente e retira recuo do <ion-list> */
+.errorfindings-card ion-card-content { padding: 14px; }
+.errorfindings-card ion-list { margin: 0; padding: 0; }
+
+/* Ícone fica no “gutter” e NÃO empurra o texto */
+.errorfindings-card .finding.no-indent .finding-ico {
+  position: absolute;
+  left: -18px;                      /* puxa levemente para fora, ajuste fino: -16 ~ -22 */
+  top: 10px;                        /* alinha com primeira linha do texto */
+  margin: 0;                        /* sem margem extra */
+  width: 18px; height: 18px;        /* largura fixa para previsibilidade */
+}
+
+/* Texto alinha no canto esquerdo, sem parágrafo */
+.errorfindings-card .finding.no-indent .finding-txt {
+  margin: 0 !important;
+  color: var(--ion-color-danger);
+  font-family: var(--ion-font-family);
+  font-weight: 400;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
