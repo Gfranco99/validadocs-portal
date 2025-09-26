@@ -15,11 +15,18 @@ import { SeloValidacaoMiniComponent } from '../../components/selo-validacao-mini
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { finalize } from 'rxjs/operators';
+import { LoadingController } from '@ionic/angular'; 
+import { TrustedRoot } from 'src/app/enum/enum';
+
+type SigWithValidity = SignatureInfo & {
+  certificateStartDate?: string | number; // ISO ou epoch(ms)
+  certificateEndDate?: string | number;   // ISO ou epoch(ms)
+};
 
 @Component({
   selector: 'app-validate',
-  templateUrl: './validade.page.html',
-  styleUrls: ['./validade.page.scss'],
+  templateUrl: './validate.page.html',
+  styleUrls: ['./validate.page.scss'],
   standalone: true,
   imports: [IonChip, IonPopover,
     CommonModule, ReactiveFormsModule, RouterLink,
@@ -30,7 +37,7 @@ import { finalize } from 'rxjs/operators';
     SeloValidacaoMiniComponent
   ]
 })
-export class ValidadePage implements OnDestroy {
+export class ValidatePage implements OnDestroy {
   @ViewChild('fileInput', { static: false }) fileInput?: ElementRef<HTMLInputElement>;
 
   form: FormGroup;
@@ -41,11 +48,13 @@ export class ValidadePage implements OnDestroy {
   result?: ValidationResult;
 
   private readonly LOGO_URL = 'assets/validadocs-logo.png';
+certificateStartDate: any;
 
   constructor(
     private fb: FormBuilder,
     private api: ValidationService,
-    private router: Router
+    private router: Router,
+    private loadingCtrl: LoadingController
   ) {
     this.form = this.fb.group({ file: [null] });
   }
@@ -104,61 +113,77 @@ export class ValidadePage implements OnDestroy {
   }
 
   // ================= Validação =================
-  submit() {
-    if (this.loading || !this.file) {
-      if (!this.file) this.error = 'Selecione um PDF para validar.';
-      return;
-    }
-
-    this.loading = true;
-    this.error = undefined;
-    this.result = undefined;
-
-    this.api.validatePdf(this.file!).pipe(
-      finalize(() => this.loading = false)
-    ).subscribe({
-      next: (res: ValidationResult) => {
-        const sigs = res.validaDocsReturn?.digitalSignatureValidations ?? [];
-
-        // utilitários seguros
-        const extrairCpf = (subject: string): string =>
-          subject?.match(/:(\d{11})$/)?.[1] ?? '';
-
-        const extrairSigner = (subject: string): string => {
-          const cnPart = subject?.split(',')?.find(p => p.trim().startsWith('CN='));
-          const nameWithCPF = cnPart?.split('=')[1];
-          return (nameWithCPF?.split(':')[0] ?? '').trim();
-        };
-
-        // enriquece assinaturas (funciona mesmo com 0)
-        const assinaturas: SignatureInfo[] = sigs.map(a => ({
-          ...a,
-          cpf: extrairCpf(a.endCertSubjectName),
-          signerName: extrairSigner(a.endCertSubjectName),
-        }));
-
-        // consolida apontamentos sem duplicar
-        const findingsSet = new Set<string>();
-        (res as any).errorfindings?.forEach((f: string) => f && findingsSet.add(String(f)));
-        if (res.errorMessage) findingsSet.add(String(res.errorMessage));
-        const errorfindings = Array.from(findingsSet);
-
-        this.result = {
-          ...res,
-          errorfindings,
-          validaDocsReturn: {
-            ...res.validaDocsReturn,
-            digitalSignatureValidations: assinaturas,
-            pdfValidations: res.validaDocsReturn?.pdfValidations ?? undefined
-          }
-        };
-      },
-      error: (err) => {
-        this.error = 'Falha ao validar. Tente novamente.';
-        console.error(err);
-      }
-    });
+  async submit() {
+  if (this.loading || !this.file) {
+    if (!this.file) this.error = 'Selecione um PDF para validar.';
+    return;
   }
+
+  this.loading = true;
+  this.error = undefined;
+  this.result = undefined;
+
+  // +++ cria e apresenta o overlay
+  const loading = await this.loadingCtrl.create({
+    message: 'Processando...',
+    spinner: 'crescent'
+  });
+  await loading.present();
+
+  this.api.validatePdf(this.file!).pipe(
+    // +++ garante que o overlay sempre fecha
+    finalize(async () => {
+      this.loading = false;
+      try { await loading.dismiss(); } catch {}
+    })
+  ).subscribe({
+    next: (res: ValidationResult) => {
+      const sigs = res.validaDocsReturn?.digitalSignatureValidations ?? [];
+
+      const extrairCpf = (subject: string): string =>
+        subject?.match(/:(\d{11})$/)?.[1] ?? '';
+
+      const extrairSigner = (subject: string): string => {
+        const cnPart = subject?.split(',')?.find(p => p.trim().startsWith('CN='));
+        const nameWithCPF = cnPart?.split('=')[1];
+        return (nameWithCPF?.split(':')[0] ?? '').trim();
+      };
+
+     const assinaturas: SigWithValidity[] = sigs.map(a => ({
+      ...a,
+      cpf: extrairCpf(a.endCertSubjectName),
+      signerName: extrairSigner(a.endCertSubjectName),
+
+      // Tenta vários nomes possíveis que o backend pode usar
+      certificateStartDate:
+        (a as any).certificateStartDate ??
+        (a as any).validFrom ??
+        (a as any).notBefore,
+
+      certificateEndDate:
+        (a as any).certificateEndDate ??
+        (a as any).validTo ??
+        (a as any).notAfter,
+    }));
+
+      res.errorfindings = new Array<string>();
+      res.errorfindings.push(...(res.errorMessage ? [res.errorMessage] : []));
+
+      this.result = {
+        ...res,
+        validaDocsReturn: {
+          ...res.validaDocsReturn,
+          digitalSignatureValidations: assinaturas,
+          pdfValidations: res.validaDocsReturn?.pdfValidations ?? undefined
+        }
+      };
+    },
+    error: (err) => {
+      this.error = 'Falha ao validar. Tente novamente.';
+      console.error(err);
+    }
+  });
+}
 
   reset() {
     this.form.reset();
@@ -170,9 +195,21 @@ export class ValidadePage implements OnDestroy {
 
   // ================= Helpers de UI =================
   get hasResult(): boolean { return !!this.result; }
-
+  
   signatureCount(): number {
     return this.result?.validaDocsReturn?.digitalSignatureValidations?.length ?? 0;
+  }
+
+  getImgTrustedRoot(sig: SignatureInfo): string {
+    const trustedRootMap: Record<TrustedRoot, string> = {
+      [TrustedRoot.ICPBrasil]: 'assets/selo_validadocs_ICPBrasil.png',
+      [TrustedRoot.GovBr]: 'assets/selo_validadocs_GovBr.png',
+      [TrustedRoot.eNotariado]: 'assets/selo_validadocs_Enotariado.png',
+      [TrustedRoot.ICPRC]: 'assets/selo_validadocs_ICPRC.png'
+    };
+
+  return trustedRootMap[sig.trustedRoot as TrustedRoot] ?? 'assets/selo_validadocs_Avançada.png';
+
   }
 
   /** "1 Assinatura encontrada" | "N Assinaturas encontradas" */
@@ -288,16 +325,6 @@ export class ValidadePage implements OnDestroy {
     const msgs: string[] = [];
     const errs = (s as any)?.signatureErrors as string[] | string | undefined;
     const alts = (s as any)?.signatureAlerts as string[] | string | undefined;
-
-    if (errs) Array.isArray(errs) ? msgs.push(...errs) : msgs.push(String(errs));
-    if (alts && !errs) Array.isArray(alts) ? msgs.push(...alts) : msgs.push(String(alts));
-
-    if ((s as any)?.docModified)      msgs.push('O documento foi alterado após a assinatura.');
-    if ((s as any)?.expired)          msgs.push('O certificado do signatário está expirado.');
-    if ((s as any)?.revoked)          msgs.push('O certificado do signatário foi revogado.');
-    if ((s as any)?.chainUntrusted)   msgs.push('Cadeia de certificação não é confiável.');
-    if ((s as any)?.timestampInvalid) msgs.push('Carimbo do tempo inválido.');
-    if ((s as any)?.ocspInvalid)      msgs.push('Falha em OCSP/CRL.');
 
     return msgs.length ? msgs.join(' · ') : 'Falha na verificação criptográfica da assinatura.';
   }

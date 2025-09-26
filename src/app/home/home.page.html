@@ -1,14 +1,5 @@
 <ion-header>
-  <ion-toolbar>
-    <ion-title>ValidaDocs</ion-title>
-    <ion-buttons slot="end">
-      <ion-button disabled fill="clear">
-        <ion-icon name="log-in-outline" slot="start"></ion-icon>
-        Login
-      </ion-button>
-    </ion-buttons>
-  </ion-toolbar>
-</ion-header>
+  </ion-header>
 
 <ion-content class="ion-padding">
   <section class="hero">
@@ -25,13 +16,14 @@
 
     <p class="sub">
       Validação de PDFs com <b>assinaturas digitais (PAdES)</b>,
-      <b>cadeia ICP-Brasil</b> e <b>conformidade PDF/A</b>.
+      <b>cadeia ICP-Brasil, eGov-BR, ICP-RC e eNotariado</b> e <b>conformidade PDF/A</b>.
     </p>
 
     <div class="cta">
-      <ion-button color="primary" size="large" routerLink="/validade">
-        <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
-        Iniciar validação
+      <ion-button 
+        color="primary" size="large" class="btn-centered"
+        (click)="startValidation()"      >
+        Iniciar validação        
       </ion-button>
     </div>
   </section>
@@ -51,7 +43,7 @@
           <div class="feature">
             <ion-icon name="git-branch-outline" aria-hidden="true"></ion-icon>
             <h3>Cadeia de Certificados</h3>
-            <p>Analisa a cadeia até a raiz (ICP-Brasil, eGov-BR, ICP-RC e eNotariado), validade, revogação e carimbos do tempo.</p>
+            <p>Analisa a cadeia até a raiz (ICP-Brasil, eGov-BR, ICP-RC e eNotariado), validate, revogação e carimbos do tempo.</p>
           </div>
         </ion-col>
 

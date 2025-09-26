@@ -36,7 +36,8 @@ export const MOCK_VALIDATION: ValidationResult = {
         certPathValid: true,
         certPathErrors: '',
         certPathAlerts: '',
-        rootIssuer: ''
+        rootIssuer: '',
+        trustedRoot: ''
       },
       {
         endCertSubjectName: 'CN= GUILHERME HENRIQUE DIAS FRANCO',
@@ -55,7 +56,8 @@ export const MOCK_VALIDATION: ValidationResult = {
         certPathValid: true,
         certPathErrors: '',
         certPathAlerts: '',
-        rootIssuer: ''
+        rootIssuer: '',
+        trustedRoot: ''
       }
     ], 
     pdfValidations: {
