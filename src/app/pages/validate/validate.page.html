@@ -68,10 +68,9 @@
                           lines="full" class="sig-item">
                   <ion-label class="ion-text-wrap">
                     <div class="sig-head">Assinado por: {{ normalizeAccents(s.signerName) }}</div>
-                    <div class="sig-head">CPF: {{ s.cpf }}</div>
-                    <div class="sig-sub">{{ s.signatureType }}</div>
-                    <div class="sig-sub" *ngIf="s.isICP">ICP-Brasil</div>
-                    <div class="sig-sub" *ngIf="s.iseGov">eGov.br</div>
+                    <div class="sig-head" *ngIf="s.cpf.length > 0">CPF: {{ s.cpf }}</div>
+                    <div class="sig-sub">{{ s.signatureLevel }}</div>
+                    <div class="sig-sub">{{ s.trustedRoot }}</div>
                     <div class="sig-sub" *ngIf="s.signatureTime">
                       {{ s.signatureTime | date:'dd/MM/yyyy HH:mm' }}
                     </div>
@@ -86,15 +85,7 @@
                   <!-- Selo à direita -->
                   <div slot="end" class="seal-box">
                     <img
-                      [src]="s.qualified === 'Enotariado'
-                        ? 'assets/selo_validadocs_Enotariado.png'
-                        : (s.qualified === 'ICP-RC'
-                            ? 'assets/selo_validadocs_ICPRC.png'
-                            : (s.isICP
-                                ? 'assets/selo_validadocs_ICPBrasil.png'
-                                : (s.iseGov
-                                    ? 'assets/selo_validadocs_GovBr.png'
-                                    : 'assets/selo_validadocs_generico.png')))"
+                      [src]="getImgTrustedRoot(s)"
                       alt="Selo ValidaDocs" class="seal-img-box" />
                   </div>
                 </ion-item>

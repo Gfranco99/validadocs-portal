@@ -38,7 +38,7 @@ export interface SignatureInfo {
   certificateStartDate?: string;
   certificateEndDate?: string;
   policyURI?: string;
-
+  trustedRoot: string;
 }
 
 export interface PdfaInfo {
