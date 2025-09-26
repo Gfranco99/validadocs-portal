@@ -16,6 +16,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { finalize } from 'rxjs/operators';
 import { LoadingController } from '@ionic/angular'; 
+import { TrustedRoot } from 'src/app/enum/enum';
 
 @Component({
   selector: 'app-validate',
@@ -177,9 +178,21 @@ export class ValidatePage implements OnDestroy {
 
   // ================= Helpers de UI =================
   get hasResult(): boolean { return !!this.result; }
-
+  
   signatureCount(): number {
     return this.result?.validaDocsReturn?.digitalSignatureValidations?.length ?? 0;
+  }
+
+  getImgTrustedRoot(sig: SignatureInfo): string {
+    const trustedRootMap: Record<TrustedRoot, string> = {
+      [TrustedRoot.ICPBrasil]: 'assets/selo_validadocs_ICPBrasil.png',
+      [TrustedRoot.GovBr]: 'assets/selo_validadocs_GovBr.png',
+      [TrustedRoot.eNotariado]: 'assets/selo_validadocs_Enotariado.png',
+      [TrustedRoot.ICPRC]: 'assets/selo_validadocs_ICPRC.png'
+    };
+
+  return trustedRootMap[sig.trustedRoot as TrustedRoot] ?? 'assets/selo_validadocs_Avançada.png';
+
   }
 
   /** "1 Assinatura encontrada" | "N Assinaturas encontradas" */
