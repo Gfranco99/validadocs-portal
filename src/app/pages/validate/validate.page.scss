@@ -109,13 +109,13 @@ ion-item ion-badge {
   flex: 0 0 auto;
 }
 .danger-text {
-  color: var(--ion-color-danger);
+  color: red;
   font-weight: 500;
   word-break: break-word;
   white-space: normal;
 }
 .tooltip-text {
-  color: #000;
+  color: red ;
   font-family: var(--ion-font-family);
   font-weight: 400;
   white-space: normal;
@@ -153,19 +153,13 @@ ion-item ion-badge {
    CERTIFICADOS (fonte igual + preto)
    =========================== */
 .cert-item {
-  --inner-padding-start: 0;
-  --inner-padding-end: 0;
-  --color: #000; /* força cor do conteúdo do ion-item */
-
-  ion-label { color: #000 !important; } /* evita herdar cinza do Ionic */
-
-  .cert-subject,
+.cert-subject,
   .cert-issuer,
   .issuer-label,
   .issuer-value,
   .cert-meta {
     font-family: var(--ion-font-family) !important;
-    color: #000 !important;
+    color:  var(--ion-color-medium)!important;
   }
 
   .cert-subject {
