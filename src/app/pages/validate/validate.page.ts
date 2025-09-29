@@ -1,21 +1,21 @@
-import { Component, ElementRef, ViewChild, HostListener, OnDestroy } from '@angular/core';
+import { Component, ElementRef, ViewChild, HostListener, OnDestroy, NgZone, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+
 import { ValidationService } from '../../services/validation.service';
 import { ValidationResult, SignatureInfo } from '../../types/validation.types';
+
 import {
   IonBadge, IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardTitle,
   IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonInput, IonItem, IonLabel,
-  IonList, IonNote, IonProgressBar, IonRow, IonTitle, IonToolbar, IonPopover, IonChip
+  IonList, IonNote, IonProgressBar, IonRow, IonTitle, IonToolbar
 } from '@ionic/angular/standalone';
-
-import { SeloValidacaoMiniComponent } from '../../components/selo-validacao-mini.component';
 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { finalize } from 'rxjs/operators';
-import { LoadingController } from '@ionic/angular'; 
+import { LoadingController } from '@ionic/angular';
 import { TrustedRoot } from 'src/app/enum/enum';
 
 type SigWithValidity = SignatureInfo & {
@@ -28,13 +28,12 @@ type SigWithValidity = SignatureInfo & {
   templateUrl: './validate.page.html',
   styleUrls: ['./validate.page.scss'],
   standalone: true,
-  imports: [IonChip, IonPopover,
+  imports: [
     CommonModule, ReactiveFormsModule, RouterLink,
     IonHeader, IonToolbar, IonTitle, IonContent,
     IonCard, IonCardHeader, IonCardTitle, IonCardContent,
     IonButton, IonItem, IonInput, IonNote, IonProgressBar,
-    IonGrid, IonRow, IonCol, IonList, IonLabel, IonBadge, IonIcon, IonButtons,
-    SeloValidacaoMiniComponent
+    IonGrid, IonRow, IonCol, IonList, IonLabel, IonBadge, IonIcon, IonButtons
   ]
 })
 export class ValidatePage implements OnDestroy {
@@ -44,19 +43,31 @@ export class ValidatePage implements OnDestroy {
   file?: File | null;
   loading = false;
   exporting = false;
-  error?: string;
+  error?: string;                // usado para mostrar mensagens no card de erro
   result?: ValidationResult;
 
   private readonly LOGO_URL = 'assets/validadocs-logo.png';
-certificateStartDate: any;
 
   constructor(
     private fb: FormBuilder,
     private api: ValidationService,
     private router: Router,
-    private loadingCtrl: LoadingController
+    private loadingCtrl: LoadingController,
+    private zone: NgZone,              // NOVO: para garantir detecção de mudanças
+    private cdr: ChangeDetectorRef     // NOVO
   ) {
     this.form = this.fb.group({ file: [null] });
+  }
+
+  /** NOVO: aplica mudanças dentro do Angular + força reflow do Ionic */
+  private applyState(fn: () => void) {
+    this.zone.run(() => {
+      fn();
+      this.cdr.detectChanges();                   // aplica as mudanças já
+      requestAnimationFrame(() =>
+        window.dispatchEvent(new Event('resize')) // força recalcular layout
+      );
+    });
   }
 
   // ================= Navegação / limpeza =================
@@ -65,14 +76,10 @@ certificateStartDate: any;
     this.router.navigateByUrl('/');
   }
 
-  ngOnDestroy() {
-    this.reset();
-  }
+  ngOnDestroy() { this.reset(); }
 
   @HostListener('window:beforeunload')
-  handleUnload() {
-    this.reset();
-  }
+  handleUnload() { this.reset(); }
 
   // ================= Upload =================
   onFileChange(ev: Event) {
@@ -82,8 +89,8 @@ certificateStartDate: any;
 
     if (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')) {
       this.file = f;
-      this.error = undefined;
-      this.result = undefined;
+      this.error = undefined;     // limpa erro anterior
+      this.result = undefined;    // limpa resultado anterior
       if (!this.loading) this.submit();
     } else {
       this.file = null;
@@ -91,6 +98,7 @@ certificateStartDate: any;
       this.error = 'Selecione um arquivo PDF válido.';
     }
 
+    // DICA: limpa o input para permitir enviar o mesmo arquivo de novo
     setTimeout(() => this.fileInput?.nativeElement && (this.fileInput.nativeElement.value = ''), 0);
   }
 
@@ -114,76 +122,90 @@ certificateStartDate: any;
 
   // ================= Validação =================
   async submit() {
-  if (this.loading || !this.file) {
-    if (!this.file) this.error = 'Selecione um PDF para validar.';
-    return;
-  }
-
-  this.loading = true;
-  this.error = undefined;
-  this.result = undefined;
-
-  // +++ cria e apresenta o overlay
-  const loading = await this.loadingCtrl.create({
-    message: 'Processando...',
-    spinner: 'crescent'
-  });
-  await loading.present();
-
-  this.api.validatePdf(this.file!).pipe(
-    // +++ garante que o overlay sempre fecha
-    finalize(async () => {
-      this.loading = false;
-      try { await loading.dismiss(); } catch {}
-    })
-  ).subscribe({
-    next: (res: ValidationResult) => {
-      const sigs = res.validaDocsReturn?.digitalSignatureValidations ?? [];
-
-      const extrairCpf = (subject: string): string =>
-        subject?.match(/:(\d{11})$/)?.[1] ?? '';
-
-      const extrairSigner = (subject: string): string => {
-        const cnPart = subject?.split(',')?.find(p => p.trim().startsWith('CN='));
-        const nameWithCPF = cnPart?.split('=')[1];
-        return (nameWithCPF?.split(':')[0] ?? '').trim();
-      };
-
-     const assinaturas: SigWithValidity[] = sigs.map(a => ({
-      ...a,
-      cpf: extrairCpf(a.endCertSubjectName),
-      signerName: extrairSigner(a.endCertSubjectName),
-
-      // Tenta vários nomes possíveis que o backend pode usar
-      certificateStartDate:
-        (a as any).certificateStartDate ??
-        (a as any).validFrom ??
-        (a as any).notBefore,
-
-      certificateEndDate:
-        (a as any).certificateEndDate ??
-        (a as any).validTo ??
-        (a as any).notAfter,
-    }));
-
-      res.errorfindings = new Array<string>();
-      res.errorfindings.push(...(res.errorMessage ? [res.errorMessage] : []));
-
-      this.result = {
-        ...res,
-        validaDocsReturn: {
-          ...res.validaDocsReturn,
-          digitalSignatureValidations: assinaturas,
-          pdfValidations: res.validaDocsReturn?.pdfValidations ?? undefined
-        }
-      };
-    },
-    error: (err) => {
-      this.error = 'Falha ao validar. Tente novamente.';
-      console.error(err);
+    if (this.loading || !this.file) {
+      if (!this.file) this.error = 'Selecione um PDF para validar.';
+      return;
     }
-  });
-}
+
+    this.loading = true;
+    this.error = undefined;     // limpa erro visível
+    this.result = undefined;
+
+    const loading = await this.loadingCtrl.create({
+      message: 'Processando...',
+      spinner: 'crescent'
+    });
+    await loading.present();
+
+    this.api.validatePdf(this.file!).pipe(
+      finalize(async () => {
+        this.loading = false;
+        try { await loading.dismiss(); } catch {}
+
+        // NOVO: garante que o layout atualize sem precisar redimensionar a janela
+        this.cdr.detectChanges();
+        requestAnimationFrame(() =>
+          window.dispatchEvent(new Event('resize'))
+        );
+      })
+    ).subscribe({
+      next: (res: ValidationResult) => {
+        // ==== FIX: calcule tudo primeiro ====
+        const sigs = res.validaDocsReturn?.digitalSignatureValidations ?? [];
+
+        const extrairCpf = (subject: string): string =>
+          subject?.match(/:(\d{11})$/)?.[1] ?? '';
+
+        const extrairSigner = (subject: string): string => {
+          const cnPart = subject?.split(',')?.find(p => p.trim().startsWith('CN='));
+          const nameWithCPF = cnPart?.split('=')[1];
+          return (nameWithCPF?.split(':')[0] ?? '').trim();
+        };
+
+        const assinaturas: SigWithValidity[] = sigs.map(a => ({
+          ...a,
+          cpf: extrairCpf(a.endCertSubjectName),
+          signerName: extrairSigner(a.endCertSubjectName),
+          // normaliza possíveis nomes vindos do backend
+          certificateStartDate:
+            (a as any).certificateStartDate ??
+            (a as any).validFrom ??
+            (a as any).notBefore,
+          certificateEndDate:
+            (a as any).certificateEndDate ??
+            (a as any).validTo ??
+            (a as any).notAfter,
+        }));
+
+        // popula apontamentos de erro vindos da API (se houver)
+        res.errorfindings = new Array<string>();
+        res.errorfindings.push(...(res.errorMessage ? [res.errorMessage] : []));
+
+        const normalized: ValidationResult = {
+          ...res,
+          validaDocsReturn: {
+            ...res.validaDocsReturn,
+            digitalSignatureValidations: assinaturas,
+            pdfValidations: res.validaDocsReturn?.pdfValidations ?? undefined
+          }
+        };
+
+        // ==== NOVO: aplica estado de forma reativa e já força reflow ====
+        this.applyState(() => {
+          this.error = undefined;
+          this.result = normalized;
+        });
+      },
+      error: (err) => {
+        // NOVO: mensagem amigável + atualização imediata
+        this.applyState(() => {
+          this.result = undefined;
+          this.error = this.friendlyError(err);
+        });
+        console.error('validatePdf error', err);
+      }
+    });
+  }
 
   reset() {
     this.form.reset();
@@ -195,7 +217,7 @@ certificateStartDate: any;
 
   // ================= Helpers de UI =================
   get hasResult(): boolean { return !!this.result; }
-  
+
   signatureCount(): number {
     return this.result?.validaDocsReturn?.digitalSignatureValidations?.length ?? 0;
   }
@@ -207,9 +229,7 @@ certificateStartDate: any;
       [TrustedRoot.eNotariado]: 'assets/selo_validadocs_Enotariado.png',
       [TrustedRoot.ICPRC]: 'assets/selo_validadocs_ICPRC.png'
     };
-
-  return trustedRootMap[sig.trustedRoot as TrustedRoot] ?? 'assets/selo_validadocs_Avançada.png';
-
+    return trustedRootMap[sig.trustedRoot as TrustedRoot] ?? 'assets/selo_validadocs_Avançada.png';
   }
 
   /** "1 Assinatura encontrada" | "N Assinaturas encontradas" */
@@ -248,7 +268,7 @@ certificateStartDate: any;
     }
   }
 
-  // ================= Tooltips (dinâmicos só p/ Status e Certificado) =================
+  // ================= Tooltips =================
   getStatusTooltip(): string {
     const r = this.result;
     if (!r || r.isValid !== false) return '';
@@ -326,6 +346,16 @@ certificateStartDate: any;
     const errs = (s as any)?.signatureErrors as string[] | string | undefined;
     const alts = (s as any)?.signatureAlerts as string[] | string | undefined;
 
+    if (errs) Array.isArray(errs) ? msgs.push(...errs) : msgs.push(String(errs));
+    if (alts && !errs) Array.isArray(alts) ? msgs.push(...alts) : msgs.push(String(alts));
+
+    if ((s as any)?.docModified)      msgs.push('O documento foi alterado após a assinatura.');
+    if ((s as any)?.expired)          msgs.push('O certificado do signatário está expirado.');
+    if ((s as any)?.revoked)          msgs.push('O certificado do signatário foi revogado.');
+    if ((s as any)?.chainUntrusted)   msgs.push('Cadeia de certificação não é confiável.');
+    if ((s as any)?.timestampInvalid) msgs.push('Carimbo do tempo inválido.');
+    if ((s as any)?.ocspInvalid)      msgs.push('Falha em OCSP/CRL.');
+
     return msgs.length ? msgs.join(' · ') : 'Falha na verificação criptográfica da assinatura.';
   }
 
@@ -341,10 +371,6 @@ certificateStartDate: any;
 
   private stripCpfSuffix(v: string): string { return v.replace(/:\d{11}\s*$/, ''); }
 
-  displaySubjectFull(s: SignatureInfo): string {
-    return this.normalizeAccents(s?.endCertSubjectName || this.displayCN(s));
-  }
-
   displayCN(s: SignatureInfo): string {
     const base = s.endCertSubjectName || '—';
     const name = s.isICP ? this.stripCpfSuffix(s.signerName || this.extractCN(base)) : base;
@@ -359,28 +385,20 @@ certificateStartDate: any;
     return isNaN(d.getTime()) ? s : d.toLocaleString('pt-BR');
   }
   private authorityOf(s: SignatureInfo): string {
-    return s.qualified || (s.isICP ? 'ICP-Brasil' : (s.iseGov ? 'Gov.br' : '—'));
+    return s.qualified || (s.isICP ? 'ICP-Brasil' : (s as any).iseGov ? 'Gov.br' : '—');
   }
 
-  /*** ÚNICA ALTERAÇÃO: gera nome “safe ASCII” para o download ***/
+  /** Gera nome “safe ASCII” para o download (tira acentos e caracteres problemáticos) */
   private baseName(name?: string): string {
-    // tira a extensão
     const raw = (name || 'relatorio').replace(/\.[^/.]+$/, '').trim();
-
-    // corrige possíveis mojibake (mÃ©dico -> médico)
     const fixed = this.normalizeAccents(raw);
-
-    // remove diacríticos e qualquer caractere não-ASCII
     const noMarks = fixed.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     const asciiOnly = noMarks.replace(/[^\x20-\x7E]/g, '_');
-
-    // mantém apenas caracteres seguros
     const safe = asciiOnly
-      .replace(/[^A-Za-z0-9\-_. ]+/g, '_') // limpa símbolos
-      .replace(/\s+/g, ' ')               // colapsa espaços
-      .replace(/_{2,}/g, '_')             // colapsa underscores
+      .replace(/[^A-Za-z0-9\-_. ]+/g, '_')
+      .replace(/\s+/g, ' ')
+      .replace(/_{2,}/g, '_')
       .trim();
-
     return (safe || 'relatorio').slice(0, 80);
   }
 
@@ -466,7 +484,7 @@ certificateStartDate: any;
       };
       drawBrandRibbon(logoEl, 'ValidaDocs', 'Relatório de conformidade');
 
-      // cabeçalho com chip
+      // cabeçalho com "chip"
       const headerBlock = (metric: string, chipText: string, chipColorOk: boolean, fileName: string, sub: string) => {
         const padX = 6, padY = 5;
         const bannerW = W - 2 * M;
@@ -489,9 +507,7 @@ certificateStartDate: any;
         const chipX = M + bannerW - padX - chipW;
         const chipY = y2 - chipH + 2;
 
-        const chipColorRgb = (chipColorOk
-          ? [34, 197, 94]
-          : [245, 158, 11]) as [number, number, number];
+        const chipColorRgb = (chipColorOk ? [34, 197, 94] : [245, 158, 11]) as [number, number, number];
         doc.setFillColor(chipColorRgb[0], chipColorRgb[1], chipColorRgb[2]);
         doc.setTextColor(255);
         doc.roundedRect(chipX, chipY, chipW, chipH, 2, 2, 'F');
@@ -514,12 +530,8 @@ certificateStartDate: any;
         sigCount === 0
           ? { text: 'Sem assinaturas', ok: false }
           : sigCount === 1
-            ? (this.allValid()
-                ? { text: 'Assinatura válida', ok: true }
-                : { text: 'Assinatura com verificações', ok: false })
-            : (this.allValid()
-                ? { text: 'Todas válidas', ok: true }
-                : { text: 'Com verificações', ok: false });
+            ? (this.allValid() ? { text: 'Assinatura válida', ok: true } : { text: 'Assinatura com verificações', ok: false })
+            : (this.allValid() ? { text: 'Todas válidas', ok: true } : { text: 'Com verificações', ok: false });
 
       headerBlock(
         this.sigMetric(),
@@ -628,11 +640,11 @@ certificateStartDate: any;
         doc.setFont('helvetica','normal'); doc.setTextColor(90); doc.setFontSize(11);
         const subt = `${s0.signatureType ?? ''} ${s0.signatureLevel ?? ''}`.trim();
         if (subt) { doc.text(subt, M, y); y += 6; }
-        if (s0.signatureTime) { doc.text(this.brDate(s0.signatureTime), M, y); y += 6; }
+        if (s0.signatureTime) { doc.text(this.brDate(s0.signatureTime as any), M, y); y += 6; }
         doc.setTextColor(0);
         y += 2;
 
-        const showCPF   = sigs.some(s => !!s.cpf);
+        const showCPF   = sigs.some(s => !!(s as any).cpf);
         const showLevel = sigs.some(s => !!s.signatureLevel);
         const showTime  = sigs.some(s => !!s.signatureTime);
 
@@ -657,12 +669,12 @@ certificateStartDate: any;
           body: sigs.map(s => cols.map(c => {
             switch (c.key) {
               case 'name':  return this.displayCN(s);
-              case 'cpf':   return s.cpf || '—';
+              case 'cpf':   return (s as any).cpf || '—';
               case 'type':  return s.signatureType ?? '—';
               case 'level': return s.signatureLevel ?? '—';
               case 'auth':  return this.authorityOf(s);
               case 'valid': return s.signatureValid ? 'Sim' : 'Não';
-              case 'time':  return this.brDate(s.signatureTime);
+              case 'time':  return this.brDate((s as any).signatureTime);
               default:      return '—';
             }
           })),
@@ -673,16 +685,15 @@ certificateStartDate: any;
           columnStyles
         });
 
-        // >>> evita sobreposição do bloco seguinte
         const tableFinalY =
           (doc as any).lastAutoTable?.finalY ??
-          (autoTable as any)?.previous?.finalY ?? // compatibilidade
+          (autoTable as any)?.previous?.finalY ??
           y;
         y = tableFinalY + 10;
         addPageIfNeeded(18);
       }
 
-      // Observações e notas da validação (inclui textos dos tooltips)
+      // Observações e notas da validação
       const notas: string[] = [];
       const statusTip = this.getStatusTooltip();
       if (this.result?.isValid === false && statusTip) notas.push(statusTip);
@@ -728,5 +739,24 @@ certificateStartDate: any;
     } finally {
       this.exporting = false;
     }
+  }
+
+  // === NOVO: helper para mensagens de erro amigáveis ===
+  private friendlyError(err: any): string {
+    const txt = (err?.error?.message || err?.error || err?.message || '').toString();
+
+    if (/timeout/i.test(txt)) {
+      return 'Tempo esgotado ao validar o arquivo (15s). Tente novamente em alguns segundos.';
+    }
+    if (err?.status === 0 || /Network|Failed to fetch|CORS/i.test(txt)) {
+      return 'Não foi possível conectar ao serviço de validação. Verifique sua conexão e tente novamente.';
+    }
+    if (err?.status === 413) return 'Arquivo muito grande para validar.';
+    if (err?.status === 415) return 'Tipo de arquivo não suportado. Selecione um PDF.';
+
+    if (err?.error?.error) return String(err.error.error);
+    if (txt) return txt;
+
+    return 'Falha ao validar. Tente novamente.';
   }
 }
