@@ -1,33 +1,32 @@
 import { Component, inject } from '@angular/core';
 import { Title } from '@angular/platform-browser';
-import {
-  IonHeader, IonToolbar, IonTitle, IonButtons, IonButton,
-  IonContent, IonIcon, IonGrid, IonRow, IonCol
-} from '@ionic/angular/standalone';
+import { IonicModule } from '@ionic/angular';
+import { ModalController, AlertController, ToastController, LoadingController } from '@ionic/angular/standalone';
 import { RouterModule, Router } from '@angular/router';
-import { AlertController, ToastController, LoadingController } from '@ionic/angular';
 import { AuthService } from '../guard/auth.service';
+import { TokenModalComponent } from '../components/token-modal/token-modal.component';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [
-    IonHeader, IonToolbar, IonTitle, IonButtons, IonButton,
-    IonContent, IonIcon, IonGrid, IonRow, IonCol, RouterModule
-  ],
+  imports: [IonicModule, TokenModalComponent],
   templateUrl: './home.page.html',
   styleUrls: ['./home.page.scss'],
 })
 export class HomePage {
   private title = inject(Title);
   private router = inject(Router);
-  private alertCtrl = inject(AlertController);
-  private toastCtrl = inject(ToastController);
-  private loadingController = inject(LoadingController);
-   
+  //private alertCtrl = inject(AlertController);
+  //private toastCtrl = inject(ToastController);
+  //private loadingController = inject(LoadingController);
+  //private modalCtrl = inject(ModalController); 
   
   constructor(
     private authService: AuthService,
+    private alertCtrl: AlertController,
+    private toastCtrl: ToastController,
+    private loadingController: LoadingController,    
+    private modalCtrl: ModalController
   ) {
     this.title.setTitle('ValidaDocs');
   }
@@ -44,6 +43,25 @@ export class HomePage {
     }           
   }
 
+
+  async presentTokenModal() {    
+    const modal = await this.modalCtrl.create({
+      component: TokenModalComponent,
+      breakpoints: [0, 0.5, 1],
+      initialBreakpoint: 0.5,
+      cssClass: 'custom-modal'
+    });
+
+    await modal.present();
+
+    const { data, role } = await modal.onDidDismiss();
+
+    if (role === 'confirm' && data) {
+      this.handleToken(data);
+    } else if (role === 'cancel') {
+      this.presentError('Autorização cancelada.');
+    }
+  }
 
   // Prompt para inserir token
   async presentTokenPrompt() {
@@ -166,7 +184,8 @@ export class HomePage {
       alert.removeEventListener('paste', onPaste, true);
       alert.removeEventListener('input', onInput, true);
     });
-  }
+  }       
+
 
   // Validação final do token + navegação
   private async handleToken(token: string) {
