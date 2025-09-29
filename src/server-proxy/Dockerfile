@@ -1,5 +1,5 @@
 # Usar Node.js como base
-FROM node:20-alpine
+FROM node:24-alpine
 
 # Definir diretório de trabalho
 WORKDIR /usr/src/app

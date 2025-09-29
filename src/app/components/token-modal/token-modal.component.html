@@ -1,0 +1,17 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Autorização</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="cancel()">Cancelar</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding blur-backdrop">
+  <ion-item>
+    <ion-label position="stacked">Token</ion-label>
+    <ion-input [(ngModel)]="token" placeholder="Seu token" maxlength="20" inputmode="text"></ion-input>
+  </ion-item>
+
+  <ion-button expand="block" color="primary" (click)="confirm()">Validar</ion-button>
+</ion-content>

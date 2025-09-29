@@ -188,29 +188,29 @@ ion-note[color="warning"] { color: var(--ion-color-warning) !important; }
    ALERTA COM DESFOQUE NO BACKDROP
    - Usado no modal de Token (cssClass: 'blur-backdrop')
    ======================================================== */
-ion-alert.blur-backdrop {
-  --backdrop-opacity: 0 !important; /* desativa o backdrop padrão */
-}
-ion-alert.blur-backdrop::part(backdrop) {
-  background: transparent !important; /* garante transparência */
-}
-/* película desfocada atrás do card do alert */
-ion-alert.blur-backdrop::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1; /* atrás do conteúdo do alert */
-  pointer-events: none;
-  -webkit-backdrop-filter: blur(24px) saturate(130%);
-  backdrop-filter: blur(24px) saturate(130%);
-  background: rgba(0, 0, 0, 0.50);
-}
-@media (max-width: 480px) {
-  ion-alert.blur-backdrop::after {
-    -webkit-backdrop-filter: blur(18px) saturate(120%);
-    backdrop-filter: blur(18px) saturate(120%);
-  }
-}
+// ion-alert.blur-backdrop {
+//   --backdrop-opacity: 0 !important; /* desativa o backdrop padrão */
+// }
+// ion-alert.blur-backdrop::part(backdrop) {
+//   background: transparent !important; /* garante transparência */
+// }
+// /* película desfocada atrás do card do alert */
+// ion-alert.blur-backdrop::after {
+//   content: "";
+//   position: fixed;
+//   inset: 0;
+//   z-index: -1; /* atrás do conteúdo do alert */
+//   pointer-events: none;
+//   -webkit-backdrop-filter: blur(24px) saturate(130%);
+//   backdrop-filter: blur(24px) saturate(130%);
+//   background: rgba(0, 0, 0, 0.50);
+// }
+// @media (max-width: 480px) {
+//   ion-alert.blur-backdrop::after {
+//     -webkit-backdrop-filter: blur(18px) saturate(120%);
+//     backdrop-filter: blur(18px) saturate(120%);
+//   }
+// }
 
 /* ========================================================
    BOTÃO COM TEXTO CENTRALIZADO
@@ -231,4 +231,14 @@ ion-button.btn-centered {
 ion-button.btn-centered ion-icon[slot="start"],
 ion-button.btn-centered ion-icon[slot="end"] {
   margin-inline: 8px; /* equilíbrio ao usar ícone */
+}
+
+
+.custom-modal::part(content) { 
+  backdrop-filter: blur(8px); background: rgba(255, 255, 255, 0.85); 
+} 
+
+.custom-modal::part(content) {
+  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.85);
 }

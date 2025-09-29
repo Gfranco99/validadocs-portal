@@ -1,6 +1,7 @@
 // auth.controller.js
 const { v4: uuidv4 } = require("uuid");
 const pool = require("../infrastructure/data/db");
+const { getBrasiliaExpiration, getBrasiliaNow } = require("../helpers/datetime.helper");
 
 // cria token
 exports.createCredential = async (req, res) => {
@@ -10,15 +11,18 @@ exports.createCredential = async (req, res) => {
     const token = uuidv4().replace(/-/g, '');;
     const userId = uuidv4().replace(/-/g, '');
 
-    let expiresAt = null;
-    if (expiresIn) {
-      expiresAt = new Date(Date.now() + expiresIn * 60 * 1000); // em minutos
+    const _date = getBrasiliaExpiration(expiresIn);
+    let createdAt = _date.now;
+
+    let expiresAt = null; 
+    if (expiresIn) {      
+      expiresAt = _date.expires_at;      
     }
 
     const result = await pool.query(
       `INSERT INTO validadocscredentials (user_id, cliente, token, created_at, expires_at, is_active) 
-       VALUES ($1, $2, $3, NOW(), $4, true) RETURNING *`,
-      [userId, cliente, token, expiresAt]
+       VALUES ($1, $2, $3, $4, $5, true) RETURNING *`,
+      [userId, cliente, token, createdAt, expiresAt]
     );
 
     res.json({
