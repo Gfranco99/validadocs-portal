@@ -6,7 +6,7 @@ const { getBrasiliaExpiration, getBrasiliaNow } = require("../helpers/datetime.h
 // cria token
 exports.createCredential = async (req, res) => {
   try {
-    const { cliente, expiresIn } = req.body; // em minutos (opcional)
+    const { nome, email, documento, telefone, expiresIn } = req.body; // em minutos (opcional)
 
     const token = uuidv4().replace(/-/g, '');;
     const userId = uuidv4().replace(/-/g, '');
@@ -20,9 +20,9 @@ exports.createCredential = async (req, res) => {
     }
 
     const result = await pool.query(
-      `INSERT INTO validadocscredentials (user_id, cliente, token, created_at, expires_at, is_active) 
-       VALUES ($1, $2, $3, $4, $5, true) RETURNING *`,
-      [userId, cliente, token, createdAt, expiresAt]
+      `INSERT INTO validadocscredentials (user_id, nome, email, documento, telefone, token, created_at, expires_at, is_active) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true) RETURNING *`,
+      [userId, nome, email, documento, telefone, token, createdAt, expiresAt]
     );
 
     res.json({
