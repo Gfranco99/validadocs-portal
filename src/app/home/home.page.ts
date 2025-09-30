@@ -72,7 +72,7 @@ export class HomePage {
       backdropDismiss: false,      // não fecha clicando fora
       inputs: [
         {
-          name: 'credencial',
+          name: 'token',
           type: 'text',          // number ajuda em mobile; vamos filtrar no desktop
           placeholder: 'Credencial',
           // attributes: {
