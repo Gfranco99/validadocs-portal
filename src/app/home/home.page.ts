@@ -67,14 +67,14 @@ export class HomePage {
   async presentTokenPrompt() {
     const alert = await this.alertCtrl.create({
       header: 'Autorização',
-      message: 'Informe o token para continuar.',
+      message: 'Informe a credencial para continuar.',
       cssClass: 'blur-backdrop',   // fundo desfocado (via global.scss)
       backdropDismiss: false,      // não fecha clicando fora
       inputs: [
         {
           name: 'token',
           type: 'text',          // number ajuda em mobile; vamos filtrar no desktop
-          placeholder: 'Seu token',
+          placeholder: 'Credencial',
           // attributes: {
           //   autocapitalize: 'off',
           //   autocorrect: 'off',
