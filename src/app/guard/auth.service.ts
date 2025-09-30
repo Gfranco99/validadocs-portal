@@ -2,12 +2,13 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
+import { environment } from 'src/environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://localhost:3000/auth'; // ajuste para sua API
+  private apiUrl = `${environment.validocsApi}/auth`; // ajuste para sua API
   private loggedIn$ = new BehaviorSubject<boolean>(false);
 
   constructor(private http: HttpClient) {}

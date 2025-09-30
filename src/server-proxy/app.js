@@ -70,6 +70,18 @@ app.post("/auth", auth.validateCredential);
 app.post("/revoke", auth.revokeCredential);
 
 const PORT = process.env.PORT || 3000;
+
+//DEBUG
+console.log("Usando as seguintes variáveis de ambiente:");
+console.log("PORT:", PORT);
+console.log("API_URL:", process.env.API_URL);
+console.log("TOKEN:", process.env.TOKEN);
+console.log("PG_HOST:", process.env.PG_HOST);
+console.log("PG_PORT:", process.env.PG_PORT);
+console.log("PG_USER:", process.env.PG_USER);
+console.log("PG_PASSWORD:", process.env.PG_PASSWORD ? "********" : "");
+console.log("PG_DATABASE:", process.env.PG_DATABASE);
+
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);
 });

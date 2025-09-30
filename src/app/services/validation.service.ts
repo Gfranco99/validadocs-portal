@@ -13,7 +13,7 @@ export class ValidationService {
   //constructor() {}
 
   validatePdf(file: File): Observable<ValidationResult> {
-    if (environment.apiBase === 'mock') {
+    if (environment.validocsApi === 'mock') {
       return of(MOCK_VALIDATION).pipe(delay(400));
     }
     //return EMPTY as Observable<ValidationResult>;
@@ -26,7 +26,7 @@ export class ValidationService {
     const form = new FormData();
     form.append('file', file, file.name);
     form.append('userid', sessionStorage.getItem('userid') || ''); // adiciona userId
-    //return this.http.post<ValidationResult>(`${environment.apiBase}/api/VerifyPDF`, form, {headers});
-    return this.http.post<ValidationResult>(`${environment.apiBase}`, form, {headers});
+    //return this.http.post<ValidationResult>(`${environment.validocsApi}/api/VerifyPDF`, form, {headers});
+    return this.http.post<ValidationResult>(`${environment.validocsApi}/verify`, form, {headers});
   }
 }

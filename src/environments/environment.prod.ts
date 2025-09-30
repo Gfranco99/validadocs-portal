@@ -1,4 +1,5 @@
 export const environment = {
   production: true,
-  apiBase: 'http://localhost:3000/verify'
+  validocsApi: 'http://62.171.128.216:3000'
 };
+  

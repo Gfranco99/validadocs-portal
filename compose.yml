@@ -1,20 +1,64 @@
 services:
+  # Serviço do Banco de Dados Postgres
+  db-postgresql:
+    image: postgres:alpine3.20
+    container_name: validadocs_postgres
+    restart: unless-stopped
+    ports:
+      - "5480:5432"
+    environment:
+      POSTGRES_PASSWORD: postgres
+      PGPORT: 5480
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 1s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - ./postgresDocker/data:/var/lib/postgresql/data
+
+  db-pgadmin:
+    image: dpage/pgadmin4
+    container_name: validadocs-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "tecnico@integral.com.br"
+      PGADMIN_DEFAULT_PASSWORD: "Intsis1999"
+      PGADMIN_LISTEN_PORT: "5454"
+    ports:
+      - "5454:5454"
+    volumes:
+      - ./postgresDocker/pgadmin:/var/lib/pgadmin
+    user: "5050:5050"
+    depends_on:
+      - db-postgresql 
+
+  # Serviço da sua Aplicação Node.js
+  server-proxy:
+    build:
+      context: src/server-proxy
+      dockerfile: Dockerfile
+    image: novaintegral/validadocs-server-proxy:1.4
+    container_name: validadocs-server-proxy
+    ports:
+      - "3000:3000"
+    env_file:
+      - src/server-proxy/.env
+    depends_on:
+      - db-postgresql # Garante que o container do banco de dados inicie antes da sua aplicação
+
   angular-app:
     build: .      
-    image: novaintegral/validadocs-portal:1.2
+    image: novaintegral/validadocs-portal:1.4
     container_name: validadocs-portal
     ports:
       - "3001:80"
     depends_on:
       - server-proxy
 
-  server-proxy:
-    build:
-      context: src/server-proxy
-      dockerfile: Dockerfile
-    image: novaintegral/validadocs-server-proxy:1.2
-    container_name: validadocs-server-proxy
-    ports:
-      - "3000:3000"
-    env_file:
-      - src/server-proxy/.env
+volumes:
+  pgdata:
+
+networks:
+  default:    
+    name: rede-validadocs
