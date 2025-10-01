@@ -122,40 +122,25 @@
                   </ion-label>
                 </ion-item>
 
-                <ion-item *ngIf="getPdfAValidTooltip()" class="finding">
+                <!-- <ion-item *ngIf="getPdfAValidTooltip()" class="finding">
                   <ion-label class="ion-text-wrap finding-label">
                     <span class="tooltip-text">{{ getPdfAValidTooltip() }}</span>
                   </ion-label>
-                </ion-item>
+                </ion-item> -->
 
-                <ion-item *ngIf="getPdfACompliantTooltip()" class="finding">
+                <!-- <ion-item *ngIf="getPdfACompliantTooltip()" class="finding">
                   <ion-label class="ion-text-wrap finding-label">
                     <span class="tooltip-text">{{ getPdfACompliantTooltip() }}</span>
                   </ion-label>
-                </ion-item>
+                </ion-item> -->
 
-                <ion-item *ngIf="getBornDigitalTooltip()" class="finding">
+                <!-- <ion-item *ngIf="getBornDigitalTooltip()" class="finding">
                   <ion-label class="ion-text-wrap finding-label">
                     <span class="tooltip-text">{{ getBornDigitalTooltip() }}</span>
                   </ion-label>
-                </ion-item>
-
-                <ion-item *ngIf="getPdfALevelTooltip()" class="finding">
-                  <ion-label class="ion-text-wrap finding-label">
-                    <span class="tooltip-text">{{ getPdfALevelTooltip() }}</span>
-                  </ion-label>
-                </ion-item>
-
-                <ng-container *ngFor="let s of r.validaDocsReturn?.digitalSignatureValidations">
-                  <ion-item *ngIf="s.signatureValid === false" class="finding">
-                    <ion-label class="ion-text-wrap finding-label">
-                      <span class="tooltip-text">
-                        {{ displayCN(s) }}: {{ getSignatureTooltip(s) }}
-                      </span>
-                    </ion-label>
-                  </ion-item>
-                </ng-container>
-
+                </ion-item> -->
+                
+                
               </ion-list>
             </ion-card-content>
           </ion-card>
@@ -269,7 +254,7 @@
                     </p>
 
                     <p class="cert-meta" *ngIf="s.certificateStartDate">
-                      <span class="issuer-label">Emitido em: </span>
+                      <span class="issuer-label">Emitido em:</span>
                       <span class="issuer-value">{{ s.certificateStartDate | date:'dd/MM/yyyy HH:mm' }}</span>
                     </p>
 
