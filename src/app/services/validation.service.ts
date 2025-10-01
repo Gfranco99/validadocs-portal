@@ -6,14 +6,19 @@ import { delay } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { ValidationResult } from '../types/validation.types';
 import { MOCK_VALIDATION } from './mock-validation';
+import { ConfigService } from './config/config.service';
 
 @Injectable({ providedIn: 'root' })
 export class ValidationService {
-  constructor(private http: HttpClient) {}
-  //constructor() {}
+  
+  private validadocsApi: string;
+
+  constructor(private http: HttpClient, private config: ConfigService) {
+    this.validadocsApi = this.config.validadocsApi;
+  }  
 
   validatePdf(file: File): Observable<ValidationResult> {
-    if (environment.validocsApi === 'mock') {
+    if (this.validadocsApi === 'mock') {
       return of(MOCK_VALIDATION).pipe(delay(400));
     }
     //return EMPTY as Observable<ValidationResult>;
@@ -26,7 +31,6 @@ export class ValidationService {
     const form = new FormData();
     form.append('file', file, file.name);
     form.append('userid', sessionStorage.getItem('userid') || ''); // adiciona userId
-    //return this.http.post<ValidationResult>(`${environment.validocsApi}/api/VerifyPDF`, form, {headers});
-    return this.http.post<ValidationResult>(`${environment.validocsApi}/verify`, form, {headers});
+    return this.http.post<ValidationResult>(`${this.validadocsApi}/verify`, form, {headers});
   }
 }

@@ -3,19 +3,23 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
+import { ConfigService } from '../services/config/config.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = `${environment.validocsApi}/auth`; // ajuste para sua API
+
+  private validadocsApi: string;  
   private loggedIn$ = new BehaviorSubject<boolean>(false);
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private config: ConfigService) {
+    this.validadocsApi = this.config.validadocsApi;
+  } 
 
   // Faz login validando credencial no backend
   login(credential: string): Observable<any> {
-    return this.http.post<{ success: boolean, message: string, credential: any }>(`${this.apiUrl}`, { token: credential })
+    return this.http.post<{ success: boolean, message: string, credential: any }>(`${this.validadocsApi}/auth`, { token: credential })
       .pipe(
         map(res => {
           if (res.success) {

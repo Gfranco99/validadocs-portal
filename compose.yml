@@ -38,7 +38,7 @@ services:
     build:
       context: src/server-proxy
       dockerfile: Dockerfile
-    image: novaintegral/validadocs-server-proxy:1.4
+    image: novaintegral/validadocs-server-proxy:1.5
     container_name: validadocs-server-proxy
     ports:
       - "3000:3000"
@@ -49,10 +49,12 @@ services:
 
   angular-app:
     build: .      
-    image: novaintegral/validadocs-portal:1.4
+    image: novaintegral/validadocs-portal:1.5
     container_name: validadocs-portal
     ports:
       - "3001:80"
+    env_file:
+      - src/environments/docker/.env.prod
     depends_on:
       - server-proxy
 
