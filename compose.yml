@@ -38,7 +38,7 @@ services:
     build:
       context: src/server-proxy
       dockerfile: Dockerfile
-    image: novaintegral/validadocs-server-proxy:1.5
+    image: novaintegral/validadocs-server-proxy:1.6
     container_name: validadocs-server-proxy
     ports:
       - "3000:3000"

@@ -2,6 +2,8 @@
 const { v4: uuidv4 } = require("uuid");
 const pool = require("../infrastructure/data/db");
 const { getBrasiliaExpiration, getBrasiliaNow } = require("../helpers/datetime.helper");
+const { handleSendNotification } = require("./notification.controller");
+const { parseHtmlTemplate } = require("../infrastructure/templates/template.service");
 
 // cria token
 exports.createCredential = async (req, res) => {
@@ -24,7 +26,32 @@ exports.createCredential = async (req, res) => {
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true) RETURNING *`,
       [userId, nome, email, documento, telefone, token, createdAt, expiresAt]
     );
+    
+    //Notification
+    //Prepere email content
+    // a.prepara os dados que o template precisa
+    const templateData = {
+      nome: nome,
+      token: token
+    };
 
+    // b.Usa o serviço para gerar o HTML final a partir do template
+    const finalHtml = await parseHtmlTemplate('credential-email.html', templateData);
+
+    // c. send email
+    await handleSendNotification({
+      body: {
+        type: 'email',
+        payload: {
+          to: email,
+          subject: 'Sua credencial foi criada',
+          html: finalHtml          
+      }}}, {
+      status: (code) => ({
+        json: (data) => console.log('Mock response:', code, data)
+      })
+    });
+    
     res.json({
       success: true,
       credential: result.rows[0]
@@ -38,6 +65,7 @@ exports.createCredential = async (req, res) => {
 // valida token
 exports.validateCredential = async (req, res) => {
   try {
+
     const { token } = req.body;
 
     const result = await pool.query(
