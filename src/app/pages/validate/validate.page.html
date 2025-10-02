@@ -4,9 +4,13 @@
 
     <ion-buttons slot="end">
       <ion-button fill="clear" (click)="fileInput.click()" [disabled]="loading">Selecionar um PDF</ion-button>
-      <ion-button *ngIf="file" fill="clear" (click)="reset()" [disabled]="loading">Limpar</ion-button>
-      <ion-button (click)="exportPdf()" [disabled]="loading || !hasResult">Exportar PDF</ion-button>
-      <ion-button (click)="goHome()">Voltar a Home</ion-button>
+      <ion-button fill="clear" (click)="exportPdf()" [disabled]="loading || !hasResult">Relatório</ion-button>
+
+      <!-- Voltar: apenas navega para a Home -->
+      <ion-button fill="clear" (click)="goHome()">Voltar</ion-button>
+
+      <!-- Sair: chama AuthService.logout(), limpa estado e volta para a Home -->
+      <ion-button fill="clear" (click)="logout()" [disabled]="loading">Sair</ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
@@ -68,7 +72,7 @@
                           lines="full" class="sig-item">
                   <ion-label class="ion-text-wrap">
                     <div class="sig-head">Assinado por: {{ normalizeAccents(s.signerName) }}</div>
-                    <div class="sig-head" *ngIf="s.cpf.length > 0">CPF: {{ s.cpf }}</div>
+                    <div class="sig-head" *ngIf="s.cpf">CPF: {{ s.cpf }}</div>
                     <div class="sig-sub">{{ s.signatureLevel }}</div>
                     <div class="sig-sub">{{ s.trustedRoot }}</div>
                     <div class="sig-sub" *ngIf="s.signatureTime">
@@ -82,7 +86,6 @@
                     </div>
                   </ion-label>
 
-                  <!-- Selo à direita -->
                   <div slot="end" class="seal-box">
                     <img
                       [src]="getImgTrustedRoot(s)"
@@ -97,73 +100,50 @@
         <!-- DIREITA -->
         <ion-col size="12" size-lg="6" class="right">
           <!-- Apontamentos -->
-          <ion-card
-          class="errorfindings-card"
-          *ngIf="((r.errorfindings?.length || 0) > 0)">
+          <ion-card class="errorfindings-card" *ngIf="((r.errorfindings?.length || 0) > 0)">
+            <ion-card-header class="card-title-row">
+              <ion-card-title>
+                <ion-icon name="search-outline"></ion-icon>
+                Apontamentos da Validação
+              </ion-card-title>
+            </ion-card-header>
 
-          <ion-card-header class="card-title-row"><!-- alinha título/badge -->
-            <ion-card-title>
-              <ion-icon name="search-outline"></ion-icon>
-              Apontamentos da Validação
-            </ion-card-title>
-          </ion-card-header>
-
-          <ion-card-content>
-            <ion-list>
-
-              <!-- Itens da API (vermelho) -->
-              <ion-item *ngFor="let f of r.errorfindings" class="finding">
-                <ion-label class="ion-text-wrap finding-label">
-                  <span class="danger-text">{{ f }}</span>
-                </ion-label>
-              </ion-item>
-
-              <!-- Tooltips importados -->
-              <ion-item *ngIf="getStatusTooltip()" class="finding">
-                <ion-label class="ion-text-wrap finding-label">
-                  <span class="danger-text">{{ getStatusTooltip() }}</span>
-                </ion-label>
-              </ion-item>
-
-              <ion-item *ngIf="getPdfAValidTooltip()" class="finding">
-                <ion-label class="ion-text-wrap finding-label">
-                  <span class="tooltip-text">{{ getPdfAValidTooltip() }}</span>
-                </ion-label>
-              </ion-item>
-
-              <ion-item *ngIf="getPdfACompliantTooltip()" class="finding">
-                <ion-label class="ion-text-wrap finding-label">
-                  <span class="tooltip-text">{{ getPdfACompliantTooltip() }}</span>
-                </ion-label>
-              </ion-item>
-
-              <ion-item *ngIf="getBornDigitalTooltip()" class="finding">
-                <ion-label class="ion-text-wrap finding-label">
-                  <span class="tooltip-text">{{ getBornDigitalTooltip() }}</span>
-                </ion-label>
-              </ion-item>
-
-              <ion-item *ngIf="getPdfALevelTooltip()" class="finding">
-                <ion-label class="ion-text-wrap finding-label">
-                  <span class="tooltip-text">{{ getPdfALevelTooltip() }}</span>
-                </ion-label>
-              </ion-item>
-
-              <!-- Tooltips por assinatura inválida -->
-              <ng-container *ngFor="let s of r.validaDocsReturn?.digitalSignatureValidations">
-                <ion-item *ngIf="s.signatureValid === false" class="finding">
+            <ion-card-content>
+              <ion-list>
+                <ion-item *ngFor="let f of r.errorfindings" class="finding">
                   <ion-label class="ion-text-wrap finding-label">
-                    <span class="tooltip-text">
-                      {{ displayCN(s) }}: {{ getSignatureTooltip(s) }}
-                    </span>
+                    <span class="danger-text">{{ f }}</span>
                   </ion-label>
                 </ion-item>
-              </ng-container>
 
-            </ion-list>
-          </ion-card-content>
-        </ion-card>
+                <ion-item *ngIf="getStatusTooltip()" class="finding">
+                  <ion-label class="ion-text-wrap finding-label">
+                    <span class="danger-text">{{ getStatusTooltip() }}</span>
+                  </ion-label>
+                </ion-item>
 
+                <!-- <ion-item *ngIf="getPdfAValidTooltip()" class="finding">
+                  <ion-label class="ion-text-wrap finding-label">
+                    <span class="tooltip-text">{{ getPdfAValidTooltip() }}</span>
+                  </ion-label>
+                </ion-item> -->
+
+                <!-- <ion-item *ngIf="getPdfACompliantTooltip()" class="finding">
+                  <ion-label class="ion-text-wrap finding-label">
+                    <span class="tooltip-text">{{ getPdfACompliantTooltip() }}</span>
+                  </ion-label>
+                </ion-item> -->
+
+                <!-- <ion-item *ngIf="getBornDigitalTooltip()" class="finding">
+                  <ion-label class="ion-text-wrap finding-label">
+                    <span class="tooltip-text">{{ getBornDigitalTooltip() }}</span>
+                  </ion-label>
+                </ion-item> -->
+                
+                
+              </ion-list>
+            </ion-card-content>
+          </ion-card>
 
           <!-- Detalhes do Documento -->
           <ion-card class="details-card">
@@ -256,46 +236,49 @@
           </ion-card>
 
           <!-- Certificados -->
-         <ion-card class="cert-card">
-  
-  <ion-card-content>
-    <ion-list>
-      <ion-item *ngFor="let s of r.validaDocsReturn?.digitalSignatureValidations; trackBy: trackByName"
-          lines="full" class="cert-item">
-          <ion-label class="ion-text-wrap">
-            
-            <div class="cert-title-row">
-              <span class="cert-title">Certificado</span>
-              <ion-badge class="pill" [color]="sigColor(s)">
-                {{ s.signatureValid ? 'Válida' : 'Inválida' }}
-              </ion-badge>
-            </div>
+          <ion-card class="cert-card">
+            <ion-card-content>
+              <ion-list>
+                <ion-item *ngFor="let s of r.validaDocsReturn?.digitalSignatureValidations; trackBy: trackByName"
+                          lines="full" class="cert-item">
+                  <ion-label class="ion-text-wrap">
+                    <div class="cert-title-row">
+                      <span class="cert-title">Certificado</span>
+                      <ion-badge class="pill" [color]="sigColor(s)">
+                        {{ s.signatureValid ? 'Válida' : 'Inválida' }}
+                      </ion-badge>
+                    </div>
 
-            <p class="cert-subject ion-text-wrap" style="margin:0;">
-              {{ normalizeAccents(s.endCertSubjectName) || '—' }}
-            </p>
+                    <p class="cert-subject ion-text-wrap" style="margin:0;">
+                      {{ normalizeAccents(s.endCertSubjectName) || '—' }}
+                    </p>
 
-            <p class="cert-meta" *ngIf="s.certificateStartDate">
-              <span class="issuer-label">Válido de:</span>
-              <span class="issuer-value">{{ s.certificateStartDate | date:'dd/MM/yyyy HH:mm' }}</span>
-            </p>
+                    <p class="cert-meta" *ngIf="s.certificateStartDate">
+                      <span class="issuer-label">Emitido em:</span>
+                      <span class="issuer-value">{{ s.certificateStartDate | date:'dd/MM/yyyy HH:mm' }}</span>
+                    </p>
 
-            <p class="cert-meta" *ngIf="s.certificateEndDate">
-              <span class="issuer-label">Válido até:</span>
-              <span class="issuer-value">{{ s.certificateEndDate | date:'dd/MM/yyyy HH:mm' }}</span>
-            </p>
+                    <p class="cert-meta" *ngIf="s.certificateEndDate">
+                      <span class="issuer-label">Válido até: </span>
+                      <span class="issuer-value">{{ s.certificateEndDate | date:'dd/MM/yyyy HH:mm' }}</span>
+                    </p>
 
-            <p class="cert-issuer ion-text-wrap">
-              <span class="issuer-label">Emissor raiz:</span>
-              <span class="issuer-value">{{ normalizeAccents(s.rootIssuer) || '—' }}</span>
-            </p>
+                    <p class="cert-issuer ion-text-wrap">
+                      <span class="issuer-label">Emissor raiz:</span>
+                      <span class="issuer-value">{{ normalizeAccents(s.rootIssuer) || '—' }}</span>
+                    </p>
 
-            <p class="cert-meta" *ngIf="s.signatureType || s.signatureLevel">
-              <span class="issuer-value">{{ s.signatureType }} / {{ s.signatureLevel }}</span>
-            </p>
-          </ion-label>
-        </ion-item>
-     </ion-list>
-  </ion-card-content>
-</ion-card>
+                    <p class="cert-meta" *ngIf="s.signatureType || s.signatureLevel">
+                      <span class="issuer-value">{{ s.signatureType }} / {{ s.signatureLevel }}</span>
+                    </p>
+                  </ion-label>
+                </ion-item>
+              </ion-list>
+            </ion-card-content>
+          </ion-card>
 
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+  </ng-container>
+</ion-content>
