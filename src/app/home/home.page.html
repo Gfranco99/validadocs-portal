@@ -1,5 +1,5 @@
 <ion-header>
-  </ion-header>
+</ion-header>
 
 <ion-content class="ion-padding">
   <section class="hero">
@@ -23,13 +23,14 @@
       <ion-button 
         color="primary" size="large" class="btn-centered"
         (click)="startValidation()">
-        Iniciar validação        
+        Iniciar validação
       </ion-button>
-      <!-- <ion-button 
+      
+      <ion-button 
         color="primary" size="large" class="btn-centered"
-        (click)="presentTokenModal()">
-        Iniciar validação Modal      
-      </ion-button> -->
+        (click)="presentLoginPrompt()">
+        Entrar
+      </ion-button>
     </div>
   </section>
 
@@ -48,7 +49,7 @@
           <div class="feature">
             <ion-icon name="git-branch-outline" aria-hidden="true"></ion-icon>
             <h3>Cadeia de Certificados</h3>
-            <p>Analisa a cadeia até a raiz (ICP-Brasil, eGov-BR, ICP-RC e eNotariado), validate, revogação e carimbos do tempo.</p>
+            <p>Analisa a cadeia até a raiz (ICP-Brasil, eGov-BR, ICP-RC e eNotariado), validade, revogação e carimbos do tempo.</p>
           </div>
         </ion-col>
 
