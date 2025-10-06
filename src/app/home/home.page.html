@@ -1,5 +1,8 @@
-<ion-header>
-</ion-header>
+<div class="top-right">
+  <ion-button fill="clear" size="small" class="login-btn" (click)="presentLoginPrompt()">
+    Login
+  </ion-button>
+</div>
 
 <ion-content class="ion-padding">
   <section class="hero">
@@ -24,12 +27,6 @@
         color="primary" size="large" class="btn-centered"
         (click)="startValidation()">
         Iniciar validação
-      </ion-button>
-      
-      <ion-button 
-        color="primary" size="large" class="btn-centered"
-        (click)="presentLoginPrompt()">
-        Entrar
       </ion-button>
     </div>
   </section>

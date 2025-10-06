@@ -3,8 +3,13 @@
     <ion-title>Validação de Documento</ion-title>
 
     <ion-buttons slot="end">
-      <ion-button fill="clear" (click)="fileInput.click()" [disabled]="loading">Selecionar um PDF</ion-button>
-      <ion-button fill="clear" (click)="exportPdf()" [disabled]="loading || !hasResult">Relatório</ion-button>
+      <ion-button fill="clear" (click)="fileInput.click()" [disabled]="loading">
+        Selecionar arquivo
+      </ion-button>
+
+      <ion-button fill="clear" (click)="exportPdf()" [disabled]="loading || !hasResult">
+        Relatório
+      </ion-button>
 
       <!-- Voltar: apenas navega para a Home -->
       <ion-button fill="clear" (click)="goHome()">Voltar</ion-button>
@@ -16,14 +21,30 @@
 </ion-header>
 
 <ion-content class="ion-padding">
-  <input #fileInput type="file" accept="application/pdf" (change)="onFileChange($event)" hidden />
+  <!-- Único input visível: PDF ou .p7s -->
+  <input
+    #fileInput
+    type="file"
+    accept="application/pdf,.p7s"
+    (change)="onFileChange($event)"
+    hidden
+  />
 
-  <!-- Upload -->
-  <ion-card class="upload-card" *ngIf="!file">
+  <!-- Input OCULTO usado somente quando .p7s é detached -->
+  <input
+    #pdfForP7sInput
+    type="file"
+    accept="application/pdf"
+    (change)="onPdfForP7sHiddenChange($event)"
+    hidden
+  />
+
+  <!-- Upload (drag & drop + clique) -->
+  <ion-card class="upload-card" *ngIf="!file && !result">
     <ion-card-header>
       <ion-card-title>
         <ion-icon name="document-text-outline"></ion-icon>
-        Enviar PDF para validação
+        Enviar PDF (.pdf) ou Assinatura (.p7s)
       </ion-card-title>
     </ion-card-header>
 
@@ -34,16 +55,27 @@
            (drop)="onDrop($event)"
            role="button" tabindex="0"
            (keyup.enter)="fileInput.click()"
-           aria-label="Solte o PDF aqui ou clique para escolher">
+           aria-label="Solte o arquivo aqui ou clique para escolher">
         <ion-icon name="cloud-upload-outline"></ion-icon>
         <div>
-          <span>Solte o PDF aqui </span>
+          <span>Solte o arquivo aqui </span>
           <span class="muted"> ou clique para escolher</span>
         </div>
       </div>
 
+      <!-- Mensagens gerais e loading -->
       <ion-note color="danger" *ngIf="error">{{ error }}</ion-note>
       <ion-progress-bar *ngIf="loading" type="indeterminate"></ion-progress-bar>
+
+      <!-- Feedback de verificação .p7s (opcional) -->
+      <div class="ion-padding-top" *ngIf="p7sOk !== undefined">
+        <ion-text color="success" *ngIf="p7sOk === true">
+          <p><b>Assinatura .p7s verificada com sucesso.</b></p>
+        </ion-text>
+        <ion-text color="danger" *ngIf="p7sOk === false">
+          <p><b>Falha na verificação .p7s:</b> {{ p7sReason }}</p>
+        </ion-text>
+      </div>
     </ion-card-content>
   </ion-card>
 
@@ -121,26 +153,6 @@
                     <span class="danger-text">{{ getStatusTooltip() }}</span>
                   </ion-label>
                 </ion-item>
-
-                <!-- <ion-item *ngIf="getPdfAValidTooltip()" class="finding">
-                  <ion-label class="ion-text-wrap finding-label">
-                    <span class="tooltip-text">{{ getPdfAValidTooltip() }}</span>
-                  </ion-label>
-                </ion-item> -->
-
-                <!-- <ion-item *ngIf="getPdfACompliantTooltip()" class="finding">
-                  <ion-label class="ion-text-wrap finding-label">
-                    <span class="tooltip-text">{{ getPdfACompliantTooltip() }}</span>
-                  </ion-label>
-                </ion-item> -->
-
-                <!-- <ion-item *ngIf="getBornDigitalTooltip()" class="finding">
-                  <ion-label class="ion-text-wrap finding-label">
-                    <span class="tooltip-text">{{ getBornDigitalTooltip() }}</span>
-                  </ion-label>
-                </ion-item> -->
-                
-                
               </ion-list>
             </ion-card-content>
           </ion-card>
