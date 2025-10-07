@@ -1,6 +1,10 @@
-import { Component, ElementRef, ViewChild, HostListener, OnDestroy, NgZone, ChangeDetectorRef } from '@angular/core';
+import {
+  Component, ElementRef, ViewChild, HostListener, OnDestroy, NgZone, ChangeDetectorRef
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
+import {
+  ReactiveFormsModule, FormBuilder, FormGroup, FormControl
+} from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
 import { ValidationService } from 'src/app/services/validation.service';
@@ -11,11 +15,11 @@ import { P7sService, P7sSummary } from 'src/app/services/p7s.service';
 import {
   IonBadge, IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardTitle,
   IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonInput, IonItem, IonLabel,
-  IonList, IonNote, IonProgressBar, IonRow, IonTitle, IonToolbar, IonText
+  IonList, IonNote, IonProgressBar, IonRow, IonTitle, IonToolbar, IonText, IonCheckbox
 } from '@ionic/angular/standalone';
 
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import autoTable from 'jspdf-autotable'; // mantido se você usar em outro ponto
 import { finalize } from 'rxjs/operators';
 import { LoadingController } from '@ionic/angular';
 import { TrustedRoot } from 'src/app/enum/enum';
@@ -38,16 +42,19 @@ type ExtSignature = SignatureInfo & {
     IonCard, IonCardHeader, IonCardTitle, IonCardContent,
     IonButton, IonItem, IonInput, IonNote, IonProgressBar,
     IonGrid, IonRow, IonCol, IonList, IonLabel, IonBadge, IonIcon, IonButtons,
-    IonText // <== necessário para <ion-text> no template
+    IonText, IonCheckbox // ⬅️ adicionado para usar <ion-checkbox> no template
   ]
 })
 export class ValidatePage implements OnDestroy {
-onPdfForP7sHiddenChange($event: Event) {
-throw new Error('Method not implemented.');
-}
   @ViewChild('fileInput', { static: false }) fileInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('p7sInput',   { static: false }) p7sInput?: ElementRef<HTMLInputElement>;
 
-  form: FormGroup;
+  // ⬅️ FormGroup tipado para eliminar TS2322 ao usar [formControl]
+  form: FormGroup<{
+    file: FormControl<File | null>;
+    detached: FormControl<boolean>;
+  }>;
+
   file?: File | null;
   loading = false;
   exporting = false;
@@ -73,7 +80,16 @@ throw new Error('Method not implemented.');
     private cdr: ChangeDetectorRef,
     private p7sService: P7sService,
   ) {
-    this.form = this.fb.group({ file: [null] });
+    // ⬅️ Inicialização com controles tipados
+    this.form = this.fb.group({
+      file: new FormControl<File | null>(null),
+      detached: new FormControl<boolean>(false, { nonNullable: true })
+    });
+  }
+
+  /** Atalho p/ ler o estado do checkbox no template/TS */
+  get detached(): boolean {
+    return this.form.controls.detached.value;
   }
 
   /** Aplica mudanças e força reflow do Ionic */
@@ -81,9 +97,7 @@ throw new Error('Method not implemented.');
     this.zone.run(() => {
       fn();
       this.cdr.detectChanges();
-      requestAnimationFrame(() =>
-        window.dispatchEvent(new Event('resize'))
-      );
+      requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
     });
   }
 
@@ -103,7 +117,7 @@ throw new Error('Method not implemented.');
   ngOnDestroy() { this.reset(); }
   @HostListener('window:beforeunload') handleUnload() { this.reset(); }
 
-  // ================= Upload =================
+  // ================= Upload (PDF OU P7S) =================
   onFileChange(ev: Event) {
     const input = ev.target as HTMLInputElement;
     const f = input?.files?.[0] ?? null;
@@ -112,17 +126,22 @@ throw new Error('Method not implemented.');
     const name = f.name.toLowerCase();
 
     if (name.endsWith('.p7s')) {
-      // Fluxo .p7s
-      this.file = null;
-      this.result = undefined;
-      this.error = undefined;
+      // Fluxo .p7s — mantém no estado do p7s sem acionar a validação PDF
       this.onP7sFile(f);
     } else if (f.type === 'application/pdf' || name.endsWith('.pdf')) {
       // Fluxo PDF normal
       this.file = f;
+      this.pdfBytes = undefined; // vai ser lido no submit se necessário
       this.error = undefined;
       this.result = undefined;
-      if (!this.loading) this.submit();
+      if (!this.loading && !this.detached) {
+        // Somente dispara validação direta se NÃO for detached
+        this.submit();
+      } else {
+        // Em detached, guardamos o PDF (para par com .p7s), e esperamos o .p7s
+        // (opcional: leia bytes aqui caso precise)
+        f.arrayBuffer().then(buf => (this.pdfBytes = buf)).catch(() => {});
+      }
     } else {
       this.file = null;
       this.result = undefined;
@@ -138,23 +157,9 @@ throw new Error('Method not implemented.');
     const f = ev.dataTransfer?.files?.[0] ?? null;
     if (!f) return;
 
-    const name = f.name.toLowerCase();
-
-    if (name.endsWith('.p7s')) {
-      this.file = null;
-      this.result = undefined;
-      this.error = undefined;
-      this.onP7sFile(f);
-    } else if (f.type === 'application/pdf' || name.endsWith('.pdf')) {
-      this.file = f;
-      this.error = undefined;
-      this.result = undefined;
-      if (!this.loading) this.submit();
-    } else {
-      this.file = null;
-      this.result = undefined;
-      this.error = 'Selecione um arquivo PDF (.pdf) ou assinatura (.p7s).';
-    }
+    // Reaproveita a mesma lógica do onFileChange
+    const fakeEvent = { target: { files: [f] } } as unknown as Event;
+    this.onFileChange(fakeEvent);
   }
 
   // ================== .p7s: handlers ==================
@@ -162,16 +167,7 @@ throw new Error('Method not implemented.');
     const f = (ev.target as HTMLInputElement).files?.[0];
     if (!f) return;
     await this.onP7sFile(f);
-  }
-
-  async onPdfForP7sChange(ev: Event) {
-    const f = (ev.target as HTMLInputElement).files?.[0];
-    if (!f) return;
-    try {
-      this.pdfBytes = await f.arrayBuffer();
-    } catch {
-      this.error = 'Falha ao ler o PDF.';
-    }
+    setTimeout(() => this.p7sInput?.nativeElement && (this.p7sInput.nativeElement.value = ''), 0);
   }
 
   private async onP7sFile(f: File) {
@@ -225,9 +221,7 @@ throw new Error('Method not implemented.');
         this.loading = false;
         try { await loading.dismiss(); } catch {}
         this.cdr.detectChanges();
-        requestAnimationFrame(() =>
-          window.dispatchEvent(new Event('resize'))
-        );
+        requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
       })
     ).subscribe({
       next: (res: ValidationResult) => {
@@ -285,7 +279,7 @@ throw new Error('Method not implemented.');
 
   // ================= Helpers de estado/UI =================
   reset() {
-    this.form.reset();
+    this.form.reset({ file: null, detached: false });
     this.file = null;
     this.result = undefined;
     this.error = undefined;
@@ -298,6 +292,7 @@ throw new Error('Method not implemented.');
     this.p7sReason = undefined;
 
     if (this.fileInput?.nativeElement) this.fileInput.nativeElement.value = '';
+    if (this.p7sInput?.nativeElement)  this.p7sInput.nativeElement.value = '';
   }
 
   get hasResult(): boolean { return !!this.result; }
@@ -536,7 +531,6 @@ throw new Error('Method not implemented.');
       const H = doc.internal.pageSize.getHeight();
       let y = M;
 
-      // declarado UMA única vez
       const addPageIfNeeded = (min = 18) => {
         if (y > H - M - min) {
           doc.addPage();

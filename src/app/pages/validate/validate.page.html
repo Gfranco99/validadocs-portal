@@ -11,17 +11,14 @@
         Relatório
       </ion-button>
 
-      <!-- Voltar: apenas navega para a Home -->
       <ion-button fill="clear" (click)="goHome()">Voltar</ion-button>
-
-      <!-- Sair: chama AuthService.logout(), limpa estado e volta para a Home -->
       <ion-button fill="clear" (click)="logout()" [disabled]="loading">Sair</ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content class="ion-padding">
-  <!-- Único input visível: PDF ou .p7s -->
+  <!-- Inputs "reais" mas escondidos -->
   <input
     #fileInput
     type="file"
@@ -29,18 +26,17 @@
     (change)="onFileChange($event)"
     hidden
   />
-
-  <!-- Input OCULTO usado somente quando .p7s é detached -->
   <input
-    #pdfForP7sInput
+    #p7sInput
     type="file"
-    accept="application/pdf"
-    (change)="onPdfForP7sHiddenChange($event)"
+    accept=".p7s"
+    (change)="onP7sChange($event)"
     hidden
   />
 
   <!-- Upload (drag & drop + clique) -->
-  <ion-card class="upload-card" *ngIf="!file && !result">
+  <!-- Mantemos o card até existir 'result' para não ficar tela preta -->
+  <ion-card class="upload-card" *ngIf="!result">
     <ion-card-header>
       <ion-card-title>
         <ion-icon name="document-text-outline"></ion-icon>
@@ -49,6 +45,7 @@
     </ion-card-header>
 
     <ion-card-content>
+      <!-- Campo principal: se comporta como input "grande" -->
       <div class="file-drop"
            (click)="fileInput.click()"
            (dragover)="onDragOver($event)"
@@ -63,19 +60,73 @@
         </div>
       </div>
 
+      <!-- Opção: Assinatura destacada (.p7s) -->
+      <ion-item lines="none" class="ion-margin-top">
+        <ion-checkbox
+          slot="start"
+          [formControl]="form.controls.detached"
+          aria-label="Assinatura destacada (.p7s)">
+        </ion-checkbox>
+        <ion-label>Assinatura destacada (.p7s)</ion-label>
+      </ion-item>
+
+      <!-- Quando "detached" = true, exibe o campo/área de upload do .p7s -->
+      <div *ngIf="detached" class="ion-margin-top">
+        <div class="file-drop secondary"
+             (click)="p7sInput.click()"
+             role="button" tabindex="0"
+             (keyup.enter)="p7sInput.click()"
+             aria-label="Solte o arquivo .p7s aqui ou clique para escolher">
+          <ion-icon name="key-outline"></ion-icon>
+          <div>
+            <span>Adicionar arquivo de assinatura </span>
+            <span class="muted">(.p7s)</span>
+          </div>
+        </div>
+
+        <!-- Feedback de verificação .p7s -->
+        <div class="ion-padding-top" *ngIf="p7sOk !== undefined">
+          <ion-text color="success" *ngIf="p7sOk === true">
+            <p><b>Assinatura .p7s verificada com sucesso.</b></p>
+          </ion-text>
+          <ion-text color="danger" *ngIf="p7sOk === false">
+            <p><b>Falha na verificação .p7s:</b> {{ p7sReason }}</p>
+          </ion-text>
+        </div>
+
+        <!-- Botão de validação manual em modo destacado -->
+        <ion-button
+          class="ion-margin-top"
+          expand="block"
+          color="primary"
+          (click)="submit()"
+          [disabled]="loading || !(file && p7sBytes)">
+          Validar Documento
+        </ion-button>
+
+        Dicas de preenchimento
+        <ion-note *ngIf="detached && !file" color="medium">
+          Selecione também o PDF correspondente.
+        </ion-note>
+        <ion-note *ngIf="detached && file && !p7sBytes" color="medium">
+          Adicione o arquivo .p7s correspondente.
+        </ion-note>
+      </div>
+
+      <!-- Resumo dos arquivos selecionados -->
+      <ion-item lines="none" *ngIf="file || p7sBytes" class="ion-margin-top">
+        <ion-icon name="document-outline" slot="start"></ion-icon>
+        <ion-label>
+          <div *ngIf="file">PDF: {{ file?.name }}</div>
+          <div *ngIf="p7sBytes">.p7s: selecionado</div>
+        </ion-label>
+        <!-- <ion-button size="small" fill="clear" (click)="fileInput.click()">Trocar PDF</ion-button>
+        <ion-button size="small" fill="clear" *ngIf="detached" (click)="p7sInput.click()">Trocar .p7s</ion-button> -->
+      </ion-item>
+
       <!-- Mensagens gerais e loading -->
       <ion-note color="danger" *ngIf="error">{{ error }}</ion-note>
       <ion-progress-bar *ngIf="loading" type="indeterminate"></ion-progress-bar>
-
-      <!-- Feedback de verificação .p7s (opcional) -->
-      <div class="ion-padding-top" *ngIf="p7sOk !== undefined">
-        <ion-text color="success" *ngIf="p7sOk === true">
-          <p><b>Assinatura .p7s verificada com sucesso.</b></p>
-        </ion-text>
-        <ion-text color="danger" *ngIf="p7sOk === false">
-          <p><b>Falha na verificação .p7s:</b> {{ p7sReason }}</p>
-        </ion-text>
-      </div>
     </ion-card-content>
   </ion-card>
 
@@ -119,9 +170,7 @@
                   </ion-label>
 
                   <div slot="end" class="seal-box">
-                    <img
-                      [src]="getImgTrustedRoot(s)"
-                      alt="Selo ValidaDocs" class="seal-img-box" />
+                    <img [src]="getImgTrustedRoot(s)" alt="Selo ValidaDocs" class="seal-img-box" />
                   </div>
                 </ion-item>
               </ion-list>
