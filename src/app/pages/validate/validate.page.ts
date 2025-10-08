@@ -3,7 +3,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
-  ReactiveFormsModule, FormBuilder, FormGroup, FormControl
+  ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators
 } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
@@ -19,10 +19,11 @@ import {
 } from '@ionic/angular/standalone';
 
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable'; // mantido se você usar em outro ponto
+// import autoTable from 'jspdf-autotable';
 import { finalize } from 'rxjs/operators';
 import { LoadingController } from '@ionic/angular';
 import { TrustedRoot } from 'src/app/enum/enum';
+import { TrackByFunction } from '@angular/core';
 
 type ExtSignature = SignatureInfo & {
   cpf?: string;
@@ -42,20 +43,23 @@ type ExtSignature = SignatureInfo & {
     IonCard, IonCardHeader, IonCardTitle, IonCardContent,
     IonButton, IonItem, IonInput, IonNote, IonProgressBar,
     IonGrid, IonRow, IonCol, IonList, IonLabel, IonBadge, IonIcon, IonButtons,
-    IonText, IonCheckbox // ⬅️ adicionado para usar <ion-checkbox> no template
+    IonText, IonCheckbox
   ]
 })
 export class ValidatePage implements OnDestroy {
-  @ViewChild('fileInput', { static: false }) fileInput?: ElementRef<HTMLInputElement>;
-  @ViewChild('p7sInput',   { static: false }) p7sInput?: ElementRef<HTMLInputElement>;
 
-  // ⬅️ FormGroup tipado para eliminar TS2322 ao usar [formControl]
+  @ViewChild('fileInput', { static: false }) fileInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('p7sInput', { static: false }) p7sInput?: ElementRef<HTMLInputElement>;
+
   form: FormGroup<{
     file: FormControl<File | null>;
     detached: FormControl<boolean>;
+    acceptPolicy: FormControl<boolean>;
   }>;
 
   file?: File | null;
+  p7sFileName?: string;
+
   loading = false;
   exporting = false;
   error?: string;
@@ -80,11 +84,25 @@ export class ValidatePage implements OnDestroy {
     private cdr: ChangeDetectorRef,
     private p7sService: P7sService,
   ) {
-    // ⬅️ Inicialização com controles tipados
     this.form = this.fb.group({
       file: new FormControl<File | null>(null),
-      detached: new FormControl<boolean>(false, { nonNullable: true })
+      detached: new FormControl<boolean>(false, { nonNullable: true }),
+      acceptPolicy: new FormControl<boolean>(false, {
+        nonNullable: true,
+        validators: [Validators.requiredTrue]
+      }),
     });
+  }
+
+  // ===== Novo fluxo: "Nova validação" (v2.1) =====
+  newValidation() {
+    this.reset();
+    const currentPath = this.router.url.split('?')[0];
+    this.router.navigateByUrl(currentPath, { replaceUrl: true })
+      .then(() => {
+        this.cdr.detectChanges();
+        try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch {}
+      });
   }
 
   /** Atalho p/ ler o estado do checkbox no template/TS */
@@ -102,16 +120,8 @@ export class ValidatePage implements OnDestroy {
   }
 
   // ================= Botões do header =================
-  goHome() {
-    this.reset();
-    this.router.navigateByUrl('/');
-  }
-
-  logout() {
-    this.auth.logout();
-    this.reset();
-    this.router.navigateByUrl('/');
-  }
+  goHome() { this.reset(); this.router.navigateByUrl('/'); }
+  logout() { this.auth.logout(); this.reset(); this.router.navigateByUrl('/'); }
 
   // ================= Lifecycle / limpeza =================
   ngOnDestroy() { this.reset(); }
@@ -126,22 +136,13 @@ export class ValidatePage implements OnDestroy {
     const name = f.name.toLowerCase();
 
     if (name.endsWith('.p7s')) {
-      // Fluxo .p7s — mantém no estado do p7s sem acionar a validação PDF
       this.onP7sFile(f);
     } else if (f.type === 'application/pdf' || name.endsWith('.pdf')) {
-      // Fluxo PDF normal
       this.file = f;
-      this.pdfBytes = undefined; // vai ser lido no submit se necessário
+      this.pdfBytes = undefined;
       this.error = undefined;
       this.result = undefined;
-      if (!this.loading && !this.detached) {
-        // Somente dispara validação direta se NÃO for detached
-        this.submit();
-      } else {
-        // Em detached, guardamos o PDF (para par com .p7s), e esperamos o .p7s
-        // (opcional: leia bytes aqui caso precise)
-        f.arrayBuffer().then(buf => (this.pdfBytes = buf)).catch(() => {});
-      }
+      f.arrayBuffer().then(buf => (this.pdfBytes = buf)).catch(() => {});
     } else {
       this.file = null;
       this.result = undefined;
@@ -156,10 +157,13 @@ export class ValidatePage implements OnDestroy {
     ev.preventDefault();
     const f = ev.dataTransfer?.files?.[0] ?? null;
     if (!f) return;
-
-    // Reaproveita a mesma lógica do onFileChange
     const fakeEvent = { target: { files: [f] } } as unknown as Event;
     this.onFileChange(fakeEvent);
+  }
+
+  clearFile() {
+    this.file = null;
+    if (this.fileInput?.nativeElement) this.fileInput.nativeElement.value = '';
   }
 
   // ================== .p7s: handlers ==================
@@ -170,10 +174,23 @@ export class ValidatePage implements OnDestroy {
     setTimeout(() => this.p7sInput?.nativeElement && (this.p7sInput.nativeElement.value = ''), 0);
   }
 
+  onDragOverP7s(ev: DragEvent) { ev.preventDefault(); }
+  onDropP7s(ev: DragEvent) {
+    ev.preventDefault();
+    const f = ev.dataTransfer?.files?.[0];
+    if (!f) return;
+    if (!f.name.toLowerCase().endsWith('.p7s')) {
+      this.error = 'Selecione um arquivo de assinatura .p7s.';
+      return;
+    }
+    this.onP7sFile(f);
+  }
+
   private async onP7sFile(f: File) {
     try {
       this.p7sBytes = await this.p7sService.readFile(f);
       this.p7sSummary = await this.p7sService.summarizeP7s(this.p7sBytes);
+      this.p7sFileName = f.name;
       this.p7sOk = undefined;
       this.p7sReason = undefined;
 
@@ -181,8 +198,19 @@ export class ValidatePage implements OnDestroy {
         this.error = 'O arquivo selecionado não é um SignedData (.p7s).';
       }
     } catch (e: any) {
+      this.p7sFileName = undefined;
       this.error = e?.message || 'Falha ao processar o .p7s.';
     }
+  }
+
+  clearP7s() {
+    this.p7sBytes = undefined;
+    this.pdfBytes = this.pdfBytes; // mantêm o PDF
+    this.p7sSummary = undefined;
+    this.p7sOk = undefined;
+    this.p7sReason = undefined;
+    this.p7sFileName = undefined;
+    if (this.p7sInput?.nativeElement) this.p7sInput.nativeElement.value = '';
   }
 
   async verifyP7s() {
@@ -199,10 +227,29 @@ export class ValidatePage implements OnDestroy {
     }
   }
 
+  // Habilitação do botão (usado no template)
+  canValidate(): boolean {
+    const accepted = this.form.controls.acceptPolicy.value === true;
+    if (!accepted) return false;
+    const hasPdf = !!this.file;
+    if (!hasPdf) return false;
+    if (this.detached) return !!this.p7sBytes;
+    return true;
+  }
+
   // ================= Validação (PDF) =================
   async submit() {
+    const accepted = this.form?.controls?.acceptPolicy?.value === true;
+    if (!accepted) {
+      this.error = 'É necessário aceitar a Política de Privacidade para validar o documento.';
+      return;
+    }
     if (this.loading || !this.file) {
       if (!this.file) this.error = 'Selecione um PDF para validar.';
+      return;
+    }
+    if (this.detached && !this.p7sBytes) {
+      this.error = 'Adicione o arquivo .p7s correspondente para validar.';
       return;
     }
 
@@ -210,10 +257,7 @@ export class ValidatePage implements OnDestroy {
     this.error = undefined;
     this.result = undefined;
 
-    const loading = await this.loadingCtrl.create({
-      message: 'Processando...',
-      spinner: 'crescent'
-    });
+    const loading = await this.loadingCtrl.create({ message: 'Processando...' });
     await loading.present();
 
     this.api.validatePdf(this.file!).pipe(
@@ -279,7 +323,8 @@ export class ValidatePage implements OnDestroy {
 
   // ================= Helpers de estado/UI =================
   reset() {
-    this.form.reset({ file: null, detached: false });
+    this.form.reset({ file: null, detached: false, acceptPolicy: false });
+
     this.file = null;
     this.result = undefined;
     this.error = undefined;
@@ -290,9 +335,10 @@ export class ValidatePage implements OnDestroy {
     this.p7sSummary = undefined;
     this.p7sOk = undefined;
     this.p7sReason = undefined;
+    this.p7sFileName = undefined;
 
     if (this.fileInput?.nativeElement) this.fileInput.nativeElement.value = '';
-    if (this.p7sInput?.nativeElement)  this.p7sInput.nativeElement.value = '';
+    if (this.p7sInput?.nativeElement) this.p7sInput.nativeElement.value = '';
   }
 
   get hasResult(): boolean { return !!this.result; }
@@ -322,10 +368,10 @@ export class ValidatePage implements OnDestroy {
     return 'danger';
   }
 
-  validColor(status:boolean): 'success' | 'danger' { return status ? 'success' : 'danger'; }
+  validColor(status: boolean): 'success' | 'danger' { return status ? 'success' : 'danger'; }
 
-  trackByName = (_: number, s: ExtSignature) =>
-    (s.endCertSubjectName ?? '') + '|' + (s.cpf ?? '');
+  trackByName: TrackByFunction<SignatureInfo> = (_: number, s: SignatureInfo) =>
+    `${s.endCertSubjectName ?? ''}|${(s as any).cpf ?? ''}`;
 
   allValid(): boolean {
     const sigs = this.result?.validaDocsReturn?.digitalSignatureValidations ?? [];
@@ -361,10 +407,10 @@ export class ValidatePage implements OnDestroy {
         if (errs) Array.isArray(errs) ? reasons.push(...errs) : reasons.push(String(errs));
         else if (alts) Array.isArray(alts) ? reasons.push(...alts) : reasons.push(String(alts));
         else {
-          if ((s as any)?.docModified)     reasons.push('O documento foi alterado após a assinatura.');
-          if ((s as any)?.expired)         reasons.push('O certificado do signatário está expirado.');
-          if ((s as any)?.revoked)         reasons.push('O certificado do signatário foi revogado.');
-          if ((s as any)?.chainUntrusted)  reasons.push('Cadeia de certificação não é confiável.');
+          if ((s as any)?.docModified) reasons.push('O documento foi alterado após a assinatura.');
+          if ((s as any)?.expired) reasons.push('O certificado do signatário está expirado.');
+          if ((s as any)?.revoked) reasons.push('O certificado do signatário foi revogado.');
+          if ((s as any)?.chainUntrusted) reasons.push('Cadeia de certificação não é confiável.');
         }
       }
     }
@@ -400,7 +446,6 @@ export class ValidatePage implements OnDestroy {
               .map(m => String(m).trim())
               .filter(m => m.length > 0)
           : [];
-
     return findings.join(' · ');
   }
 
@@ -427,12 +472,12 @@ export class ValidatePage implements OnDestroy {
     if (errs) Array.isArray(errs) ? msgs.push(...errs) : msgs.push(String(errs));
     if (alts && !errs) Array.isArray(alts) ? msgs.push(...alts) : msgs.push(String(alts));
 
-    if ((s as any)?.docModified)      msgs.push('O documento foi alterado após a assinatura.');
-    if ((s as any)?.expired)          msgs.push('O certificado do signatário está expirado.');
-    if ((s as any)?.revoked)          msgs.push('O certificado do signatário foi revogado.');
-    if ((s as any)?.chainUntrusted)   msgs.push('Cadeia de certificação não é confiável.');
+    if ((s as any)?.docModified) msgs.push('O documento foi alterado após a assinatura.');
+    if ((s as any)?.expired) msgs.push('O certificado do signatário está expirado.');
+    if ((s as any)?.revoked) msgs.push('O certificado do signatário foi revogado.');
+    if ((s as any)?.chainUntrusted) msgs.push('Cadeia de certificação não é confiável.');
     if ((s as any)?.timestampInvalid) msgs.push('Carimbo do tempo inválido.');
-    if ((s as any)?.ocspInvalid)      msgs.push('Falha em OCSP/CRL.');
+    if ((s as any)?.ocspInvalid) msgs.push('Falha em OCSP/CRL.');
 
     return msgs.length ? msgs.join(' · ') : 'Falha na verificação criptográfica da assinatura.';
   }
@@ -637,7 +682,6 @@ export class ValidatePage implements OnDestroy {
         chip.ok,
         [
           `Validado em ${this.brDate(r.validationTime)}`,
-          '\n',
           `Versão do software: ${r.softwareVersion || '—'}`
         ]
       );
@@ -684,9 +728,9 @@ export class ValidatePage implements OnDestroy {
           doc.text(labelText, x, y);
           doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
           if (m.lines.length) {
-            doc.text(m.lines[0], x + m.lblW + 2, y);
+            doc.text(m.lines[0], x + m.lblW + labelGap, y);
             for (let i = 1; i < m.lines.length; i++) {
-              doc.text(m.lines[i], x + m.lblW + 2, y + i * lineH);
+              doc.text(m.lines[i], x + m.lblW + labelGap, y + i * lineH);
             }
           }
           return m.h;
@@ -699,7 +743,7 @@ export class ValidatePage implements OnDestroy {
 
           const mL = L ? measurePair(L[0], L[1]) : { h: 0, lblW: 0, valMaxW: 0, lines: [] as string[] };
           const mR = R ? measurePair(R[0], R[1]) : { h: 0, lblW: 0, valMaxW: 0, lines: [] as string[] };
-          const rowH = Math.max(mL.h, mR.h, 5);
+          const rowH = Math.max(mL.h, mR.h, lineH);
 
           addPageIfNeeded(rowH + 4);
 
@@ -754,7 +798,6 @@ export class ValidatePage implements OnDestroy {
           doc.setFont('helvetica','bold'); doc.setFontSize(12);
           doc.text(`${nome}${tipoPar}`, MARGIN, y);
 
-          // Status (preto, sem badge)
           const badgeText = s.signatureValid ? 'Válida' : 'Inválida';
           doc.setFont('helvetica','bold');
           doc.setFontSize(11);
@@ -762,14 +805,12 @@ export class ValidatePage implements OnDestroy {
           doc.text(badgeText, W - MARGIN - textW, y);
           y += 6;
 
-          // Subtítulo e data/hora
           doc.setFont('helvetica','normal'); doc.setTextColor(90); doc.setFontSize(11);
           const subt = `${s.signatureType ?? ''} ${s.signatureLevel ?? ''}`.trim();
           if (subt) { doc.text(subt, MARGIN, y); y += 6; }
           if ((s as any).signatureTime) { doc.text(this.brDateShort((s as any).signatureTime), MARGIN, y); y += 6; }
           doc.setTextColor(0);
 
-          // Linha 1: CPF (esq) | Emitido em (dir)
           const colW = (W - 2 * MARGIN) / 2;
           const drawKV = (x: number, label: string, value: string) => {
             doc.setFont('helvetica','bold'); doc.setFontSize(10);
@@ -786,12 +827,10 @@ export class ValidatePage implements OnDestroy {
           drawKV(MARGIN + colW, 'Emitido em', this.brDateShort((s as any).certificateStartDate));
           y += 6;
 
-          // Linha 2: Válido até (esq)
           addPageIfNeeded(12);
           drawKV(MARGIN,        'Válido até', this.brDateShort((s as any).certificateEndDate));
           y += 6;
 
-          // Emissor raiz
           const root = (s as any).rootIssuer || (s as any).issuer || '';
           if (root) {
             const value = this.normalizeAccents(root);
@@ -865,15 +904,11 @@ export class ValidatePage implements OnDestroy {
   private friendlyError(err: any): string {
     const txt = (err?.error?.message || err?.error || err?.message || '').toString();
 
-    if (/timeout/i.test(txt)) {
-      return 'Tempo esgotado ao validar o arquivo (15s). Tente novamente em alguns segundos.';
-    }
-    if (err?.status === 0 || /Network|Failed to fetch|CORS/i.test(txt)) {
-      return 'Não foi possível conectar ao serviço de validação. Verifique sua conexão e tente novamente.';
-    }
+    if (/timeout/i.test(txt)) return 'Tempo esgotado ao validar o arquivo (15s). Tente novamente.';
+    if (err?.status === 0 || /Network|Failed to fetch|CORS/i.test(txt))
+      return 'Não foi possível conectar ao serviço de validação. Verifique sua conexão.';
     if (err?.status === 413) return 'Arquivo muito grande para validar.';
     if (err?.status === 415) return 'Tipo de arquivo não suportado. Selecione um PDF.';
-
     if (err?.error?.error) return String(err.error.error);
     if (txt) return txt;
 

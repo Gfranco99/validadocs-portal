@@ -3,8 +3,8 @@
     <ion-title>Validação de Documento</ion-title>
 
     <ion-buttons slot="end">
-      <ion-button fill="clear" (click)="fileInput.click()" [disabled]="loading">
-        Selecionar arquivo
+      <ion-button fill="clear" (click)="newValidation()" [disabled]="loading">
+        Nova validação
       </ion-button>
 
       <ion-button fill="clear" (click)="exportPdf()" [disabled]="loading || !hasResult">
@@ -35,33 +35,42 @@
   />
 
   <!-- Upload (drag & drop + clique) -->
-  <!-- Mantemos o card até existir 'result' para não ficar tela preta -->
   <ion-card class="upload-card" *ngIf="!result">
     <ion-card-header>
       <ion-card-title>
         <ion-icon name="document-text-outline"></ion-icon>
-        Enviar PDF (.pdf) ou Assinatura (.p7s)
+        Enviar PDF
       </ion-card-title>
     </ion-card-header>
 
     <ion-card-content>
-      <!-- Campo principal: se comporta como input "grande" -->
+      <!-- Dropzone do PDF -->
       <div class="file-drop"
            (click)="fileInput.click()"
            (dragover)="onDragOver($event)"
            (drop)="onDrop($event)"
            role="button" tabindex="0"
            (keyup.enter)="fileInput.click()"
-           aria-label="Solte o arquivo aqui ou clique para escolher">
+           [attr.aria-label]="file ? 'Arquivo selecionado: ' + file.name : 'Solte o arquivo aqui ou clique para escolher'">
         <ion-icon name="cloud-upload-outline"></ion-icon>
-        <div>
+
+        <!-- placeholder padrão -->
+        <div *ngIf="!file; else fileChosen">
           <span>Solte o arquivo aqui </span>
           <span class="muted"> ou clique para escolher</span>
         </div>
+
+        <!-- quando já houver PDF selecionado -->
+        <ng-template #fileChosen>
+          <div class="chosen-file">
+            <ion-icon name="document-outline"></ion-icon>
+            <span class="file-name">{{ file?.name }}</span>
+            </div>
+        </ng-template>
       </div>
 
       <!-- Opção: Assinatura destacada (.p7s) -->
-      <ion-item lines="none" class="ion-margin-top">
+      <ion-item lines="none" class="ion-margin-top"> 
         <ion-checkbox
           slot="start"
           [formControl]="form.controls.detached"
@@ -70,63 +79,70 @@
         <ion-label>Assinatura destacada (.p7s)</ion-label>
       </ion-item>
 
-      <!-- Quando "detached" = true, exibe o campo/área de upload do .p7s -->
+      <!-- Dropzone do .p7s (quando detached) -->
       <div *ngIf="detached" class="ion-margin-top">
         <div class="file-drop secondary"
-             (click)="p7sInput.click()"
-             role="button" tabindex="0"
-             (keyup.enter)="p7sInput.click()"
-             aria-label="Solte o arquivo .p7s aqui ou clique para escolher">
+            (click)="p7sInput.click()"
+            (dragover)="onDragOver($event)"
+            (drop)="onDrop($event)"        ADICIONADO
+            role="button" tabindex="0"
+            (keyup.enter)="p7sInput.click()"
+            [attr.aria-label]="p7sFileName ? 'Assinatura selecionada: ' + p7sFileName : 'Solte o arquivo .p7s aqui ou clique para escolher'">
           <ion-icon name="key-outline"></ion-icon>
-          <div>
+
+          <!-- placeholder .p7s -->
+          <div *ngIf="!p7sFileName; else p7sChosen">
             <span>Adicionar arquivo de assinatura </span>
             <span class="muted">(.p7s)</span>
           </div>
+
+          <!-- quando já houver .p7s selecionado -->
+          <ng-template #p7sChosen>
+            <div class="chosen-file">
+              <ion-icon name="document-attach-outline"></ion-icon>
+              <span class="file-name">{{ p7sFileName }}</span>
+              </div>
+          </ng-template>
         </div>
 
         <!-- Feedback de verificação .p7s -->
         <div class="ion-padding-top" *ngIf="p7sOk !== undefined">
-          <ion-text color="success" *ngIf="p7sOk === true">
-            <p><b>Assinatura .p7s verificada com sucesso.</b></p>
-          </ion-text>
+          <ion-text color="success" *ngIf="p7sOk === true"></ion-text>
           <ion-text color="danger" *ngIf="p7sOk === false">
             <p><b>Falha na verificação .p7s:</b> {{ p7sReason }}</p>
           </ion-text>
         </div>
-
-        <!-- Botão de validação manual em modo destacado -->
-        <ion-button
-          class="ion-margin-top"
-          expand="block"
-          color="primary"
-          (click)="submit()"
-          [disabled]="loading || !(file && p7sBytes)">
-          Validar Documento
-        </ion-button>
-
-        Dicas de preenchimento
-        <ion-note *ngIf="detached && !file" color="medium">
-          Selecione também o PDF correspondente.
-        </ion-note>
-        <ion-note *ngIf="detached && file && !p7sBytes" color="medium">
-          Adicione o arquivo .p7s correspondente.
-        </ion-note>
       </div>
 
-      <!-- Resumo dos arquivos selecionados -->
-      <ion-item lines="none" *ngIf="file || p7sBytes" class="ion-margin-top">
-        <ion-icon name="document-outline" slot="start"></ion-icon>
+      <!-- Aceite da Política -->
+      <ion-item lines="none" class="ion-margin-top">
+        <ion-checkbox
+          slot="start"
+          [formControl]="form.controls.acceptPolicy"
+          aria-label="Li e aceito a Política de Privacidade">
+        </ion-checkbox>
         <ion-label>
-          <div *ngIf="file">PDF: {{ file?.name }}</div>
-          <div *ngIf="p7sBytes">.p7s: selecionado</div>
+          Li e aceito a
+          <a href="/politica-de-privacidade" target="_blank" rel="noopener">Política de Privacidade</a>
         </ion-label>
-        <!-- <ion-button size="small" fill="clear" (click)="fileInput.click()">Trocar PDF</ion-button>
-        <ion-button size="small" fill="clear" *ngIf="detached" (click)="p7sInput.click()">Trocar .p7s</ion-button> -->
       </ion-item>
 
-      <!-- Mensagens gerais e loading -->
-      <ion-note color="danger" *ngIf="error">{{ error }}</ion-note>
-      <ion-progress-bar *ngIf="loading" type="indeterminate"></ion-progress-bar>
+      <ion-note color="medium" *ngIf="!form?.value?.acceptPolicy" class="ion-margin-start">
+        É necessário aceitar a Política de Privacidade para validar.
+      </ion-note>
+
+      <!-- Mensagens gerais -->
+      <ion-note color="danger" *ngIf="error" class="ion-margin-top">{{ error }}</ion-note>
+
+      <!-- Botão Validar -->
+      <ion-button
+        class="ion-margin-top"
+        expand="block"
+        color="primary"
+        (click)="submit()"
+        [disabled]="loading || !canValidate()">
+        Validar Documento
+      </ion-button>
     </ion-card-content>
   </ion-card>
 
