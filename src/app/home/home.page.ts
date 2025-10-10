@@ -8,15 +8,17 @@ import {
 } from '@ionic/angular/standalone';
 
 import { AuthService } from '../guard/auth.service';
-import { TokenModalComponent } from '../components/token-modal/token-modal.component';
-import { AlertController, ToastController, LoadingController, ModalController } from '@ionic/angular/standalone';
+// ❌ REMOVIDO: TokenModalComponent (não está sendo usado)
+// import { TokenModalComponent } from '../components/token-modal/token-modal.component';
+import { AlertController, ToastController, LoadingController } from '@ionic/angular/standalone';
 import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-home',
   standalone: true,
   imports: [
-    IonicModule, TokenModalComponent,
+    IonicModule,
+    // ❌ REMOVIDO: TokenModalComponent,
     IonHeader, IonToolbar, IonTitle, IonButtons, IonButton,
     IonContent, IonGrid, IonRow, IonCol, IonIcon
   ],
@@ -24,8 +26,6 @@ import { firstValueFrom } from 'rxjs';
   styleUrls: ['./home.page.scss'],
 })
 export class HomePage {
-  startLogin() { this.presentLoginPrompt(); }
-
   private title = inject(Title);
   private router = inject(Router);
 
@@ -34,20 +34,26 @@ export class HomePage {
     private alertCtrl: AlertController,
     private toastCtrl: ToastController,
     private loadingController: LoadingController,
-    private modalCtrl: ModalController
+    // ❌ REMOVIDO: private modalCtrl: ModalController
   ) {
     this.title.setTitle('ValidaDocs');
   }
 
+  startLogin() {
+    this.presentLoginPrompt();
+  }
+
   async startValidation() {
-    if (await this.authService.isLoggedIn()) {
-      this.router.navigate(['/validate']);
+    if (this.authService.isAuthenticated()) {
+      // ✅ se já autenticado, vai direto para /validate
+      await this.router.navigateByUrl('/validate', { replaceUrl: true });
     } else {
+      // pede token para validar
       this.presentTokenPrompt();
     }
   }
 
-  // --- Login via Alert (como você já tinha) ---
+  // ---- Login via Alert (email/senha) ----
   async presentLoginPrompt() {
     const alert = await this.alertCtrl.create({
       header: 'Login Administrador',
@@ -61,8 +67,8 @@ export class HomePage {
       buttons: [
         { text: 'CANCELAR', role: 'cancel', handler: () => { return; } },
         {
-          text: 'VALIDAR',
-          handler: (data: any) => { 
+          text: 'ENTRAR',
+          handler: (data: any) => {
             const email = (data?.email ?? '').trim();
             const password = (data?.password ?? '').trim();
             if (!email || !password) { this.presentError('Preencha email e senha.'); return false; }
@@ -74,39 +80,36 @@ export class HomePage {
 
     await alert.present();
     const { role, data } = await alert.onDidDismiss();
-    if (role === 'backdrop' || role === 'cancel' || !data) {
-      return;
-    }
+    if (role === 'backdrop' || role === 'cancel' || !data) return;
 
     const loading = await this.loadingController.create({ message: 'Processando...', spinner: 'crescent' });
     await loading.present();
 
     try {
-      // Placeholder de login (substitua pela sua chamada real)
-      const response = { valid: true, message: 'Login Efetuado' };
-      await loading.dismiss();
-      if (response?.valid) this.router.navigate(['/validate']);
-      else this.presentError(response?.message || 'Credenciais inválidas. Tente novamente.');
+      await firstValueFrom(this.authService.login(data.email, data.password));
+      // ✅ pós-login admin: ir para /users-tokens
+      await this.router.navigateByUrl('/users-tokens', { replaceUrl: true });
     } catch {
-      await loading.dismiss();
-      this.presentError('Erro de conexão ao tentar logar. Tente novamente.');
+      this.presentError('Falha no login. Verifique suas credenciais.');
+    } finally {
+      await loading.dismiss(); // ✅ garante dismiss mesmo com erro
     }
   }
 
+  // ---- Login via Token (para iniciar validação) ----
   async presentTokenPrompt() {
     const alert = await this.alertCtrl.create({
       header: 'Autorização',
-      message: 'Informe a credencial para continuar.',
+      message: 'Informe a credencial (token).',
       cssClass: 'blur-backdrop',
       backdropDismiss: false,
-      inputs: [{ name: 'token', type: 'text', placeholder: 'Credencial' }],
+      inputs: [{ name: 'token', type: 'text', placeholder: 'Token de acesso' }],
       buttons: [
-        { text: 'CANCELAR', role: 'cancel', handler: () => { return; } }, 
+        { text: 'CANCELAR', role: 'cancel', handler: () => { return; } },
         { text: 'VALIDAR', handler: (data: any) => this.handleToken((data?.token ?? '').trim()) }
       ]
     });
     await alert.present();
-    // (mantenha aqui as restrições de input que você já tinha, se quiser)
   }
 
   private async handleToken(token: string): Promise<boolean> {
@@ -117,24 +120,24 @@ export class HomePage {
     await loading.present();
 
     try {
-      const response = await firstValueFrom(this.authService.login(_token));
-      await loading.dismiss();
-
-      if (response?.valid) {
-        this.router.navigate(['/validate']);
+      const res = await firstValueFrom(this.authService.loginWithToken(_token));
+      if (res.valid) {
+        // ✅ pós-login via token: ir para /validate (não /users-tokens)
+        await this.router.navigateByUrl('/validate', { replaceUrl: true });
         return true;
       } else {
-        this.presentError(response?.message || 'Credencial inválida. Tente novamente.');
+        this.presentError(res.message);
         return false;
       }
     } catch {
-      await loading.dismiss();
-      this.presentError('Erro de conexão. Tente novamente.');
+      this.presentError('Credencial inválida. Tente novamente.');
       return false;
+    } finally {
+      await loading.dismiss();
     }
   }
 
-  async presentError(msg: string) {
+  private async presentError(msg: string) {
     const toast = await this.toastCtrl.create({ message: msg, duration: 5000, color: 'danger' });
     toast.present();
   }

@@ -4,13 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { TokenModalComponent } from './token-modal.component';
 
-@NgModule({
-  declarations: [TokenModalComponent],
-  imports: [
-    CommonModule,
-    FormsModule,
-    IonicModule
-  ],
-  exports: [TokenModalComponent]
-})
-export class TokenModalModule {}
+// @NgModule({
+//   declarations: [TokenModalComponent],
+//   imports: [
+//     CommonModule,
+//     FormsModule,
+//     IonicModule
+//   ],
+//   exports: [TokenModalComponent]
+// })
+// export class TokenModalModule {}
