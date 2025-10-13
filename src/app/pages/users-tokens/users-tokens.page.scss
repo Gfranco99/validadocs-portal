@@ -1,0 +1,32 @@
+.wrap { max-width: 1200px; margin: 0 auto; padding: 16px; }
+
+.toolbar {
+  display: grid;
+  grid-template-columns: 220px 200px 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.list .table { width: 100%; }
+.thead {
+  font-weight: 600;
+  border-bottom: 1px solid var(--ion-color-step-150);
+  color: var(--ion-color-step-600);
+  padding-bottom: 6px;
+}
+.trow {
+  border-bottom: 1px solid var(--ion-color-step-150);
+  align-items: center;
+}
+
+.right { text-align: right; }
+.link { text-decoration: underline; cursor: default; }
+.link.muted { opacity: .5; text-decoration: none; }
+
+.empty { text-align: center; padding: 24px 0; opacity: .7; }
+
+.pager {
+  display: flex; align-items: center; justify-content: center;
+  gap: 12px; margin-top: 12px;
+  button { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--ion-color-step-250); }
+}

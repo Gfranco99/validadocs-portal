@@ -1,0 +1,32 @@
+<!-- ===================== INÍCIO: HEADER ===================== -->
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>ValidaDocs</ion-title>
+
+    <ion-buttons slot="end">
+      <ion-button (click)="openLoginModal()">Login</ion-button>
+      <ion-button (click)="startValidation()">Iniciar validação</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+<!-- ====================== FIM: HEADER ======================= -->
+
+<!-- ===================== INÍCIO: CONTENT ==================== -->
+<ion-content class="ion-padding">
+  <section class="hero">
+    <img src="assets/validadocs-logo.png" alt="ValidaDocs" class="logo" width="371" height="183" loading="eager" />
+    <h1 class="brand-name">ValidaDocs</h1>
+    <p class="sub">
+      Validação de PDFs com <b>assinaturas digitais (PAdES)</b>,
+      <b>cadeia ICP-Brasil, eGov-BR, ICP-RC e eNotariado</b> e <b>conformidade PDF/A</b>.
+    </p>
+
+    <div class="cta">
+      <ion-button color="primary" size="large" class="btn-centered" (click)="startValidation()">
+        Iniciar validação
+      </ion-button>
+      <ion-button fill="clear" (click)="openLoginModal()">Fazer login</ion-button>
+    </div>
+  </section>
+</ion-content>
+<!-- ====================== FIM: CONTENT ====================== -->
