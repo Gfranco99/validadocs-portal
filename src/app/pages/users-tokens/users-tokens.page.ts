@@ -19,6 +19,8 @@ import { AlertController, LoadingController, ToastController } from '@ionic/angu
 // Service da API
 import { TokenApiService, TokenRow } from 'src/app/services/token-api.service';
 
+import { Title } from '@angular/platform-browser';
+
 @Component({
   standalone: true,
   selector: 'app-users-tokens',
@@ -61,7 +63,11 @@ export class UsersTokensPage {
     private loadingCtrl: LoadingController,
     private toastCtrl: ToastController,
     private tokenApi: TokenApiService,           // API real
+    private titleSvc: Title,
+
   ) {
+    this.titleSvc.setTitle('ValidaDocs');
+    
     this.fetchFromApi();
     effect(() => { void this.filtered(); this.page.set(1); });
   }
