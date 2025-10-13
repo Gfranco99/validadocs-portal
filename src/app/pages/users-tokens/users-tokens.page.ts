@@ -16,8 +16,8 @@ import { AuthService } from 'src/app/guard/auth.service';
 // Alert/Loading/Toast
 import { AlertController, LoadingController, ToastController } from '@ionic/angular/standalone';
 
-// Service da API para criar tokens
-import { TokenApiService } from 'src/app/services/token-api.service';
+// Service da API
+import { TokenApiService, TokenRow } from 'src/app/services/token-api.service';
 
 @Component({
   standalone: true,
@@ -33,9 +33,12 @@ import { TokenApiService } from 'src/app/services/token-api.service';
   styleUrls: ['./users-tokens.page.scss']
 })
 export class UsersTokensPage {
-revoke(_t106: UserTokenView) {
-throw new Error('Method not implemented.');
-}
+
+  // ✅ AJUSTE AQUI
+  async refresh(): Promise<void> {
+    await this.fetchFromApi();
+    // this.presentToast('Lista atualizada.', 'tertiary');
+  }
 
   // filtros
   period = signal<'Todos'|'7d'|'30d'|'90d'>('Todos');
@@ -49,23 +52,69 @@ throw new Error('Method not implemented.');
   // paginação simples
   page = signal(1);
   pageSize = 10;
-navigator: any;
 
   constructor(
-    private mock: UserTokenMockService,
+    private mock: UserTokenMockService,          // fallback
     private auth: AuthService,
     private router: Router,
     private alertCtrl: AlertController,
     private loadingCtrl: LoadingController,
     private toastCtrl: ToastController,
-    private tokenApi: TokenApiService,
+    private tokenApi: TokenApiService,           // API real
   ) {
-    this.mock.list().subscribe(data => {
-      this.rows.set(data);
-      this.loading.set(false);
-    });
-
+    this.fetchFromApi();
     effect(() => { void this.filtered(); this.page.set(1); });
+  }
+
+  // Carrega da API (ordenando: mais recente -> mais antigo)
+  private async fetchFromApi(): Promise<void> {
+    this.loading.set(true);
+    try {
+      const list = await this.tokenApi.listTokens().toPromise();
+      const mapped = (list ?? []).map(r => this.mapApiRowToView(r));
+
+      // ordena por createdAt desc
+      mapped.sort(
+        (a, b) =>
+          (new Date(b.createdAt as any).getTime() || 0) -
+          (new Date(a.createdAt as any).getTime() || 0)
+      );
+
+      this.rows.set(mapped);
+    } catch {
+      // fallback opcional: mock (também ordenado)
+      this.mock.list().subscribe(data => {
+        const sorted = [...data].sort(
+          (a, b) =>
+            (new Date(b.createdAt as any).getTime() || 0) -
+            (new Date(a.createdAt as any).getTime() || 0)
+        );
+        this.rows.set(sorted);
+      });
+      this.presentToast('Falha ao carregar lista do servidor. Exibindo mock.', 'danger');
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  // mapeia TokenRow -> UserTokenView calculando status por expiração + is_active
+  private mapApiRowToView(r: TokenRow): UserTokenView {
+    const now = Date.now();
+    const activeByTime = !r.expires_at ? true : new Date(r.expires_at).getTime() > now;
+    const active = (r.is_active ?? true) && activeByTime;
+
+    return {
+      id: r.id,
+      userId: r.user_id,
+      nome: r.nome,
+      email: r.email,
+      documento: r.documento,
+      telefone: (r.telefone ?? '').toString(),
+      token: r.token,
+      createdAt: r.created_at,
+      expiresAt: r.expires_at ?? '',
+      status: active ? 'Ativo' : 'Inativo',
+    };
   }
 
   logout() {
@@ -85,7 +134,6 @@ navigator: any;
         { name: 'documento', type: 'text', placeholder: 'CPF/CNPJ', attributes: { maxlength: 20 } },
         { name: 'telefone', type: 'text', placeholder: 'Telefone', attributes: { maxlength: 20 } },
         {
-          // nome do campo padronizado
           name: 'expiresIn',
           type: 'number',
           placeholder: 'Validade (minutos)',
@@ -104,8 +152,8 @@ navigator: any;
               nome: (data?.nome ?? '').trim(),
               email: (data?.email ?? '').trim(),
               documento: (data?.documento ?? '').trim(),
-              telefone: (data?.telefone ?? '').trim(), // ✅ string
-              expiresIn: minutes,                       // ✅ minutes > 0
+              telefone: (data?.telefone ?? '').trim(),
+              expiresIn: minutes,
               is_active: true,
             };
             if (!dto.nome || !dto.email || !dto.documento || !minutes) {
@@ -130,14 +178,16 @@ navigator: any;
   }
 
   private async createTokenViaApi(dto: {
-    nome: string; email: string; documento: string; telefone: string; // ✅ string
+    nome: string; email: string; documento: string; telefone: string;
     expiresIn: number; is_active: boolean;
   }) {
     const loading = await this.loadingCtrl.create({ message: 'Gerando...', spinner: 'crescent' });
     await loading.present();
 
     try {
+      // calcula expiração local
       const expiresIso = new Date(Date.now() + dto.expiresIn * 60000).toISOString();
+
       const res = await this.tokenApi.createToken(dto).toPromise();
       const token = this.extractToken(res);
       await loading.dismiss();
@@ -148,7 +198,7 @@ navigator: any;
         cssClass: 'token-alert',
         inputs: [{ name: 'token', type: 'text', value: token, attributes: { readonly: true } }],
         buttons: [
-          { text: 'COPIAR', handler: () => { navigator.clipboard?.writeText(token || ''); return false; } },
+          { text: 'COPIAR', handler: () => { window.navigator?.clipboard?.writeText(token || ''); return false; } },
           { text: 'CONCLUIR', role: 'cancel' }
         ]
       });
@@ -159,6 +209,8 @@ navigator: any;
         inputEl?.focus(); inputEl?.select();
       }, 50);
 
+      // linha adicionada também calcula o status por expiração
+      const active = new Date(expiresIso).getTime() > Date.now() && true;
       const nowIso = new Date().toISOString();
 
       this.rows.set([{
@@ -167,11 +219,11 @@ navigator: any;
         nome: dto.nome,
         email: dto.email,
         documento: dto.documento,
-        telefone: dto.telefone,  // ✅ string
+        telefone: dto.telefone,
         token,
         createdAt: nowIso,
         expiresAt: expiresIso,
-        status: 'Ativo',
+        status: active ? 'Ativo' : 'Inativo',
       }, ...this.rows()]);
 
       this.presentToast('Token gerado com sucesso!', 'success');
@@ -204,18 +256,91 @@ navigator: any;
     t.present();
   }
 
+  // Copiar token na lista
+  copy(token: string) {
+    window.navigator?.clipboard?.writeText(token || '');
+    this.presentToast('Token copiado.', 'tertiary');
+  }
+
+  // Revogar token (nome normalizado/seguro)
+  async revoke(row: UserTokenView) {
+    const cleanName = this.collapseTrailingRepeats(row.nome);
+    const safeName = this.escapeText(cleanName);
+
+    const alert = await this.alertCtrl.create({
+      header: 'Revogar token',
+      subHeader: safeName,
+      message: 'Deseja revogar este token?',
+      buttons: [
+        { text: 'CANCELAR', role: 'cancel' },
+        {
+          text: 'REVOGAR',
+          role: 'destructive',
+          handler: async () => {
+            const loading = await this.loadingCtrl.create({ message: 'Revogando...' });
+            await loading.present();
+            try {
+              await this.tokenApi.revokeByToken(row.token).toPromise();
+              this.rows.set(this.rows().map(r =>
+                r.id === row.id ? { ...r, status: 'Inativo' } : r
+              ));
+              this.presentToast('Token revogado.', 'success');
+            } catch (e: any) {
+              this.presentToast(e?.error?.message || e?.message || 'Falha ao revogar token.', 'danger');
+            } finally {
+              await loading.dismiss();
+            }
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  /** Remove HTML do texto mostrado no alert */
+  private escapeText(v: string): string {
+    return (v ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  /** Remove repetições do(s) últimos 1–4 termos ao fim do nome. */
+  private collapseTrailingRepeats(full: string): string {
+    let s = (full || '').replace(/\s+/g, ' ').trim();
+    if (!s) return s;
+
+    const words = s.split(' ');
+    for (let size = 4; size >= 1; size--) {
+      if (words.length < size * 2) continue;
+      const tail = words.slice(-size).join(' ');
+      const twice = new RegExp(`(?:\\s*${this.escapeRegExp(tail)}){2,}$`);
+      if (twice.test(s)) {
+        s = s.replace(twice, ' ' + tail).trim();
+        break;
+      }
+    }
+    return s;
+  }
+
+  private escapeRegExp(str: string): string {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
   // ====== filtros/lista/paginação ======
   filtered = computed(() => {
-    const q = this.query().toLowerCase().trim();
+    const q = (this.query() || '').toLowerCase().trim();
     const st = this.status();
     const pd = this.period();
 
     const inPeriod = (iso: string) => {
+      if (!iso) return false;
       if (pd === 'Todos') return true;
       const days = pd === '7d' ? 7 : pd === '30d' ? 30 : 90;
-      const d = new Date(iso).getTime();
+      const t = new Date(iso as any).getTime();
+      if (!Number.isFinite(t)) return false;
       const min = Date.now() - days * 24 * 60 * 60 * 1000;
-      return d >= min;
+      return t >= min;
     };
 
     return this.rows().filter(r => {
@@ -223,8 +348,9 @@ navigator: any;
         r.nome.toLowerCase().includes(q) ||
         r.email.toLowerCase().includes(q) ||
         r.documento.includes(q) ||
-        r.telefone.toLowerCase().includes(q) ||  // ✅ busca correta no telefone
+        (r.telefone || '').toLowerCase().includes(q) ||
         r.token.includes(q);
+
       const matchesSt = st === 'Todos' ? true : r.status === st;
       const matchesPd = inPeriod(r.createdAt) || inPeriod(r.expiresAt);
       return matchesQ && matchesSt && matchesPd;

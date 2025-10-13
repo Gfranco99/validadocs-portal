@@ -30,3 +30,25 @@
   gap: 12px; margin-top: 12px;
   button { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--ion-color-step-250); }
 }
+/* coluna Ações alinhada com o início do texto do botão */
+.table .thead ion-col.acoes,
+.table .trow  ion-col.acoes {
+  --ion-grid-column-padding: 0;      /* remove padding do grid */
+  padding-left: 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;       /* esquerda */
+  text-align: left !important;
+}
+
+/* remove o padding interno do botão para que o texto comece “no zero” */
+.table .trow ion-col.acoes ion-button::part(native) {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* se usar <ion-buttons>, garanta ausência de espaçamentos extras */
+.table .trow ion-col.acoes ion-buttons {
+  margin: 0 !important;
+  padding: 0 !important;
+}

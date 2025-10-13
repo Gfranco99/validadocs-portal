@@ -2,6 +2,9 @@
   <ion-toolbar color="primary">
     <ion-title>ValidaDocs</ion-title>
     <ion-buttons slot="end">
+      <ion-button [disabled]="loading()" (click)="refresh()">
+        {{ loading() ? 'Atualizando...' : 'Atualizar' }}
+      </ion-button>
       <ion-button (click)="openGenerateToken()">GERAR TOKEN</ion-button>
       <ion-button (click)="logout()">SAIR</ion-button>
     </ion-buttons>
@@ -60,7 +63,7 @@
               <ion-col size="4">Usuário / Empresa</ion-col>
               <ion-col size="4">Token</ion-col>
               <ion-col size="2">Status</ion-col>
-              <ion-col size="2" class="right">Ações</ion-col>
+              <ion-col size="2" class="acoes">Ações</ion-col>
             </ion-row>
 
             <ion-row class="trow" *ngFor="let i of [1,2,3,4,5,6,7]">
@@ -75,7 +78,7 @@
                 </ion-chip>
               </ion-col>
               <ion-col size="2"><ion-badge color="medium">•••</ion-badge></ion-col>
-              <ion-col size="2" class="right"><span class="link muted">ver detalhes</span></ion-col>
+              <ion-col size="2" class="acoes"><span class="link muted">ver detalhes</span></ion-col>
             </ion-row>
           </ion-grid>
         </ng-container>
@@ -87,7 +90,7 @@
               <ion-col size="4">Usuário / Empresa</ion-col>
               <ion-col size="4">Token</ion-col>
               <ion-col size="2">Status</ion-col>
-              <ion-col size="2" class="right">Ações</ion-col>
+              <ion-col size="2" class="acoes">Ações</ion-col>
             </ion-row>
 
             <ion-row class="trow" *ngFor="let r of paged()">
@@ -100,7 +103,7 @@
               <ion-col size="4" class="mono">
                 <div class="token-line">
                   <span class="truncate">{{ r.token }}</span>
-                  </div>
+                </div>
                 <ion-chip size="small">Criado: {{ r.createdAt | date:'dd/MM/yyyy HH:mm' }}</ion-chip>
                 <ion-chip size="small">Expira: {{ r.expiresAt | date:'dd/MM/yyyy HH:mm' }}</ion-chip>
               </ion-col>
@@ -109,13 +112,10 @@
                 <ion-badge [color]="r.status === 'Ativo' ? 'success' : 'medium'">{{ r.status }}</ion-badge>
               </ion-col>
 
-              <ion-col size="2" class="right">
+              <ion-col size="2" class="acoes">
                 <ion-buttons>
                   <ion-button size="small" fill="clear" [disabled]="r.status !== 'Ativo'" (click)="revoke(r)">
                     Revogar
-                  </ion-button>
-                  <ion-button size="small" fill="clear" class="ion-text-muted">
-                    ver detalhes
                   </ion-button>
                 </ion-buttons>
               </ion-col>
