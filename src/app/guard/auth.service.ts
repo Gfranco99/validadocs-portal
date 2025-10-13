@@ -5,6 +5,8 @@ import { map, catchError } from 'rxjs/operators';
 import { ConfigService } from '../services/config/config.service';
 
 interface LoginResponse {
+  success: boolean;               // indica se o login foi bem-sucedido
+  error?: string;                // mensagem de erro, se houver
   access_token: string;               // campo do token
 }
 
@@ -50,20 +52,23 @@ export class AuthService {
   //  [NOVA]
   // --------------------------------------------------------------------------------------------
   login(email: string, password: string): Observable<LoginResponse> {
-    // 👉 Se o backend espera username/senha:
-    // const body = { username: email, password };
-    // 👉 Se o backend espera email/senha (default abaixo):
     const body = { email, password };
 
     return this.http
-      .post<LoginResponse>(`${this.validadocsApi}/auth`, body /*, { withCredentials: true }*/)
+      .post<LoginResponse>(`${this.validadocsApi}/login`, body /*, { withCredentials: true }*/)
       .pipe(
         map((res) => {
-          // salva token e flags de sessão
-          this.saveToken(res.access_token);
-          this.loggedIn$.next(true);
-          sessionStorage.setItem('isLogged', 'true');
-          return res;
+
+          if(res.success) {
+            // salva token e flags de sessão
+            this.saveToken(res.access_token);
+            this.loggedIn$.next(true);
+            sessionStorage.setItem('isLogged', 'true');
+            return res;
+          }
+          else {
+            throw new Error(res.error || 'Falha na autenticação.');
+          }          
         }),
         catchError((ex) => {
           const msg = ex?.error?.message || ex?.message || 'Erro ao conectar ao servidor.';

@@ -119,3 +119,44 @@ exports.revokeCredential = async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 };
+
+// valida Administrador
+exports.validateAdministrator = async (req, res) => {
+  try {
+
+    const { email, password } = req.body;
+    
+    const result = await pool.query(
+      `SELECT * FROM validadocsUsers 
+       WHERE email = $1 AND senha = $2 AND is_active = true
+       LIMIT 1`,
+      [email, password]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(200).json({ success: false, message: "Dados de acesso do Admnistrador inválido ou inativo" });
+    }
+    
+    const user = result.rows[0];
+
+    res.json({ success: true, access_token: user.user_id });
+  } catch (err) {
+    console.error("Erro no login:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// Listar credenciais do sistema
+exports.listCredentialCollections = async (req, res) => {
+  try {
+
+    const result = await pool.query(
+      `SELECT * FROM validadocscredentials`    
+    );
+
+    res.json({ success: true, credentials: result.rows });
+  } catch (err) {
+    console.error("Erro no login:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};

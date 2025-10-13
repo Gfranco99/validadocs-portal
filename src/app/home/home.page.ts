@@ -85,8 +85,8 @@ export class HomePage {
       await firstValueFrom(this.authService.login(data.email, data.password));
       // ✅ pós-login admin: ir para /users-tokens
       await this.router.navigateByUrl('/users-tokens', { replaceUrl: true });
-    } catch {
-      this.presentError('Falha no login. Verifique suas credenciais.');
+    } catch (ex) {
+      this.presentError('Falha no login. Verifique seus dados de acesso.');      
     } finally {
       await loading.dismiss(); // ✅ garante dismiss mesmo com erro
     }

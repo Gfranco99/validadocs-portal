@@ -68,6 +68,8 @@ app.post('/verify', upload.single('file'), async (req, res) => {
 app.post("/create", auth.createCredential);
 app.post("/auth", auth.validateCredential);
 app.post("/revoke", auth.revokeCredential);
+app.post("/login", auth.validateAdministrator);
+app.post("/getAllCredentials", auth.listCredentialCollections);
 
 const PORT = process.env.PORT || 3000;
 

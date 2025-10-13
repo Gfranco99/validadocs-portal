@@ -10,3 +10,15 @@ CREATE TABLE validadocscredentials (
     expires_at TIMESTAMPTZ NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE
 );
+
+
+CREATE TABLE validadocsUsers (
+    id SERIAL PRIMARY KEY,
+    user_id UUID NOT NULL DEFAULT gen_random_uuid(),
+    nome VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NULL NULL,
+    senha VARCHAR(255) NULL,
+    tipo VARCHAR(1) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    is_active BOOLEAN NOT NULL DEFAULT TRUE
+);
