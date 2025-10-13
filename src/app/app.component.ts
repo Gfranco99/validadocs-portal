@@ -7,7 +7,7 @@ import { IonicModule } from '@ionic/angular';
   selector: 'app-root',
   standalone: true,
   templateUrl: 'app.component.html',
-  imports: [IonicModule]
+  imports: [IonApp, IonRouterOutlet]
 })
 export class AppComponent {
   constructor() {}

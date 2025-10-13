@@ -27,8 +27,15 @@ COPY nginx.conf /etc/nginx/conf.d
 # Copia os arquivos buildados do Angular
 COPY --from=build /app/www/ /usr/share/nginx/html
 
-# Copia e dá permissão de execução para o script de entrypoint
-COPY entrypoint.sh /
+# 1. Copia o script
+COPY entrypoint.sh /entrypoint.sh
+
+# 2. Instala dos2unix, converte o arquivo e remove o utilitário
+RUN apk add --no-cache dos2unix && \
+    dos2unix /entrypoint.sh && \
+    apk del dos2unix
+
+# 3. Dá a permissão de execução
 RUN chmod +x /entrypoint.sh
 
 # Define o script como entrypoint do container
