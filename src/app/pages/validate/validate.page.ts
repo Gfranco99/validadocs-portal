@@ -5,7 +5,7 @@ import { CommonModule } from '@angular/common';
 import {
   ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators
 } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 
 import { ValidationService } from 'src/app/services/validation.service';
 import { ValidationResult, SignatureInfo } from 'src/app/types/validation.types';
@@ -15,7 +15,7 @@ import { P7sService, P7sSummary } from 'src/app/services/p7s.service';
 import {
   IonBadge, IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardTitle,
   IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonInput, IonItem, IonLabel,
-  IonList, IonNote, IonProgressBar, IonRow, IonTitle, IonToolbar, IonText, IonCheckbox
+  IonList, IonNote, IonRow, IonTitle, IonToolbar, IonText, IonCheckbox
 } from '@ionic/angular/standalone';
 
 import jsPDF from 'jspdf';
@@ -38,10 +38,10 @@ type ExtSignature = SignatureInfo & {
   styleUrls: ['./validate.page.scss'],
   standalone: true,
   imports: [
-    CommonModule, ReactiveFormsModule, RouterLink,
+    CommonModule, ReactiveFormsModule,
     IonHeader, IonToolbar, IonTitle, IonContent,
     IonCard, IonCardHeader, IonCardTitle, IonCardContent,
-    IonButton, IonItem, IonInput, IonNote, IonProgressBar,
+    IonButton, IonItem, IonInput, IonNote,
     IonGrid, IonRow, IonCol, IonList, IonLabel, IonBadge, IonIcon, IonButtons,
     IonText, IonCheckbox
   ]

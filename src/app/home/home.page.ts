@@ -3,8 +3,7 @@ import { Title } from '@angular/platform-browser';
 import { Router } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
 import {
-  IonHeader, IonToolbar, IonTitle, IonButtons, IonButton,
-  IonContent, IonGrid, IonRow, IonCol, IonIcon
+  IonButton, IonContent, IonGrid, IonRow, IonCol, IonIcon
 } from '@ionic/angular/standalone';
 
 import { AuthService } from '../guard/auth.service';
@@ -17,10 +16,7 @@ import { firstValueFrom } from 'rxjs';
   selector: 'app-home',
   standalone: true,
   imports: [
-    IonicModule,
-    // ❌ REMOVIDO: TokenModalComponent,
-    IonHeader, IonToolbar, IonTitle, IonButtons, IonButton,
-    IonContent, IonGrid, IonRow, IonCol, IonIcon
+    IonicModule
   ],
   templateUrl: './home.page.html',
   styleUrls: ['./home.page.scss'],

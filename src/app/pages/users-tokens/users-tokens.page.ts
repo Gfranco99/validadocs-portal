@@ -4,7 +4,7 @@ import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonButton,
   IonCard, IonCardContent, IonGrid, IonRow, IonCol,
   IonSelect, IonSelectOption, IonSearchbar, IonBadge, IonChip,
-  IonSkeletonText, IonBackButton, IonLabel, IonItem
+  IonSkeletonText, IonLabel, IonItem
 } from '@ionic/angular/standalone';
 import { FormsModule } from '@angular/forms';
 import { UserTokenMockService, UserTokenView } from 'src/app/services/user-token.mock.service';
@@ -23,7 +23,7 @@ import { TokenApiService } from 'src/app/services/token-api.service';
   standalone: true,
   selector: 'app-users-tokens',
   imports: [
-    IonItem, IonLabel, IonBackButton,
+    IonItem, IonLabel,
     CommonModule, FormsModule,
     IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonButton,
     IonCard, IonCardContent, IonGrid, IonRow, IonCol,

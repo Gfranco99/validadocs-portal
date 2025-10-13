@@ -269,43 +269,43 @@
               <ion-list class="info-list">
                 <ion-item>
                   <ion-label class="with-help">PDF/A válido</ion-label>
-                  <ion-badge class="pill" [color]="r.validaDocsReturn?.pdfValidations?.isValid ? 'success' : 'danger'" slot="end">
-                    {{ r.validaDocsReturn?.pdfValidations?.isValid ? 'Sim' : 'Não' }}
+                  <ion-badge class="pill" [color]="r.validaDocsReturn.pdfValidations.isValid ? 'success' : 'danger'" slot="end">
+                    {{ r.validaDocsReturn.pdfValidations.isValid ? 'Sim' : 'Não' }}
                   </ion-badge>
                 </ion-item>
 
                 <ion-item>
                   <ion-label class="with-help">Está em conformidade com padrão?</ion-label>
-                  <ion-badge class="pill" [color]="r.validaDocsReturn?.pdfValidations?.isPDFACompliant ? 'success' : 'danger'" slot="end">
-                    {{ r.validaDocsReturn?.pdfValidations?.isPDFACompliant ? 'Sim' : 'Não' }}
+                  <ion-badge class="pill" [color]="r.validaDocsReturn.pdfValidations.isPDFACompliant ? 'success' : 'danger'" slot="end">
+                    {{ r.validaDocsReturn.pdfValidations.isPDFACompliant ? 'Sim' : 'Não' }}
                   </ion-badge>
                 </ion-item>
 
                 <ion-item>
                   <ion-label class="with-help">Nato digital</ion-label>
-                  <ion-badge class="pill" [color]="r.validaDocsReturn?.pdfValidations?.bornDigital ? 'success' : 'danger'" slot="end">
-                    {{ r.validaDocsReturn?.pdfValidations?.bornDigital ? 'Sim' : 'Não' }}
+                  <ion-badge class="pill" [color]="r.validaDocsReturn.pdfValidations.bornDigital ? 'success' : 'danger'" slot="end">
+                    {{ r.validaDocsReturn.pdfValidations.bornDigital ? 'Sim' : 'Não' }}
                   </ion-badge>
                 </ion-item>
 
                 <ion-item>
                   <ion-label class="with-help">Nível</ion-label>
                   <ion-note slot="end">
-                    {{ r.validaDocsReturn?.pdfValidations?.pdfAStandard || 'Desconhecido' }}
+                    {{ r.validaDocsReturn.pdfValidations.pdfAStandard || 'Desconhecido' }}
                   </ion-note>
                 </ion-item>
 
-                <ion-item *ngIf="r.validaDocsReturn?.pdfValidations?.alertMessage">
+                <ion-item *ngIf="r.validaDocsReturn.pdfValidations.alertMessage">
                   <ion-label>Alerta</ion-label>
                   <ion-note slot="end" color="warning">
-                    {{ r.validaDocsReturn?.pdfValidations?.alertMessage }}
+                    {{ r.validaDocsReturn.pdfValidations.alertMessage }}
                   </ion-note>
                 </ion-item>
 
-                <ion-item *ngIf="r.validaDocsReturn?.pdfValidations?.errorMessage">
+                <ion-item *ngIf="r.validaDocsReturn.pdfValidations.errorMessage">
                   <ion-label>Erro</ion-label>
                   <ion-note slot="end" color="danger">
-                    {{ r.validaDocsReturn?.pdfValidations?.errorMessage }}
+                    {{ r.validaDocsReturn.pdfValidations.errorMessage }}
                   </ion-note>
                 </ion-item>
               </ion-list>
@@ -316,7 +316,7 @@
           <ion-card class="cert-card">
             <ion-card-content>
               <ion-list>
-                <ion-item *ngFor="let s of r.validaDocsReturn?.digitalSignatureValidations; trackBy: trackByName"
+                <ion-item *ngFor="let s of r.validaDocsReturn.digitalSignatureValidations; trackBy: trackByName"
                           lines="full" class="cert-item">
                   <ion-label class="ion-text-wrap">
                     <div class="cert-title-row">
