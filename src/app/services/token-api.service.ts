@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, map } from 'rxjs'; // ✅ inclui map
+import { ConfigService } from './config/config.service';
 
 /** ===== Tipos ===== */
 
@@ -30,10 +31,12 @@ export interface TokenRow {
 /** ===== Serviço ===== */
 @Injectable({ providedIn: 'root' })
 export class TokenApiService {
-  // ✅ ajuste: base do backend em uso
-  private readonly base = 'http://localhost:3000';
+   
+  private validadocsApi: string;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private config: ConfigService) {
+    this.validadocsApi = this.config.validadocsApi;
+  }
 
   /**
    * Lista tokens/credenciais do backend.
@@ -51,7 +54,7 @@ export class TokenApiService {
 
     return this.http
       .post<{ success: boolean; credentials: TokenRow[] }>(
-        `${this.base}/getallcredentials`,
+        `${this.validadocsApi}/getallcredentials`,
         { params }
       )
       .pipe(map(res => res?.credentials ?? []));
@@ -59,28 +62,28 @@ export class TokenApiService {
 
   /** Cria token (envia expiresIn em minutos). */
   createToken(dto: CreateTokenDto): Observable<string | TokenRow | any> {
-    return this.http.post(`${this.base}/create`, dto, {
+    return this.http.post(`${this.validadocsApi}/create`, dto, {
       responseType: 'text' as 'json',
     });
   }
 
   /** Revoga um token pela própria string do token. */
   revokeByToken(token: string): Observable<string | any> {
-    return this.http.post(`${this.base}/revoke`, { token }, {
+    return this.http.post(`${this.validadocsApi}/revoke`, { token }, {
       responseType: 'text' as 'json',
     });
   }
 
   /** Desativa (ou revoga) por ID — ajuste conforme sua API real. */
   deactivateById(id: number): Observable<string | any> {
-    return this.http.patch(`${this.base}/tokens/${id}`, { is_active: false }, {
+    return this.http.patch(`${this.validadocsApi}/tokens/${id}`, { is_active: false }, {
       responseType: 'text' as 'json',
     });
   }
 
   /** Detalhe por ID — ajuste a rota se necessário. */
   getById(id: number): Observable<TokenRow> {
-    return this.http.get<TokenRow>(`${this.base}/credentials/${id}`);
+    return this.http.get<TokenRow>(`${this.validadocsApi}/credentials/${id}`);
   }
 
   // private authHeader(): HttpHeaders {

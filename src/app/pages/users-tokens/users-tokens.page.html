@@ -95,9 +95,13 @@
 
             <ion-row class="trow" *ngFor="let r of paged()">
               <ion-col size="4">
-                <div class="title">{{ r.nome }}</div>
+                <div class="title"><strong>{{ r.nome }}</strong></div>
                 <div class="sub">{{ r.email }}</div>
-                <div class="sub">Doc: {{ r.documento }} • Tel: {{ r.telefone }}</div>
+                <div class="sub">
+                  Doc: {{ r.documento ? r.documento : 'Não informado' }} • 
+                  Tel: {{ r.telefone ? r.telefone : 'Não informado' }}
+                </div>
+
               </ion-col>
 
               <ion-col size="4" class="mono">
@@ -105,7 +109,8 @@
                   <span class="truncate">{{ r.token }}</span>
                 </div>
                 <ion-chip size="small">Criado: {{ r.createdAt | date:'dd/MM/yyyy HH:mm' }}</ion-chip>
-                <ion-chip size="small">Expira: {{ r.expiresAt | date:'dd/MM/yyyy HH:mm' }}</ion-chip>
+                <ion-chip size="small" *ngIf="r.expiresAt">Expira: {{ r.expiresAt | date:'dd/MM/yyyy HH:mm' }}</ion-chip>
+                <ion-chip size="small" *ngIf="!r.expiresAt">Não expira</ion-chip>
               </ion-col>
 
               <ion-col size="2">
