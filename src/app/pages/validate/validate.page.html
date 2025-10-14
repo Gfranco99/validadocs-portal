@@ -39,7 +39,7 @@
     <ion-card-header>
       <ion-card-title>
         <ion-icon name="document-text-outline"></ion-icon>
-        Selecionar arquivo PDF
+        Selecionar arquivo (Formatos aceitos: pdf, xml ou p7s)
       </ion-card-title>
     </ion-card-header>
 
@@ -76,7 +76,7 @@
           [formControl]="form.controls.detached"
           aria-label="Assinatura destacada (.p7s)">
         </ion-checkbox>
-        <ion-label>Se a assinatura for destacada (CAdES) selecione o arquivo .p7s</ion-label>
+        <ion-label>Se a assinatura for destacada, selecione o arquivo .p7s</ion-label>
       </ion-item>
 
       <!-- Dropzone do .p7s (quando detached) -->
