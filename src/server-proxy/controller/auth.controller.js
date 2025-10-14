@@ -32,7 +32,8 @@ exports.createCredential = async (req, res) => {
     // a.prepara os dados que o template precisa
     const templateData = {
       nome: nome,
-      token: token
+      token: token,
+      portalUrl: process.env.PORTAL_URL || 'https://apphomol.validadocs.com.br',
     };
 
     // b.Usa o serviço para gerar o HTML final a partir do template
