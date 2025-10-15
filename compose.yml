@@ -38,7 +38,7 @@ services:
     build:
       context: src/server-proxy
       dockerfile: Dockerfile
-    image: novaintegral/validadocs-server-proxy:1.7
+    image: novaintegral/validadocs-server-proxy:1.9
     container_name: validadocs-server-proxy
     ports:
       - "3000:3000"
@@ -49,7 +49,7 @@ services:
 
   angular-app:
     build: .      
-    image: novaintegral/validadocs-portal:1.6
+    image: novaintegral/validadocs-portal:1.8
     container_name: validadocs-portal
     ports:
       - "3001:80"
