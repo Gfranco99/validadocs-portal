@@ -2,7 +2,13 @@ import { Component, inject } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { Router } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
+import {
+  IonButton, IonContent, IonGrid, IonRow, IonCol, IonIcon
+} from '@ionic/angular/standalone';
+
 import { AuthService } from '../guard/auth.service';
+// ❌ REMOVIDO: TokenModalComponent (não está sendo usado)
+// import { TokenModalComponent } from '../components/token-modal/token-modal.component';
 import { AlertController, ToastController, LoadingController } from '@ionic/angular/standalone';
 import { firstValueFrom } from 'rxjs';
 
@@ -24,6 +30,7 @@ export class HomePage {
     private alertCtrl: AlertController,
     private toastCtrl: ToastController,
     private loadingController: LoadingController,
+    // ❌ REMOVIDO: private modalCtrl: ModalController
   ) {
     this.title.setTitle('ValidaDocs');
   }
@@ -78,8 +85,8 @@ export class HomePage {
       await firstValueFrom(this.authService.login(data.email, data.password));
       // ✅ pós-login admin: ir para /users-tokens
       await this.router.navigateByUrl('/users-tokens', { replaceUrl: true });
-    } catch {
-      this.presentError('Falha no login. Verifique seus dados de acesso.');
+    } catch (ex) {
+      this.presentError('Falha no login. Verifique seus dados de acesso.');      
     } finally {
       await loading.dismiss(); // ✅ garante dismiss mesmo com erro
     }

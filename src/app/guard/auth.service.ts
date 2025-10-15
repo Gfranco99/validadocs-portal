@@ -5,9 +5,9 @@ import { map, catchError } from 'rxjs/operators';
 import { ConfigService } from '../services/config/config.service';
 
 interface LoginResponse {
-  success: boolean;
-  error?: string;
-  access_token?: string;
+  success: boolean;               // indica se o login foi bem-sucedido
+  error?: string;                // mensagem de erro, se houver
+  access_token: string;               // campo do token
 }
 
 interface TokenLoginResult {
@@ -29,76 +29,87 @@ export class AuthService {
     this.loggedIn$.next(hasToken || wasLogged);
   }
 
-  // ====================== LOGIN (email/senha) ======================
+  // ===========================================================================
+  //  [ANTIGA] pega do back
+  // ---------------------------------------------------------------------------
+  // login(email: string, password: string): Observable<LoginResponse> {
+  //   return this.http
+  //     .post<LoginResponse>(`${this.validadocsApi}/auth/login`, { email, password })
+  //     .pipe(
+  //       map((res) => {
+  //         this.saveToken(res.access_token);
+  //         this.loggedIn$.next(true);
+  //         sessionStorage.setItem('isLogged', 'true');
+  //         return res;
+  //       }),
+  //       catchError((ex) => {
+  //         const msg = ex?.error?.message || ex?.message || 'Erro ao conectar ao servidor.';
+  //         throw new Error(msg);
+  //       })
+  //     );
+  // }
+
+  //  [NOVA]
+  // --------------------------------------------------------------------------------------------
   login(email: string, password: string): Observable<LoginResponse> {
-    const url = `${this.validadocsApi}/login`;
     const body = { email, password };
 
-    console.log('[auth] POST', url, 'payload:', body);
-
-    return this.http.post<LoginResponse>(url, body).pipe(
-      map((res) => {
-        console.log('[auth] response (login):', res);
-        if (res?.success && res?.access_token) {
-          this.saveToken(res.access_token);
-          this.loggedIn$.next(true);
-          sessionStorage.setItem('isLogged', 'true');
-          return res;
-        }
-        throw new Error(res?.error || 'Falha na autenticação.');
-      }),
-      catchError((ex) => {
-        const msg = ex?.error?.message || ex?.message || 'Erro ao conectar ao servidor.';
-        console.error('[auth] login error:', ex);
-        throw new Error(msg);
-      })
-    );
-  }
-
-  // ====================== LOGIN via TOKEN ==========================
-  // Envia "token" e "credential" juntos para compatibilidade com o backend.
-  loginWithToken(token: string): Observable<TokenLoginResult> {
-    const url = `${this.validadocsApi}/auth`;
-    const body = { token, credential: token };
-
-    console.log('[auth] POST', url, 'payload:', body);
-
     return this.http
-      .post<{ success: boolean; message?: string; access_token?: string }>(url, body)
+      .post<LoginResponse>(`${this.validadocsApi}/login`, body /*, { withCredentials: true }*/)
       .pipe(
         map((res) => {
-          console.log('[auth] response (loginWithToken):', res);
-          if (res?.success) {
+
+          if(res.success) {
+            // salva token e flags de sessão
+            this.saveToken(res.access_token);
+            this.loggedIn$.next(true);
+            sessionStorage.setItem('isLogged', 'true');
+            return res;
+          }
+          else {
+            throw new Error(res.error || 'Falha na autenticação.');
+          }          
+        }),
+        catchError((ex) => {
+          const msg = ex?.error?.message || ex?.message || 'Erro ao conectar ao servidor.';
+          throw new Error(msg);
+        })
+      );
+  }
+  // ===========================================================================
+
+  // Login via token -> retorna { valid, message, access_token? }
+  loginWithToken(token: string): Observable<TokenLoginResult> {
+    return this.http
+      .post<{ success: boolean; message?: string; access_token?: string; credential?: any }>(
+        `${this.validadocsApi}/auth`,
+        { token }
+      )
+      .pipe(
+        map((res) => {
+          if (res.success) {
             this.loggedIn$.next(true);
             sessionStorage.setItem('isLogged', 'true');
             if (res.access_token) this.saveToken(res.access_token);
             return { valid: true, message: 'OK', access_token: res.access_token };
           }
-          return { valid: false, message: res?.message ?? 'Falha na autenticação.' };
+          return { valid: false, message: res.message ?? 'Falha na autenticação.' };
         }),
-        catchError((ex) => {
-          const msg = ex?.error?.message || ex?.message || 'Erro ao conectar ao servidor.';
-          console.error('[auth] loginWithToken error:', ex);
-          return of({ valid: false, message: msg });
-        })
+        catchError((ex) =>
+          of({
+            valid: false,
+            message: ex?.error?.message || ex?.message || 'Erro ao conectar ao servidor.',
+          })
+        )
       );
   }
 
-  // ====================== HELPERS =================================
   saveToken(access_token: string) {
-    try {
-      localStorage.setItem(this.tokenKey, access_token);
-    } catch (e) {
-      console.warn('[auth] saveToken failed:', e);
-    }
+    localStorage.setItem(this.tokenKey, access_token);
   }
 
   isAuthenticated(): boolean {
     return !!localStorage.getItem(this.tokenKey) || this.isLoggedIn();
-  }
-
-  isLoggedIn(): boolean {
-    return this.loggedIn$.value || sessionStorage.getItem('isLogged') === 'true';
   }
 
   logout() {
@@ -106,5 +117,9 @@ export class AuthService {
     sessionStorage.removeItem('isLogged');
     sessionStorage.removeItem('userid');
     localStorage.removeItem(this.tokenKey);
+  }
+
+  isLoggedIn(): boolean {
+    return this.loggedIn$.value || sessionStorage.getItem('isLogged') === 'true';
   }
 }

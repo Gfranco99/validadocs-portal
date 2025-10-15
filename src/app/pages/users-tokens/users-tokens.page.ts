@@ -36,10 +36,8 @@ import { Title } from '@angular/platform-browser';
 })
 export class UsersTokensPage {
 
-  // ✅ AJUSTE AQUI
   async refresh(): Promise<void> {
     await this.fetchFromApi();
-    // this.presentToast('Lista atualizada.', 'tertiary');
   }
 
   // filtros
@@ -64,10 +62,9 @@ export class UsersTokensPage {
     private toastCtrl: ToastController,
     private tokenApi: TokenApiService,           // API real
     private titleSvc: Title,
-
   ) {
     this.titleSvc.setTitle('ValidaDocs');
-    
+
     this.fetchFromApi();
     effect(() => { void this.filtered(); this.page.set(1); });
   }
@@ -144,7 +141,7 @@ export class UsersTokensPage {
           type: 'number',
           placeholder: 'Validade (minutos)',
           value: '60',
-          min: 1,
+          min: 0, 
           attributes: { inputmode: 'numeric', pattern: '[0-9]*', step: 1 }
         },
       ],
@@ -162,8 +159,9 @@ export class UsersTokensPage {
               expiresIn: minutes,
               is_active: true,
             };
-            if (!dto.nome || !dto.email || !dto.documento || !minutes) {
-              this.presentToast('Preencha nome, email, documento e uma validade (minutos) válida (> 0).', 'danger');
+            //  aceita 0
+            if (!dto.nome || !dto.email || !dto.documento || !Number.isFinite(minutes) || minutes < 0) {
+              this.presentToast('Preencha nome, email, documento e uma validade (minutos) >= 0.', 'danger');
               return false;
             }
             this.createTokenViaApi(dto);
@@ -176,11 +174,11 @@ export class UsersTokensPage {
     await alert.present();
   }
 
-  // Converte para inteiro seguro (apenas dígitos). Retorna 0 se inválido.
+  // (aceita 0) .
   private parseMinutes(v: any): number {
     const s = (v ?? '').toString().trim().replace(/[^\d]/g, '');
     const n = parseInt(s, 10);
-    return Number.isFinite(n) && n > 0 ? n : 0;
+    return Number.isFinite(n) && n >= 0 ? n : 0;
   }
 
   private async createTokenViaApi(dto: {
@@ -191,8 +189,11 @@ export class UsersTokensPage {
     await loading.present();
 
     try {
-      // calcula expiração local
-      const expiresIso = new Date(Date.now() + dto.expiresIn * 60000).toISOString();
+      // se 0, deixa vazio e nao expira
+      const expiresIso =
+        dto.expiresIn > 0
+          ? new Date(Date.now() + dto.expiresIn * 60000).toISOString()
+          : '';
 
       const res = await this.tokenApi.createToken(dto).toPromise();
       const token = this.extractToken(res);
@@ -215,9 +216,10 @@ export class UsersTokensPage {
         inputEl?.focus(); inputEl?.select();
       }, 50);
 
-      // linha adicionada também calcula o status por expiração
-      const active = new Date(expiresIso).getTime() > Date.now() && true;
       const nowIso = new Date().toISOString();
+      const active =
+        dto.expiresIn === 0 ? true :
+        new Date(expiresIso).getTime() > Date.now();
 
       this.rows.set([{
         id: Date.now(),
@@ -228,7 +230,7 @@ export class UsersTokensPage {
         telefone: dto.telefone,
         token,
         createdAt: nowIso,
-        expiresAt: expiresIso,
+        expiresAt: expiresIso,  // '' quando não expira
         status: active ? 'Ativo' : 'Inativo',
       }, ...this.rows()]);
 
