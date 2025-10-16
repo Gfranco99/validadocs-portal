@@ -17,10 +17,10 @@ const logFilePath = "C:\\temp\\validadocs.log";
 // });
 
 // Função para logar
-async function logEvent(userId, action, details) {
+async function logEvent(token, action, details) {
   const logEntry = {
     timestamp: new Date().toISOString(),
-    userId,
+    token,
     action,
     details
   };
