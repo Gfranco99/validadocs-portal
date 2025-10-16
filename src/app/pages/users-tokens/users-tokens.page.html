@@ -61,24 +61,30 @@
           <ion-grid class="table">
             <ion-row class="thead">
               <ion-col size="4">Usuário / Empresa</ion-col>
+              <ion-col size="2">Cadastro</ion-col> 
               <ion-col size="4">Token</ion-col>
               <ion-col size="2">Status</ion-col>
+              <ion-col size="1" class="center">Quantidade</ion-col>
               <ion-col size="2" class="acoes">Ações</ion-col>
             </ion-row>
-
+  
             <ion-row class="trow" *ngFor="let i of [1,2,3,4,5,6,7]">
               <ion-col size="4">
                 <ion-skeleton-text animated style="width: 60%"></ion-skeleton-text>
                 <ion-skeleton-text animated style="width: 40%; margin-top:6px"></ion-skeleton-text>
               </ion-col>
-              <ion-col size="4">
+              <ion-col size="2">
+                <ion-skeleton-text animated style="width: 80%"></ion-skeleton-text>
+              </ion-col>
+              <ion-col size="3">
                 <ion-skeleton-text animated style="width: 90%"></ion-skeleton-text>
                 <ion-chip size="small">
                   <ion-skeleton-text animated style="width: 120px; height: 14px"></ion-skeleton-text>
                 </ion-chip>
               </ion-col>
-              <ion-col size="2"><ion-badge color="medium">•••</ion-badge></ion-col>
-              <ion-col size="2" class="acoes"><span class="link muted">ver detalhes</span></ion-col>
+              <ion-col size="1"><ion-badge color="medium">•••</ion-badge></ion-col>
+              <ion-col size="1" class="center"><ion-skeleton-text animated style="width: 24px"></ion-skeleton-text></ion-col>
+              <ion-col size="1" class="right"><span class="link muted">ver</span></ion-col>
             </ion-row>
           </ion-grid>
         </ng-container>
@@ -87,21 +93,26 @@
         <ng-template #content>
           <ion-grid class="table">
             <ion-row class="thead">
-              <ion-col size="4">Usuário / Empresa</ion-col>
+              <ion-col size="3">Usuário / Empresa</ion-col>
+              <ion-col size="2">Cadastro</ion-col>
               <ion-col size="4">Token</ion-col>
-              <ion-col size="2">Status</ion-col>
-              <ion-col size="2" class="acoes">Ações</ion-col>
+              <ion-col size="1">Status</ion-col>
+              <ion-col size="1" class="center">Quantidade</ion-col>
+              <ion-col size="1" class="acoes">Ações</ion-col>
             </ion-row>
 
             <ion-row class="trow" *ngFor="let r of paged()">
-              <ion-col size="4">
+              <ion-col size="3">
                 <div class="title"><strong>{{ r.nome }}</strong></div>
                 <div class="sub">{{ r.email }}</div>
                 <div class="sub">
                   Doc: {{ r.documento ? r.documento : 'Não informado' }} • 
                   Tel: {{ r.telefone ? r.telefone : 'Não informado' }}
                 </div>
+              </ion-col>
 
+              <ion-col size="2">
+                <div class="sub">{{ r.createdAt | date:'dd/MM/yyyy' }}</div>
               </ion-col>
 
               <ion-col size="4" class="mono">
@@ -113,11 +124,15 @@
                 <ion-chip size="small" *ngIf="!r.expiresAt">Não expira</ion-chip>
               </ion-col>
 
-              <ion-col size="2">
+              <ion-col size="1">
                 <ion-badge [color]="r.status === 'Ativo' ? 'success' : 'medium'">{{ r.status }}</ion-badge>
               </ion-col>
 
-              <ion-col size="2" class="acoes">
+              <ion-col size="1" class="center">
+                <div class="qtd">{{ r['qtd'] || 0 }}</div>
+              </ion-col>
+
+              <ion-col size="1" class="acoes">
                 <ion-buttons>
                   <ion-button size="small" fill="clear" [disabled]="r.status !== 'Ativo'" (click)="revoke(r)">
                     Revogar
