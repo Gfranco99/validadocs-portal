@@ -334,3 +334,43 @@ ion-list ion-item.cert-item + ion-item.cert-item {
   word-break: break-word;
   overflow-wrap: anywhere;
 }
+:host {
+  /* ajuste fino: mude 24px -> 16/20/28 se quiser mais/menos recuo */
+  --val-left-pad: 24px;
+}
+
+/* Header do card (onde fica <ion-card-title>) */
+ion-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: var(--val-left-pad) !important;
+}
+
+/* Título do card */
+ion-card-header ion-card-title {
+  text-align: left !important;
+  justify-content: flex-start !important;
+  margin: 0;
+  width: 100%;
+}
+
+/* Conteúdo do card com o MESMO recuo do header */
+ion-card-content {
+  padding-left: var(--val-left-pad) !important;
+  padding-right: 16px; /* pode ajustar à vontade */
+}
+
+/* Zera o recuo padrão do ion-item para que ele "herde" o padding do card-content */
+ion-card-content ion-item {
+  --padding-start: 0;
+  --inner-padding-start: 0;
+  --inner-padding-end: 0;
+}
+
+/* Labels e textos ficam alinhados ao mesmo grid */
+ion-card-content ion-label,
+ion-card-content .ion-text-wrap,
+ion-card-content .finding-label {
+  margin: 0;
+}
