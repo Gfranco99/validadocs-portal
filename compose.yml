@@ -54,7 +54,7 @@ services:
     ports:
       - "3001:80"
     env_file:
-      - src/environments/docker/.env.prod
+      - src/environments/docker/.env.dev
     depends_on:
       - server-proxy
 
