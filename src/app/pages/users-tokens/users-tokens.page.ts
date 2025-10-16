@@ -18,8 +18,9 @@ import { AlertController, LoadingController, ToastController } from '@ionic/angu
 
 // Service da API
 import { TokenApiService, TokenRow } from 'src/app/services/token-api.service';
-
 import { Title } from '@angular/platform-browser';
+
+type TokenViewWithQtd = UserTokenView & { qtd?: number };
 
 @Component({
   standalone: true,
@@ -42,12 +43,13 @@ export class UsersTokensPage {
 
   // filtros
   period = signal<'Todos'|'7d'|'30d'|'90d'>('Todos');
-  status = signal<'Todos'|'Ativo'|'Inativo'>('Todos');
-  query = signal<string>('');
+  status  = signal<'Todos'|'Ativo'|'Inativo'>('Todos');
+  query   = signal<string>('');
 
   // dados
   loading = signal<boolean>(true);
-  rows = signal<UserTokenView[]>([]);
+  // <<< TIPAGEM AJUSTADA: agora aceita 'qtd'
+  rows    = signal<TokenViewWithQtd[]>([]);
 
   // paginação simples
   page = signal(1);
@@ -92,7 +94,8 @@ export class UsersTokensPage {
             (new Date(b.createdAt as any).getTime() || 0) -
             (new Date(a.createdAt as any).getTime() || 0)
         );
-        this.rows.set(sorted);
+        // garante 'qtd'
+        this.rows.set(sorted.map(x => ({ ...x, qtd: (x as any)?.qtd ?? 0 })));
       });
       this.presentToast('Falha ao carregar lista do servidor. Exibindo mock.', 'danger');
     } finally {
@@ -100,8 +103,8 @@ export class UsersTokensPage {
     }
   }
 
-  // mapeia TokenRow -> UserTokenView calculando status por expiração + is_active
-  private mapApiRowToView(r: TokenRow): UserTokenView {
+  // mapeia TokenRow -> UserTokenView (+ qtd) calculando status por expiração + is_active
+  private mapApiRowToView(r: TokenRow): TokenViewWithQtd {
     const now = Date.now();
     const activeByTime = !r.expires_at ? true : new Date(r.expires_at).getTime() > now;
     const active = (r.is_active ?? true) && activeByTime;
@@ -117,6 +120,8 @@ export class UsersTokensPage {
       createdAt: r.created_at,
       expiresAt: r.expires_at ?? '',
       status: active ? 'Ativo' : 'Inativo',
+      // se a API enviar esse campo futuramente, ele entra; por ora, 0
+      qtd: (r as any)?.qtd ?? 0,
     };
   }
 
@@ -141,7 +146,7 @@ export class UsersTokensPage {
           type: 'number',
           placeholder: 'Validade (minutos)',
           value: '60',
-          min: 0, 
+          min: 0, // aceita 0 = não expira
           attributes: { inputmode: 'numeric', pattern: '[0-9]*', step: 1 }
         },
       ],
@@ -159,7 +164,7 @@ export class UsersTokensPage {
               expiresIn: minutes,
               is_active: true,
             };
-            //  aceita 0
+            // aceita 0
             if (!dto.nome || !dto.email || !dto.documento || !Number.isFinite(minutes) || minutes < 0) {
               this.presentToast('Preencha nome, email, documento e uma validade (minutos) >= 0.', 'danger');
               return false;
@@ -174,7 +179,7 @@ export class UsersTokensPage {
     await alert.present();
   }
 
-  // (aceita 0) .
+  // (aceita 0)
   private parseMinutes(v: any): number {
     const s = (v ?? '').toString().trim().replace(/[^\d]/g, '');
     const n = parseInt(s, 10);
@@ -221,6 +226,7 @@ export class UsersTokensPage {
         dto.expiresIn === 0 ? true :
         new Date(expiresIso).getTime() > Date.now();
 
+      // inclui qtd: 0 ao adicionar na lista
       this.rows.set([{
         id: Date.now(),
         userId: '',
@@ -232,6 +238,7 @@ export class UsersTokensPage {
         createdAt: nowIso,
         expiresAt: expiresIso,  // '' quando não expira
         status: active ? 'Ativo' : 'Inativo',
+        qtd: 0,
       }, ...this.rows()]);
 
       this.presentToast('Token gerado com sucesso!', 'success');
@@ -271,7 +278,7 @@ export class UsersTokensPage {
   }
 
   // Revogar token (nome normalizado/seguro)
-  async revoke(row: UserTokenView) {
+  async revoke(row: TokenViewWithQtd) {
     const cleanName = this.collapseTrailingRepeats(row.nome);
     const safeName = this.escapeText(cleanName);
 
@@ -337,7 +344,7 @@ export class UsersTokensPage {
 
   // ====== filtros/lista/paginação ======
   filtered = computed(() => {
-    const q = (this.query() || '').toLowerCase().trim();
+    const q  = (this.query() || '').toLowerCase().trim();
     const st = this.status();
     const pd = this.period();
 
