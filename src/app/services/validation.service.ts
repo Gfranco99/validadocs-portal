@@ -3,7 +3,6 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { EMPTY, Observable, of } from 'rxjs';
 import { delay } from 'rxjs/operators';
-import { environment } from '../../environments/environment';
 import { ValidationResult } from '../types/validation.types';
 import { MOCK_VALIDATION } from './mock-validation';
 import { ConfigService } from './config/config.service';
@@ -30,7 +29,8 @@ export class ValidationService {
 
     const form = new FormData();
     form.append('file', file, file.name);
-    form.append('userid', sessionStorage.getItem('userid') || ''); // adiciona userId
+    form.append('userid', localStorage.getItem('userId') || ''); // adiciona userId
+    form.append('engine', localStorage.getItem('engine') || ''); // adiciona motor de validação ITI ou SDK
     return this.http.post<ValidationResult>(`${this.validadocsApi}/verify`, form, {headers});
   }
 }

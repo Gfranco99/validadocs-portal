@@ -18,7 +18,7 @@ interface TokenLoginResult {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly tokenKey = 'vd_auth';
+  private readonly tokenKey = 'userId';
   private validadocsApi: string;
   private loggedIn$ = new BehaviorSubject<boolean>(false);
 
@@ -90,7 +90,9 @@ export class AuthService {
           if (res.success) {
             this.loggedIn$.next(true);
             sessionStorage.setItem('isLogged', 'true');
-            if (res.access_token) this.saveToken(res.access_token);
+            if (res.credential.token) {
+              this.saveToken(res.credential.token);
+            }
             return { valid: true, message: 'OK', access_token: res.access_token };
           }
           return { valid: false, message: res.message ?? 'Falha na autenticação.' };
@@ -115,7 +117,7 @@ export class AuthService {
   logout() {
     this.loggedIn$.next(false);
     sessionStorage.removeItem('isLogged');
-    sessionStorage.removeItem('userid');
+    sessionStorage.removeItem('userId');
     localStorage.removeItem(this.tokenKey);
   }
 

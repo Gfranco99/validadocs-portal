@@ -4,4 +4,10 @@ enum TrustedRoot {
   eNotariado = 'ENOTARIADO',
   ICPRC = 'REGISTROCIVIL',
 }
-export { TrustedRoot };
+
+enum Engine {
+  ITI = 'ITI',
+  SDK = 'SDK'
+}
+
+export { TrustedRoot, Engine };

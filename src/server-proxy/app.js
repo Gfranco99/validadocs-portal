@@ -14,12 +14,29 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+const Engine = {
+  ITI: 'ITI',
+  SDK: 'SDK'
+};
+
+let apiEngineValidation = process.env.API_URL_ITI; // Padrão para 'ITI'
+
 const upload = multer({ dest: 'uploads/' });
 
 app.post('/verify', upload.single('file'), async (req, res) => {
   try {
     
     const userId = req.body.userid;
+    if (!userId) {
+      return res.status(400).json({ error: 'userId é obrigatório' });
+    }
+
+    const engine = req.body.engine || Engine.ITI; // Padrão para 'ITI' se não fornecido
+    if(engine !== Engine.ITI && engine !== Engine.SDK){
+      engine = Engine.ITI; // Força para 'ITI' se valor inválido
+    }
+    apiEngineValidation = engine === Engine.ITI ? process.env.API_URL_ITI : process.env.API_URL_SDK;
+
     const filePath = req.file.path;
     const fileStream = fs.createReadStream(filePath);
 
@@ -33,7 +50,7 @@ app.post('/verify', upload.single('file'), async (req, res) => {
     });
 
     const response = await axios.post(
-      `${process.env.API_URL}`,
+      apiEngineValidation,
       form,
       {
         headers: {
@@ -56,7 +73,7 @@ app.post('/verify', upload.single('file'), async (req, res) => {
     res.json(response.data);
 
   } catch (error) {
-    console.error('URL: ', process.env.API_URL);
+    console.error('Core de validação: ', apiEngineValidation);
     console.error('Erro ao verificar PDF:', error.message);
     res.status(500).json({
       error: 'Erro ao verificar o PDF',
@@ -76,7 +93,7 @@ const PORT = process.env.PORT || 3000;
 //DEBUG
 console.log("Usando as seguintes variáveis de ambiente:");
 console.log("PORT:", PORT);
-console.log("API_URL:", process.env.API_URL);
+console.log("API_URL:", apiEngineValidation);
 console.log("TOKEN:", process.env.TOKEN);
 console.log("PG_HOST:", process.env.PG_HOST);
 console.log("PG_PORT:", process.env.PG_PORT);
