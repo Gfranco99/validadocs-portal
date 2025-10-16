@@ -12,6 +12,15 @@ CREATE TABLE validadocscredentials (
 );
 
 
+CREATE TABLE validadocslogs (
+    id SERIAL PRIMARY KEY,
+    token VARCHAR(255) NOT NULL,
+    engine VARCHAR(10) NOT NULL,
+    validation_status BOOLEAN NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+
 CREATE TABLE validadocsUsers (
     id SERIAL PRIMARY KEY,
     user_id UUID NOT NULL DEFAULT gen_random_uuid(),

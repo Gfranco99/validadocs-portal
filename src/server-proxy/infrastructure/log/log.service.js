@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+
 // const { Client } = require("@elastic/elasticsearch");
 
 // Caminho do log local

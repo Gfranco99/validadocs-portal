@@ -152,7 +152,18 @@ exports.listCredentialCollections = async (req, res) => {
   try {
 
     const result = await pool.query(
-      `SELECT * FROM validadocscredentials`    
+      `SELECT
+          c.id, c.user_id, c.nome, c.email, c.documento, c.token, 
+          c.is_active, c.created_at, c.expires_at,
+          COUNT(l.id) AS validation_count
+        FROM
+          validadocscredentials c
+        LEFT JOIN
+          validadocslogs l ON c.token = l.token
+        GROUP BY
+          c.id
+        ORDER BY
+          c.created_at DESC`    
     );
 
     res.json({ success: true, credentials: result.rows });

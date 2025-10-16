@@ -8,6 +8,7 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const auth = require("./controller/auth.controller");
+const logDB = require("./controller/log.controller");
 const { logEvent } = require("./infrastructure/log/log.service");
 
 const app = express();
@@ -23,10 +24,12 @@ let apiEngineValidation = process.env.API_URL_ITI; // Padrão para 'ITI'
 
 const upload = multer({ dest: 'uploads/' });
 
+let userId = null;
+
 app.post('/verify', upload.single('file'), async (req, res) => {
   try {
     
-    const userId = req.body.userid;
+    userId = req.body.userid;
     if (!userId) {
       return res.status(400).json({ error: 'userId é obrigatório' });
     }
@@ -68,6 +71,9 @@ app.post('/verify', upload.single('file'), async (req, res) => {
     fs.unlinkSync(filePath);
 
     // Registra log do evento
+    //BD
+    await logDB.logDBValidation(userId, engine, response.data.isValid );
+    //File
     await logEvent(userId, "VERIFY_DOCUMENT", { document: response.data });
 
     res.json(response.data);
@@ -75,6 +81,10 @@ app.post('/verify', upload.single('file'), async (req, res) => {
   } catch (error) {
     console.error('Core de validação: ', apiEngineValidation);
     console.error('Erro ao verificar PDF:', error.message);
+
+    //File
+    await logEvent(userId, "ERROR", { engine: apiEngineValidation, error: error.message });
+
     res.status(500).json({
       error: 'Erro ao verificar o PDF',
       details: error.message
