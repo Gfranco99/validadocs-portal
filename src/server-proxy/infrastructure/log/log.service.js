@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+
 // const { Client } = require("@elastic/elasticsearch");
 
 // Caminho do log local
@@ -16,10 +17,10 @@ const logFilePath = "C:\\temp\\validadocs.log";
 // });
 
 // Função para logar
-async function logEvent(userId, action, details) {
+async function logEvent(token, action, details) {
   const logEntry = {
     timestamp: new Date().toISOString(),
-    userId,
+    token,
     action,
     details
   };

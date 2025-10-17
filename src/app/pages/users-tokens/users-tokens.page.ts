@@ -121,7 +121,7 @@ export class UsersTokensPage {
       expiresAt: r.expires_at ?? '',
       status: active ? 'Ativo' : 'Inativo',
       // se a API enviar esse campo futuramente, ele entra; por ora, 0
-      qtd: (r as any)?.qtd ?? 0,
+      qtd: (r as any)?.validation_count ?? 0,
     };
   }
 
