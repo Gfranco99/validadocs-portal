@@ -374,3 +374,57 @@ ion-card-content .ion-text-wrap,
 ion-card-content .finding-label {
   margin: 0;
 }
+/* container dos carimbos */
+.ts-inside-cert {
+  /* aparência do BOTÃO (header) do acordeão */
+  ion-accordion::part(header) {
+    background: color-mix(in srgb, var(--ion-background-color) 86%, #fff 14%);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    border: 1px solid color-mix(in srgb, var(--ion-text-color) 8%, transparent);
+    border-radius: 12px;
+    padding: 6px 8px;
+    transition: background .18s ease, border-color .18s ease, box-shadow .18s ease;
+  }
+  ion-accordion:hover::part(header) {
+    background: color-mix(in srgb, var(--ion-background-color) 78%, #fff 22%);
+    border-color: color-mix(in srgb, var(--ion-text-color) 14%, transparent);
+  }
+  ion-accordion[aria-expanded="true"]::part(header) {
+    background: color-mix(in srgb, var(--ion-background-color) 70%, #fff 30%);
+    border-color: color-mix(in srgb, var(--ion-text-color) 18%, transparent);
+  }
+
+  /* sem borda/contorno no conteúdo, só no header */
+  ion-accordion::part(content) {
+    border: none;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  /* Estilo para o botão header (agora <ion-button>) */
+  .ts-header {
+    --background: color-mix(in srgb, var(--ion-background-color) 86%, #fff 14%);  /* Mesma cor do header do accordion */
+    --inner-padding-start: 12px;
+    --inner-padding-end: 12px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    border-radius: 12px;  /* Para combinar com o design do accordion */
+    color: var(--ion-color-contrast);  /* Cor do texto para contraste */
+  }
+  .ts-header-label {
+    flex: 1 1 auto;     /* ocupa toda a largura */
+    white-space: normal;/* permite quebrar linha (nome por extenso) */
+    font-weight: 600;
+    line-height: 1.25;
+  }
+
+  /* remove qualquer contorno/realce residual ao focar/clicar */
+  ion-accordion::part(header):focus,
+  ion-accordion::part(header):focus-visible {
+    outline: none;
+    box-shadow: none;
+  }
+}

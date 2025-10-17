@@ -18,6 +18,7 @@
 </ion-header>
 
 <ion-content class="ion-padding">
+  <!-- Inputs "reais" mas escondidos -->
   <input
     #fileInput
     type="file"
@@ -33,6 +34,7 @@
     hidden
   />
 
+  <!-- Upload (drag & drop + clique) -->
   <ion-card class="upload-card" *ngIf="!result">
     <ion-card-header>
       <ion-card-title>
@@ -42,20 +44,23 @@
     </ion-card-header>
 
     <ion-card-content>
+      <!-- Dropzone do PDF -->
       <div class="file-drop"
-        (click)="fileInput.click()"
-        (dragover)="onDragOver($event)"
-        (drop)="onDrop($event)"
-        role="button" tabindex="0"
-        (keyup.enter)="fileInput.click()"
-        [attr.aria-label]="file ? 'Arquivo selecionado: ' + file.name : 'Solte o arquivo aqui ou clique para escolher'">
+           (click)="fileInput.click()"
+           (dragover)="onDragOver($event)"
+           (drop)="onDrop($event)"
+           role="button" tabindex="0"
+           (keyup.enter)="fileInput.click()"
+           [attr.aria-label]="file ? 'Arquivo selecionado: ' + file.name : 'Solte o arquivo aqui ou clique para escolher'">
         <ion-icon name="cloud-upload-outline"></ion-icon>
 
+        <!-- placeholder padrão -->
         <div *ngIf="!file; else fileChosen">
           <span>Solte o arquivo aqui </span>
           <span class="muted"> ou clique para escolher</span>
         </div>
 
+        <!-- quando já houver PDF selecionado -->
         <ng-template #fileChosen>
           <div class="chosen-file">
             <ion-icon name="document-outline"></ion-icon>
@@ -64,6 +69,7 @@
         </ng-template>
       </div>
 
+      <!-- Opção: Assinatura destacada (.p7s) -->
       <ion-item lines="none" class="ion-margin-top">
         <ion-checkbox
           slot="start"
@@ -73,21 +79,24 @@
         <ion-label>Se a assinatura for destacada, selecione o arquivo .p7s</ion-label>
       </ion-item>
 
+      <!-- Dropzone do .p7s (quando detached) -->
       <div *ngIf="detached" class="ion-margin-top">
         <div class="file-drop secondary"
-              (click)="p7sInput.click()"
-              (dragover)="onDragOverP7s($event)"
-              (drop)="onDropP7s($event)"
-              role="button" tabindex="0"
-              (keyup.enter)="p7sInput.click()"
-              [attr.aria-label]="p7sFileName ? 'Assinatura selecionada: ' + p7sFileName : 'Solte o arquivo .p7s aqui ou clique para escolher'">
+             (click)="p7sInput.click()"
+             (dragover)="onDragOverP7s($event)"
+             (drop)="onDropP7s($event)"
+             role="button" tabindex="0"
+             (keyup.enter)="p7sInput.click()"
+             [attr.aria-label]="p7sFileName ? 'Assinatura selecionada: ' + p7sFileName : 'Solte o arquivo .p7s aqui ou clique para escolher'">
           <ion-icon name="key-outline"></ion-icon>
 
+          <!-- placeholder .p7s -->
           <div *ngIf="!p7sFileName; else p7sChosen">
             <span>Adicionar arquivo de assinatura </span>
             <span class="muted">(.p7s)</span>
           </div>
 
+          <!-- quando já houver .p7s selecionado -->
           <ng-template #p7sChosen>
             <div class="chosen-file">
               <ion-icon name="document-attach-outline"></ion-icon>
@@ -96,6 +105,7 @@
           </ng-template>
         </div>
 
+        <!-- Feedback de verificação .p7s -->
         <div class="ion-padding-top" *ngIf="p7sOk !== undefined">
           <ion-text color="success" *ngIf="p7sOk === true"></ion-text>
           <ion-text color="danger" *ngIf="p7sOk === false">
@@ -104,6 +114,7 @@
         </div>
       </div>
 
+      <!-- Aceite da Política -->
       <ion-item lines="none" class="ion-margin-top">
         <ion-checkbox
           slot="start"
@@ -112,7 +123,7 @@
         </ion-checkbox>
         <ion-label>
           Li e aceito a
-          <a href="[http://homol.assinaweb.com.br/app/content/protocolos/politica_validadocs.htm](http://homol.assinaweb.com.br/app/content/protocolos/politica_validadocs.htm)" target="_blank" rel="noopener">Política de Privacidade</a>
+          <a href="http://homol.assinaweb.com.br/app/content/protocolos/politica_validadocs.htm" target="_blank" rel="noopener">Política de Privacidade</a>
         </ion-label>
       </ion-item>
 
@@ -120,8 +131,10 @@
         É necessário aceitar a Política de Privacidade para validar.
       </ion-note>
 
+      <!-- Mensagens gerais -->
       <ion-note color="danger" *ngIf="error" class="ion-margin-top">{{ error }}</ion-note>
 
+      <!-- Botão Validar -->
       <ion-button
         class="ion-margin-top"
         expand="block"
@@ -133,10 +146,12 @@
     </ion-card-content>
   </ion-card>
 
+  <!-- Resultado -->
   <ng-container *ngIf="result as r">
     <ion-grid class="val-grid">
       <ion-row class="val-row">
 
+        <!-- ESQUERDA: Resumo -->
         <ion-col size="12" size-lg="6" class="left">
           <ion-card class="summary-card">
             <ion-card-header>
@@ -177,7 +192,10 @@
             </ion-card-content>
           </ion-card>
         </ion-col>
+
+        <!-- DIREITA -->
         <ion-col size="12" size-lg="6" class="right">
+          <!-- Apontamentos -->
           <ion-card class="errorfindings-card" *ngIf="((r.errorfindings?.length || 0) > 0)">
             <ion-card-header class="card-title-row">
               <ion-card-title>
@@ -202,6 +220,7 @@
             </ion-card-content>
           </ion-card>
 
+          <!-- Detalhes do Documento -->
           <ion-card class="details-card">
             <ion-card-header>
               <ion-card-title>Sobre o Documento</ion-card-title>
@@ -238,6 +257,7 @@
             </ion-card-content>
           </ion-card>
 
+          <!-- Informações do Arquivo (PDF/A) -->
           <ion-card>
             <ion-card-header>
               <ion-card-title>PDF/A Compliance</ion-card-title>
@@ -296,24 +316,23 @@
             </ion-card-content>
           </ion-card>
 
+          <!-- Certificados (cada assinatura em um card) -->
           <ng-container *ngIf="r.validaDocsReturn?.digitalSignatureValidations as certList">
             <ng-container *ngFor="let s of certList; let i = index; trackBy: trackByName">
-              <ion-card class="cert-card ion-margin-bottom"> 
-                <ion-card-header>
-                    </ion-card-header>
+              <ion-card class="cert-card ion-margin-bottom">
+                <ion-card-header></ion-card-header>
 
                 <ion-card-content>
                   <ion-item lines="full" class="cert-item">
                     <ion-label class="ion-text-wrap">
                       <div class="cert-title-row">
-                        
                         <span class="cert-title">
                           Certificado
                           <ng-container *ngIf="certList.length > 1">
                             {{ i + 1 }}
                           </ng-container>
                         </span>
-                        
+
                         <ion-badge class="pill" [color]="sigColor(s)">
                           {{ s.signatureValid ? 'Válida' : 'Inválida' }}
                         </ion-badge>
@@ -342,66 +361,61 @@
                         <span class="issuer-value">{{ s.signatureType }} / {{ s.signatureLevel }}</span>
                       </p>
 
+                      <!-- Carimbos de tempo (Accordion Ionic) -->
                       <ng-container *ngIf="($any(s)?.timeStamps || $any(s)?.timestamps || $any(s)?.timeStampValidations) as tsList">
-                        <div *ngIf="tsList?.length" class="ts-inside-cert ion-margin-top">
+                        <div class="ts-inside-cert ion-margin-top" *ngIf="tsList?.length">
                           <ion-accordion-group>
-                            <ion-accordion *ngFor="let ts of tsList; let j = index" [value]="j">
-                              <ion-item slot="header" lines="none">
-                                <ion-label class="ion-text-wrap">
-                                  <div class="ts-title">Carimbo de tempo</div>
-                                </ion-label>
+                            <ion-accordion *ngFor="let ts of tsList; let j = index"
+                                           [value]="'ts-'+i+'-'+j"
+                                           class="ts-outline-accordion">
+                              <!-- Header do accordion estilo "file bar" -->
+                              <ion-item slot="header" lines="none" class="ts-header ts-outline" button>
+                                <ion-label>Carimbo de tempo</ion-label>
+                                <ion-icon name="chevron-forward-outline" slot="end" class="ts-chevron"></ion-icon>
                               </ion-item>
 
+                              <!-- Conteúdo expandido -->
                               <div slot="content" class="ion-padding">
                                 <ion-list lines="none">
                                   <ion-item>
                                     <ion-label>Data do carimbo</ion-label>
-                                    <div slot="end" style="display:flex; align-items:center; height:100%;">
-                                      <ion-note>{{ formatDate(tsDate(ts)) }}</ion-note>
-                                    </div>
+                                    <ion-note slot="end">{{ formatDate(tsDate(ts)) }}</ion-note>
                                   </ion-item>
 
                                   <ion-item *ngIf="tsSigner(ts)?.issuer">
                                     <ion-label>Assinante</ion-label>
-                                    <div slot="end" style="display:flex; align-items:center; height:100%;">
-                                      <ion-note>{{ normalizeAccents(tsSigner(ts)?.issuer) }}</ion-note>
-                                    </div>
+                                    <ion-note slot="end">{{ normalizeAccents(tsSigner(ts)?.issuer) }}</ion-note>
                                   </ion-item>
 
                                   <ion-item *ngIf="tsSigner(ts)?.tsa">
                                     <ion-label>Emissor TSA</ion-label>
-                                    <div slot="end" style="display:flex; align-items:center; height:100%;">
-                                      <ion-note>{{ normalizeAccents(tsSigner(ts)?.tsa) }}</ion-note>
-                                    </div>
+                                    <ion-note slot="end">{{ normalizeAccents(tsSigner(ts)?.tsa) }}</ion-note>
                                   </ion-item>
 
                                   <ion-item *ngIf="tsSigner(ts)?.certificateStartDate">
                                     <ion-label>Emitido em</ion-label>
-                                    <div slot="end" style="display:flex; align-items:center; height:100%;">
-                                      <ion-note>{{ formatDate(tsSigner(ts)?.certificateStartDate) }}</ion-note>
-                                    </div>
+                                    <ion-note slot="end">{{ formatDate(tsSigner(ts)?.certificateStartDate) }}</ion-note>
                                   </ion-item>
 
                                   <ion-item *ngIf="tsSigner(ts)?.certificateEndDate">
                                     <ion-label>Válido até</ion-label>
-                                    <div slot="end" style="display:flex; align-items:center; height:100%;">
-                                      <ion-note>{{ formatDate(tsSigner(ts)?.certificateEndDate) }}</ion-note>
-                                    </div>
+                                    <ion-note slot="end">{{ formatDate(tsSigner(ts)?.certificateEndDate) }}</ion-note>
                                   </ion-item>
                                 </ion-list>
                               </div>
                             </ion-accordion>
-                            </ion-accordion-group>
+                          </ion-accordion-group>
                         </div>
                       </ng-container>
-                      </ion-label>
+                      <!-- /Carimbos de tempo -->
+                    </ion-label>
                   </ion-item>
-                  
                 </ion-card-content>
               </ion-card>
             </ng-container>
           </ng-container>
-          </ion-col>
+
+        </ion-col>
       </ion-row>
     </ion-grid>
   </ng-container>

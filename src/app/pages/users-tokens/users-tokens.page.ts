@@ -43,26 +43,26 @@ export class UsersTokensPage {
 
   // filtros
   period = signal<'Todos'|'7d'|'30d'|'90d'>('Todos');
-  status  = signal<'Todos'|'Ativo'|'Inativo'>('Todos');
-  query   = signal<string>('');
+  status  = signal<'Todos'|'Ativo'|'Inativo'>('Todos');
+  query   = signal<string>('');
 
   // dados
   loading = signal<boolean>(true);
   // <<< TIPAGEM AJUSTADA: agora aceita 'qtd'
-  rows    = signal<TokenViewWithQtd[]>([]);
+  rows    = signal<TokenViewWithQtd[]>([]);
 
   // paginação simples
   page = signal(1);
   pageSize = 10;
 
   constructor(
-    private mock: UserTokenMockService,          // fallback
+    private mock: UserTokenMockService,          // fallback
     private auth: AuthService,
     private router: Router,
     private alertCtrl: AlertController,
     private loadingCtrl: LoadingController,
     private toastCtrl: ToastController,
-    private tokenApi: TokenApiService,           // API real
+    private tokenApi: TokenApiService,           // API real
     private titleSvc: Title,
   ) {
     this.titleSvc.setTitle('ValidaDocs');
@@ -164,11 +164,14 @@ export class UsersTokensPage {
               expiresIn: minutes,
               is_active: true,
             };
-            // aceita 0
-            if (!dto.nome || !dto.email || !dto.documento || !Number.isFinite(minutes) || minutes < 0) {
-              this.presentToast('Preencha nome, email, documento e uma validade (minutos) >= 0.', 'danger');
+            // --- INÍCIO DA ALTERAÇÃO (DOCUMENTO NÃO É MAIS OBRIGATÓRIO) ---
+            // Apenas verifica nome, email e validade (>= 0)
+            if (!dto.nome || !dto.email || !Number.isFinite(minutes) || minutes < 0) {
+              this.presentToast('Preencha nome, email e uma validade (minutos) >= 0.', 'danger');
               return false;
             }
+            // --- FIM DA ALTERAÇÃO ---
+
             this.createTokenViaApi(dto);
             return true;
           }
@@ -236,7 +239,7 @@ export class UsersTokensPage {
         telefone: dto.telefone,
         token,
         createdAt: nowIso,
-        expiresAt: expiresIso,  // '' quando não expira
+        expiresAt: expiresIso,  // '' quando não expira
         status: active ? 'Ativo' : 'Inativo',
         qtd: 0,
       }, ...this.rows()]);
@@ -344,7 +347,7 @@ export class UsersTokensPage {
 
   // ====== filtros/lista/paginação ======
   filtered = computed(() => {
-    const q  = (this.query() || '').toLowerCase().trim();
+    const q  = (this.query() || '').toLowerCase().trim();
     const st = this.status();
     const pd = this.period();
 
