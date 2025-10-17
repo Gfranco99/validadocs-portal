@@ -38,18 +38,20 @@ services:
     build:
       context: src/server-proxy
       dockerfile: Dockerfile
-    image: novaintegral/validadocs-server-proxy:1.9
+    image: novaintegral/validadocs-server-proxy:1.10
     container_name: validadocs-server-proxy
     ports:
       - "3000:3000"
     env_file:
       - src/server-proxy/.env
+    volumes:
+      - ./logs:/app/logs
     depends_on:
       - db-postgresql # Garante que o container do banco de dados inicie antes da sua aplicação
 
   angular-app:
     build: .      
-    image: novaintegral/validadocs-portal:1.8
+    image: novaintegral/validadocs-portal:1.9
     container_name: validadocs-portal
     ports:
       - "3001:80"

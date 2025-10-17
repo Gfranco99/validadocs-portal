@@ -4,8 +4,12 @@ const path = require("path");
 // const { Client } = require("@elastic/elasticsearch");
 
 // Caminho do log local
-//const logFilePath = path.join(__dirname, "../logs/validadocs.log");
-const logFilePath = "C:\\temp\\validadocs.log";
+const logFilePath = "/app/logs/validadocs.log";
+//const logFilePath = "C:\\temp\\validadocs.log";
+const logDir = path.dirname(logFilePath);
+if (!fs.existsSync(logDir)) {
+  fs.mkdirSync(logDir, { recursive: true });
+}
 
 // // Cliente Elasticsearch
 // const esClient = new Client({
