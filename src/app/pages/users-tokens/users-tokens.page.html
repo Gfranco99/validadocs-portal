@@ -12,6 +12,16 @@
 </ion-header>
 
 <ion-content fullscreen>
+  <!-- Novo segmento para ITI/SDK -->
+  <ion-segment value="{{ selectedMode }}" (ionChange)="onSegmentChange($event)" class="mode-segment">
+    <ion-segment-button value="ITI">
+      <ion-label>ITI</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="SDK">
+      <ion-label>SDK</ion-label>
+    </ion-segment-button>
+  </ion-segment>
+
   <div class="wrap">
     <!-- Filtros + Busca -->
     <div class="toolbar">

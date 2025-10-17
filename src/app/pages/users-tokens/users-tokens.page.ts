@@ -1,11 +1,10 @@
-import { Component, computed, effect, signal } from '@angular/core';
+import { Component, computed, effect, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonButton,
   IonCard, IonCardContent, IonGrid, IonRow, IonCol,
   IonSelect, IonSelectOption, IonSearchbar, IonBadge, IonChip,
-  IonSkeletonText, IonLabel, IonItem
-} from '@ionic/angular/standalone';
+  IonSkeletonText, IonLabel, IonItem, IonSegment, IonSegmentButton } from '@ionic/angular/standalone';
 import { FormsModule } from '@angular/forms';
 import { UserTokenMockService, UserTokenView } from 'src/app/services/user-token.mock.service';
 
@@ -25,7 +24,7 @@ type TokenViewWithQtd = UserTokenView & { qtd?: number };
 @Component({
   standalone: true,
   selector: 'app-users-tokens',
-  imports: [
+  imports: [IonSegmentButton, IonSegment, 
     IonItem, IonLabel,
     CommonModule, FormsModule,
     IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonButton,
@@ -35,7 +34,26 @@ type TokenViewWithQtd = UserTokenView & { qtd?: number };
   templateUrl: './users-tokens.page.html',
   styleUrls: ['./users-tokens.page.scss']
 })
-export class UsersTokensPage {
+export class UsersTokensPage implements OnInit {
+
+  engine = signal<string>('ITI');  // Valor padrão para o modo, agora usando 'engine'
+selectedMode: any;
+
+  async ngOnInit() {
+    // Carrega o valor do local storage ao iniciar a página
+    const storedEngine = localStorage.getItem('engine');
+    if (storedEngine === 'ITI' || storedEngine === 'SDK') {
+      this.engine.set(storedEngine);
+    } else {
+      // Se não existir, usa o padrão 'ITI'
+      this.engine.set('ITI');
+      localStorage.setItem('engine', this.engine());
+    }
+
+    this.titleSvc.setTitle('ValidaDocs');
+    this.fetchFromApi();
+    effect(() => { void this.filtered(); this.page.set(1); });
+  }
 
   async refresh(): Promise<void> {
     await this.fetchFromApi();
@@ -43,35 +61,36 @@ export class UsersTokensPage {
 
   // filtros
   period = signal<'Todos'|'7d'|'30d'|'90d'>('Todos');
-  status  = signal<'Todos'|'Ativo'|'Inativo'>('Todos');
-  query   = signal<string>('');
+  status  = signal<'Todos'|'Ativo'|'Inativo'>('Todos');
+  query   = signal<string>('');
 
   // dados
   loading = signal<boolean>(true);
-  // <<< TIPAGEM AJUSTADA: agora aceita 'qtd'
-  rows    = signal<TokenViewWithQtd[]>([]);
+  rows    = signal<TokenViewWithQtd[]>([]);
 
   // paginação simples
   page = signal(1);
   pageSize = 10;
 
   constructor(
-    private mock: UserTokenMockService,          // fallback
+    private mock: UserTokenMockService,
     private auth: AuthService,
     private router: Router,
     private alertCtrl: AlertController,
     private loadingCtrl: LoadingController,
     private toastCtrl: ToastController,
-    private tokenApi: TokenApiService,           // API real
+    private tokenApi: TokenApiService,
     private titleSvc: Title,
-  ) {
-    this.titleSvc.setTitle('ValidaDocs');
+  ) {}
 
-    this.fetchFromApi();
-    effect(() => { void this.filtered(); this.page.set(1); });
+  onSegmentChange(event: any) {
+    const newEngine = event.detail.value;  // 'ITI' ou 'SDK'
+    this.engine.set(newEngine);
+    localStorage.setItem('engine', newEngine);  // Agora salva na chave 'engine'
+    console.log('Engine alterado para:', newEngine);
+    // Opcional: Adicione lógica aqui para recarregar dados ou mudar o comportamento
   }
 
-  // Carrega da API (ordenando: mais recente -> mais antigo)
   private async fetchFromApi(): Promise<void> {
     this.loading.set(true);
     try {
@@ -103,7 +122,6 @@ export class UsersTokensPage {
     }
   }
 
-  // mapeia TokenRow -> UserTokenView (+ qtd) calculando status por expiração + is_active
   private mapApiRowToView(r: TokenRow): TokenViewWithQtd {
     const now = Date.now();
     const activeByTime = !r.expires_at ? true : new Date(r.expires_at).getTime() > now;
@@ -120,7 +138,6 @@ export class UsersTokensPage {
       createdAt: r.created_at,
       expiresAt: r.expires_at ?? '',
       status: active ? 'Ativo' : 'Inativo',
-      // se a API enviar esse campo futuramente, ele entra; por ora, 0
       qtd: (r as any)?.validation_count ?? 0,
     };
   }
@@ -146,7 +163,7 @@ export class UsersTokensPage {
           type: 'number',
           placeholder: 'Validade (minutos)',
           value: '60',
-          min: 0, // aceita 0 = não expira
+          min: 0,
           attributes: { inputmode: 'numeric', pattern: '[0-9]*', step: 1 }
         },
       ],
@@ -164,25 +181,19 @@ export class UsersTokensPage {
               expiresIn: minutes,
               is_active: true,
             };
-            // --- INÍCIO DA ALTERAÇÃO (DOCUMENTO NÃO É MAIS OBRIGATÓRIO) ---
-            // Apenas verifica nome, email e validade (>= 0)
             if (!dto.nome || !dto.email || !Number.isFinite(minutes) || minutes < 0) {
               this.presentToast('Preencha nome, email e uma validade (minutos) >= 0.', 'danger');
               return false;
             }
-            // --- FIM DA ALTERAÇÃO ---
-
             this.createTokenViaApi(dto);
             return true;
           }
         }
       ]
     });
-
     await alert.present();
   }
 
-  // (aceita 0)
   private parseMinutes(v: any): number {
     const s = (v ?? '').toString().trim().replace(/[^\d]/g, '');
     const n = parseInt(s, 10);
@@ -195,22 +206,14 @@ export class UsersTokensPage {
   }) {
     const loading = await this.loadingCtrl.create({ message: 'Gerando...', spinner: 'crescent' });
     await loading.present();
-
     try {
-      // se 0, deixa vazio e nao expira
-      const expiresIso =
-        dto.expiresIn > 0
-          ? new Date(Date.now() + dto.expiresIn * 60000).toISOString()
-          : '';
-
+      const expiresIso = dto.expiresIn > 0 ? new Date(Date.now() + dto.expiresIn * 60000).toISOString() : '';
       const res = await this.tokenApi.createToken(dto).toPromise();
       const token = this.extractToken(res);
       await loading.dismiss();
-
       const alert = await this.alertCtrl.create({
         header: 'Token gerado',
         message: 'Copie o token abaixo:',
-        cssClass: 'token-alert',
         inputs: [{ name: 'token', type: 'text', value: token, attributes: { readonly: true } }],
         buttons: [
           { text: 'COPIAR', handler: () => { window.navigator?.clipboard?.writeText(token || ''); return false; } },
@@ -218,18 +221,12 @@ export class UsersTokensPage {
         ]
       });
       await alert.present();
-
       setTimeout(() => {
         const inputEl = document.querySelector('ion-alert input') as HTMLInputElement | null;
         inputEl?.focus(); inputEl?.select();
       }, 50);
-
       const nowIso = new Date().toISOString();
-      const active =
-        dto.expiresIn === 0 ? true :
-        new Date(expiresIso).getTime() > Date.now();
-
-      // inclui qtd: 0 ao adicionar na lista
+      const active = dto.expiresIn === 0 ? true : new Date(expiresIso).getTime() > Date.now();
       this.rows.set([{
         id: Date.now(),
         userId: '',
@@ -239,17 +236,14 @@ export class UsersTokensPage {
         telefone: dto.telefone,
         token,
         createdAt: nowIso,
-        expiresAt: expiresIso,  // '' quando não expira
+        expiresAt: expiresIso,
         status: active ? 'Ativo' : 'Inativo',
         qtd: 0,
       }, ...this.rows()]);
-
       this.presentToast('Token gerado com sucesso!', 'success');
-
     } catch (e: any) {
       await loading.dismiss();
-      const msg = e?.error?.message || e?.message || 'Falha ao gerar token.';
-      this.presentToast(msg, 'danger');
+      this.presentToast(e?.error?.message || e?.message || 'Falha ao gerar token.', 'danger');
     }
   }
 
@@ -274,17 +268,14 @@ export class UsersTokensPage {
     t.present();
   }
 
-  // Copiar token na lista
   copy(token: string) {
     window.navigator?.clipboard?.writeText(token || '');
     this.presentToast('Token copiado.', 'tertiary');
   }
 
-  // Revogar token (nome normalizado/seguro)
   async revoke(row: TokenViewWithQtd) {
     const cleanName = this.collapseTrailingRepeats(row.nome);
     const safeName = this.escapeText(cleanName);
-
     const alert = await this.alertCtrl.create({
       header: 'Revogar token',
       subHeader: safeName,
@@ -299,9 +290,7 @@ export class UsersTokensPage {
             await loading.present();
             try {
               await this.tokenApi.revokeByToken(row.token).toPromise();
-              this.rows.set(this.rows().map(r =>
-                r.id === row.id ? { ...r, status: 'Inativo' } : r
-              ));
+              this.rows.set(this.rows().map(r => r.id === row.id ? { ...r, status: 'Inativo' } : r));
               this.presentToast('Token revogado.', 'success');
             } catch (e: any) {
               this.presentToast(e?.error?.message || e?.message || 'Falha ao revogar token.', 'danger');
@@ -315,19 +304,13 @@ export class UsersTokensPage {
     await alert.present();
   }
 
-  /** Remove HTML do texto mostrado no alert */
   private escapeText(v: string): string {
-    return (v ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
+    return (v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
-  /** Remove repetições do(s) últimos 1–4 termos ao fim do nome. */
   private collapseTrailingRepeats(full: string): string {
     let s = (full || '').replace(/\s+/g, ' ').trim();
     if (!s) return s;
-
     const words = s.split(' ');
     for (let size = 4; size >= 1; size--) {
       if (words.length < size * 2) continue;
@@ -345,39 +328,27 @@ export class UsersTokensPage {
     return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
-  // ====== filtros/lista/paginação ======
   filtered = computed(() => {
-    const q  = (this.query() || '').toLowerCase().trim();
+    const q = (this.query() || '').toLowerCase().trim();
     const st = this.status();
     const pd = this.period();
-
     const inPeriod = (iso: string) => {
       if (!iso) return false;
       if (pd === 'Todos') return true;
       const days = pd === '7d' ? 7 : pd === '30d' ? 30 : 90;
       const t = new Date(iso as any).getTime();
-      if (!Number.isFinite(t)) return false;
       const min = Date.now() - days * 24 * 60 * 60 * 1000;
       return t >= min;
     };
-
     return this.rows().filter(r => {
-      const matchesQ =
-        r.nome.toLowerCase().includes(q) ||
-        r.email.toLowerCase().includes(q) ||
-        r.documento.includes(q) ||
-        (r.telefone || '').toLowerCase().includes(q) ||
-        r.token.includes(q);
-
+      const matchesQ = r.nome.toLowerCase().includes(q) || r.email.toLowerCase().includes(q) || r.documento.includes(q) || (r.telefone || '').toLowerCase().includes(q) || r.token.includes(q);
       const matchesSt = st === 'Todos' ? true : r.status === st;
       const matchesPd = inPeriod(r.createdAt) || inPeriod(r.expiresAt);
       return matchesQ && matchesSt && matchesPd;
     });
   });
 
-  totalPages = computed(() =>
-    Math.max(1, Math.ceil(this.filtered().length / this.pageSize))
-  );
+  totalPages = computed(() => Math.max(1, Math.ceil(this.filtered().length / this.pageSize)));
 
   paged = computed(() => {
     const start = (this.page() - 1) * this.pageSize;
