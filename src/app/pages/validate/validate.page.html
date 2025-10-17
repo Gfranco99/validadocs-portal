@@ -241,6 +241,16 @@
                 </div>
               </ion-item>
 
+              <!-- ✅ MOVIDO PARA CÁ (logo abaixo de Status) -->
+              <ion-item lines="full">
+                <ion-label class="with-help">Nato digital</ion-label>
+                <div slot="end" style="display:flex; align-items:center; height:100%;">
+                  <ion-badge class="pill" [color]="r.validaDocsReturn?.pdfValidations?.bornDigital ? 'success' : 'danger'">
+                    {{ r.validaDocsReturn?.pdfValidations?.bornDigital ? 'Sim' : 'Não' }}
+                  </ion-badge>
+                </div>
+              </ion-item>
+
               <ion-item lines="full">
                 <ion-label>Padrão das assinaturas</ion-label>
                 <div slot="end" style="display:flex; align-items:center; height:100%;">
@@ -283,14 +293,7 @@
                   </div>
                 </ion-item>
 
-                <ion-item lines="full">
-                  <ion-label class="with-help">Nato digital</ion-label>
-                  <div slot="end" style="display:flex; align-items:center; height:100%;">
-                    <ion-badge class="pill" [color]="r.validaDocsReturn?.pdfValidations?.bornDigital ? 'success' : 'danger'">
-                      {{ r.validaDocsReturn?.pdfValidations?.bornDigital ? 'Sim' : 'Não' }}
-                    </ion-badge>
-                  </div>
-                </ion-item>
+                <!-- ❌ REMOVIDO DAQUI: Nato digital -->
 
                 <ion-item lines="full">
                   <ion-label class="with-help">Nível</ion-label>
