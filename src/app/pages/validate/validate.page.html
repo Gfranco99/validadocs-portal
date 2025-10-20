@@ -114,6 +114,40 @@
         </div>
       </div>
 
+      <!-- ===== Engine ITI/SDK (um embaixo do outro) ===== -->
+      <div class="engine-block ion-margin-top">
+        <!-- ITI -->
+        <ion-item lines="none" class="engine-item">
+          <ion-checkbox
+            slot="start"
+            [checked]="form.controls.engineITI?.value"
+            (ionChange)="onToggleEngine('ITI', $event.detail.checked)"
+            aria-label="Usar engine ITI">
+          </ion-checkbox>
+          <ion-label>Validação básica (ITI)</ion-label>
+        </ion-item>
+
+        <!-- Observação: só aparece quando ITI estiver selecionado -->
+        <ion-note
+          class="engine-note"
+          color="medium"
+          *ngIf="form.controls.engineITI?.value">
+          Observação: a validação básica pode não observar todos os critérios atuais de validação.
+        </ion-note>
+
+        <!-- SDK -->
+        <ion-item lines="none" class="engine-item">
+          <ion-checkbox
+            slot="start"
+            [checked]="form.controls.engineSDK?.value"
+            (ionChange)="onToggleEngine('SDK', $event.detail.checked)"
+            aria-label="Usar engine SDK">
+          </ion-checkbox>
+          <ion-label>Validação avançada</ion-label>
+        </ion-item>
+      </div>
+      <!-- ===== /Engine ITI/SDK ===== -->
+
       <!-- Aceite da Política -->
       <ion-item lines="none" class="ion-margin-top">
         <ion-checkbox
@@ -241,7 +275,6 @@
                 </div>
               </ion-item>
 
-              <!-- ✅ MOVIDO PARA CÁ (logo abaixo de Status) -->
               <ion-item lines="full">
                 <ion-label class="with-help">Nato digital</ion-label>
                 <div slot="end" style="display:flex; align-items:center; height:100%;">
@@ -292,8 +325,6 @@
                     </ion-badge>
                   </div>
                 </ion-item>
-
-                <!-- ❌ REMOVIDO DAQUI: Nato digital -->
 
                 <ion-item lines="full">
                   <ion-label class="with-help">Nível</ion-label>
@@ -371,13 +402,11 @@
                             <ion-accordion *ngFor="let ts of tsList; let j = index"
                                            [value]="'ts-'+i+'-'+j"
                                            class="ts-outline-accordion">
-                              <!-- Header do accordion estilo "file bar" -->
                               <ion-item slot="header" lines="none" class="ts-header ts-outline" button>
                                 <ion-label>Carimbo de tempo</ion-label>
                                 <ion-icon name="chevron-forward-outline" slot="end" class="ts-chevron"></ion-icon>
                               </ion-item>
 
-                              <!-- Conteúdo expandido -->
                               <div slot="content" class="ion-padding">
                                 <ion-list lines="none">
                                   <ion-item>
