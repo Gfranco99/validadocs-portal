@@ -12,19 +12,10 @@
 </ion-header>
 
 <ion-content fullscreen>
-  <!-- Novo segmento para ITI/SDK -->
-  <ion-segment value="{{ selectedMode }}" (ionChange)="onSegmentChange($event)" class="mode-segment">
-    <ion-segment-button value="ITI">
-      <ion-label>ITI</ion-label>
-    </ion-segment-button>
-    <ion-segment-button value="SDK">
-      <ion-label>SDK</ion-label>
-    </ion-segment-button>
-  </ion-segment>
-
   <div class="wrap">
-    <!-- Filtros + Busca -->
+    <!-- Filtros + Busca + Botões ITI/SDK -->
     <div class="toolbar">
+      <!-- Período -->
       <ion-item lines="none" class="compact">
         <ion-label>Período</ion-label>
         <ion-select
@@ -39,6 +30,7 @@
         </ion-select>
       </ion-item>
 
+      <!-- Status -->
       <ion-item lines="none" class="compact">
         <ion-label>Status</ion-label>
         <ion-select
@@ -52,7 +44,7 @@
         </ion-select>
       </ion-item>
 
-      <!-- Busca à direita -->
+      <!-- Busca -->
       <ion-searchbar
         class="toolbar-search"
         placeholder="Buscar por empresa, email, doc, telefone ou token"
@@ -60,24 +52,43 @@
         (ionInput)="query.set($event.detail.value ?? '')"
         (keyup.enter)="page.set(1)">
       </ion-searchbar>
+
+      <!-- Botões ITI / SDK (clean, pill e pequenos) -->
+      <div class="engine-buttons">
+        <ion-button
+          size="small"
+          [fill]="engine() === 'ITI' ? 'solid' : 'outline'"
+          (click)="selectEngine('ITI')"
+          class="engine-btn">
+          ITI
+        </ion-button>
+
+        <ion-button
+          size="small"
+          [fill]="engine() === 'SDK' ? 'solid' : 'outline'"
+          (click)="selectEngine('SDK')"
+          class="engine-btn">
+          SDK
+        </ion-button>
+      </div>
     </div>
 
     <!-- Lista -->
     <ion-card class="list">
       <ion-card-content>
 
-        <!-- Skeleton -->
+        <!-- Loading / Skeleton -->
         <ng-container *ngIf="loading(); else content">
           <ion-grid class="table">
             <ion-row class="thead">
               <ion-col size="4">Usuário / Empresa</ion-col>
-              <ion-col size="2">Cadastro</ion-col> 
+              <ion-col size="2">Cadastro</ion-col>
               <ion-col size="4">Token</ion-col>
               <ion-col size="2">Status</ion-col>
               <ion-col size="1" class="center">Quantidade</ion-col>
               <ion-col size="2" class="acoes">Ações</ion-col>
             </ion-row>
-  
+
             <ion-row class="trow" *ngFor="let i of [1,2,3,4,5,6,7]">
               <ion-col size="4">
                 <ion-skeleton-text animated style="width: 60%"></ion-skeleton-text>
@@ -92,9 +103,15 @@
                   <ion-skeleton-text animated style="width: 120px; height: 14px"></ion-skeleton-text>
                 </ion-chip>
               </ion-col>
-              <ion-col size="1"><ion-badge color="medium">•••</ion-badge></ion-col>
-              <ion-col size="1" class="center"><ion-skeleton-text animated style="width: 24px"></ion-skeleton-text></ion-col>
-              <ion-col size="1" class="right"><span class="link muted">ver</span></ion-col>
+              <ion-col size="1">
+                <ion-badge color="medium">•••</ion-badge>
+              </ion-col>
+              <ion-col size="1" class="center">
+                <ion-skeleton-text animated style="width: 24px"></ion-skeleton-text>
+              </ion-col>
+              <ion-col size="1" class="right">
+                <span class="link muted">ver</span>
+              </ion-col>
             </ion-row>
           </ion-grid>
         </ng-container>
@@ -116,7 +133,7 @@
                 <div class="title"><strong>{{ r.nome }}</strong></div>
                 <div class="sub">{{ r.email }}</div>
                 <div class="sub">
-                  Doc: {{ r.documento ? r.documento : 'Não informado' }} • 
+                  Doc: {{ r.documento ? r.documento : 'Não informado' }} •
                   Tel: {{ r.telefone ? r.telefone : 'Não informado' }}
                 </div>
               </ion-col>
@@ -135,7 +152,9 @@
               </ion-col>
 
               <ion-col size="1">
-                <ion-badge [color]="r.status === 'Ativo' ? 'success' : 'medium'">{{ r.status }}</ion-badge>
+                <ion-badge [color]="r.status === 'Ativo' ? 'success' : 'medium'">
+                  {{ r.status }}
+                </ion-badge>
               </ion-col>
 
               <ion-col size="1" class="center">
@@ -144,7 +163,9 @@
 
               <ion-col size="1" class="acoes">
                 <ion-buttons>
-                  <ion-button size="small" fill="clear" [disabled]="r.status !== 'Ativo'" (click)="revoke(r)">
+                  <ion-button size="small" fill="clear"
+                              [disabled]="r.status !== 'Ativo'"
+                              (click)="revoke(r)">
                     Revogar
                   </ion-button>
                 </ion-buttons>

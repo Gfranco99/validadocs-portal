@@ -1,19 +1,86 @@
 .wrap { max-width: 1600px; margin: 0 auto; padding: 16px; }
 
+/* 4 colunas: Período | Status | Busca (flex) | Botões (auto) */
 .toolbar {
   display: grid;
-  grid-template-columns: 220px 200px 1fr;
+  grid-template-columns: 220px 200px 1fr auto;
+  align-items: center;
   gap: 12px;
   margin-bottom: 12px;
 }
 
+/* search ocupa toda a coluna flexível */
+.toolbar .toolbar-search {
+  width: 100%;
+  --box-shadow: none;
+}
+
+/* ===== ITI / SDK (botões “pill” minimalistas) ===== */
+.engine-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* base comum */
+.engine-btn {
+  /* tamanho compacto */
+  height: 28px;
+  --padding-start: 12px;
+  --padding-end: 12px;
+  --padding-top: 4px;
+  --padding-bottom: 4px;
+
+  /* pill */
+  --border-radius: 9999px;
+
+  /* clean */
+  --box-shadow: none;
+  text-transform: none;         /* mantém 'ITI' / 'SDK' como está */
+  letter-spacing: 0;            /* sem espaçamento extra */
+  font-weight: 600;
+  font-size: 12.5px;
+}
+
+/* estado “não selecionado” (outline) */
+.engine-btn[fill="outline"] {
+  --background: transparent;
+  --border-color: var(--ion-color-step-350);
+  --border-style: solid;
+  --border-width: 1px;
+  --color: var(--ion-color-step-600);
+
+  /* hover/focus sutis */
+  &:hover,
+  &:focus {
+    --border-color: var(--ion-color-step-400);
+    --color: var(--ion-color-step-700);
+  }
+}
+
+/* estado “selecionado” (solid) */
+.engine-btn[fill="solid"] {
+  --background: var(--ion-color-primary);
+  --color: #fff;
+  --border-color: transparent;
+
+  &:hover,
+  &:focus {
+    filter: brightness(0.96);
+  }
+}
+
+/* ===== Tabela/lista ===== */
 .list .table { width: 100%; }
+
 .thead {
   font-weight: 600;
   border-bottom: 1px solid var(--ion-color-step-150);
   color: var(--ion-color-step-600);
   padding-bottom: 6px;
 }
+
 .trow {
   border-bottom: 1px solid var(--ion-color-step-150);
   align-items: center;
@@ -22,22 +89,29 @@
 .right { text-align: right; }
 .link { text-decoration: underline; cursor: default; }
 .link.muted { opacity: .5; text-decoration: none; }
-
 .empty { text-align: center; padding: 24px 0; opacity: .7; }
 
 .pager {
   display: flex; align-items: center; justify-content: center;
   gap: 12px; margin-top: 12px;
-  button { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--ion-color-step-250); }
+
+  button {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--ion-color-step-250);
+    background: transparent;
+    color: var(--ion-color-step-650);
+  }
 }
+
 /* coluna Ações alinhada com o início do texto do botão */
 .table .thead ion-col.acoes,
 .table .trow  ion-col.acoes {
-  --ion-grid-column-padding: 0;      /* remove padding do grid */
+  --ion-grid-column-padding: 0;
   padding-left: 0 !important;
   display: flex;
   align-items: center;
-  justify-content: flex-start;       /* esquerda */
+  justify-content: flex-start;
   text-align: left !important;
 }
 
@@ -47,8 +121,17 @@
   padding-right: 0 !important;
 }
 
-/* se usar <ion-buttons>, garanta ausência de espaçamentos extras */
+/* se usar <ion-buttons>, sem espaçamentos extras */
 .table .trow ion-col.acoes ion-buttons {
   margin: 0 !important;
   padding: 0 !important;
+}
+
+/* ===== Responsivo ===== */
+@media (max-width: 980px) {
+  .toolbar { grid-template-columns: 1fr 1fr; }
+  .engine-buttons { justify-content: flex-start; }
+}
+@media (max-width: 640px) {
+  .toolbar { grid-template-columns: 1fr; row-gap: 8px; }
 }

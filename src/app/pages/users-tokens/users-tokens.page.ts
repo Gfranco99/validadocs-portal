@@ -4,7 +4,7 @@ import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonButton,
   IonCard, IonCardContent, IonGrid, IonRow, IonCol,
   IonSelect, IonSelectOption, IonSearchbar, IonBadge, IonChip,
-  IonSkeletonText, IonLabel, IonItem, IonSegment, IonSegmentButton } from '@ionic/angular/standalone';
+  IonSkeletonText, IonLabel, IonItem } from '@ionic/angular/standalone';
 import { FormsModule } from '@angular/forms';
 import { UserTokenMockService, UserTokenView } from 'src/app/services/user-token.mock.service';
 
@@ -20,12 +20,12 @@ import { TokenApiService, TokenRow } from 'src/app/services/token-api.service';
 import { Title } from '@angular/platform-browser';
 
 type TokenViewWithQtd = UserTokenView & { qtd?: number };
+type EngineMode = 'ITI' | 'SDK';
 
 @Component({
   standalone: true,
   selector: 'app-users-tokens',
-  imports: [IonSegmentButton, IonSegment, 
-    IonItem, IonLabel,
+  imports: [IonItem, IonLabel,
     CommonModule, FormsModule,
     IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonButton,
     IonCard, IonCardContent, IonGrid, IonRow, IonCol,
@@ -36,22 +36,23 @@ type TokenViewWithQtd = UserTokenView & { qtd?: number };
 })
 export class UsersTokensPage implements OnInit {
 
-  engine = signal<string>('ITI');  // Valor padrão para o modo, agora usando 'engine'
-selectedMode: any;
+  // modo/engine do segmento (ITI/SDK)
+  engine = signal<EngineMode>('ITI');
 
   async ngOnInit() {
-    // Carrega o valor do local storage ao iniciar a página
-    const storedEngine = localStorage.getItem('engine');
-    if (storedEngine === 'ITI' || storedEngine === 'SDK') {
-      this.engine.set(storedEngine);
+    // Carrega o valor salvo
+    const stored = localStorage.getItem('engine');
+    if (stored === 'ITI' || stored === 'SDK') {
+      this.engine.set(stored);
     } else {
-      // Se não existir, usa o padrão 'ITI'
       this.engine.set('ITI');
       localStorage.setItem('engine', this.engine());
     }
 
     this.titleSvc.setTitle('ValidaDocs');
-    this.fetchFromApi();
+    await this.fetchFromApi();
+
+    // Sempre que filtros mudarem, volta para página 1
     effect(() => { void this.filtered(); this.page.set(1); });
   }
 
@@ -60,13 +61,13 @@ selectedMode: any;
   }
 
   // filtros
-  period = signal<'Todos'|'7d'|'30d'|'90d'>('Todos');
-  status  = signal<'Todos'|'Ativo'|'Inativo'>('Todos');
-  query   = signal<string>('');
+  period = signal<'Todos' | '7d' | '30d' | '90d'>('Todos');
+  status = signal<'Todos' | 'Ativo' | 'Inativo'>('Todos');
+  query = signal<string>('');
 
   // dados
   loading = signal<boolean>(true);
-  rows    = signal<TokenViewWithQtd[]>([]);
+  rows = signal<TokenViewWithQtd[]>([]);
 
   // paginação simples
   page = signal(1);
@@ -81,14 +82,13 @@ selectedMode: any;
     private toastCtrl: ToastController,
     private tokenApi: TokenApiService,
     private titleSvc: Title,
-  ) {}
+  ) { }
 
-  onSegmentChange(event: any) {
-    const newEngine = event.detail.value;  // 'ITI' ou 'SDK'
-    this.engine.set(newEngine);
-    localStorage.setItem('engine', newEngine);  // Agora salva na chave 'engine'
-    console.log('Engine alterado para:', newEngine);
-    // Opcional: Adicione lógica aqui para recarregar dados ou mudar o comportamento
+  // Novo método para selecionar engine via botões
+  selectEngine(selected: 'ITI' | 'SDK') {
+    this.engine.set(selected);
+    localStorage.setItem('engine', selected);
+    this.page.set(1);  // Reseta a página como antes
   }
 
   private async fetchFromApi(): Promise<void> {
@@ -325,13 +325,15 @@ selectedMode: any;
   }
 
   private escapeRegExp(str: string): string {
-    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  }
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
   filtered = computed(() => {
     const q = (this.query() || '').toLowerCase().trim();
     const st = this.status();
     const pd = this.period();
+    // const et = this.engine(); // disponível caso queira filtrar por engine
+
     const inPeriod = (iso: string) => {
       if (!iso) return false;
       if (pd === 'Todos') return true;
@@ -340,11 +342,22 @@ selectedMode: any;
       const min = Date.now() - days * 24 * 60 * 60 * 1000;
       return t >= min;
     };
+
     return this.rows().filter(r => {
-      const matchesQ = r.nome.toLowerCase().includes(q) || r.email.toLowerCase().includes(q) || r.documento.includes(q) || (r.telefone || '').toLowerCase().includes(q) || r.token.includes(q);
+      // Se quiser filtrar por engine no futuro:
+      // const matchesEngine = (r as any).engineType ? (r as any).engineType === et : true;
+
+      const matchesQ =
+        r.nome.toLowerCase().includes(q) ||
+        r.email.toLowerCase().includes(q) ||
+        r.documento.includes(q) ||
+        (r.telefone || '').toLowerCase().includes(q) ||
+        r.token.includes(q);
+
       const matchesSt = st === 'Todos' ? true : r.status === st;
       const matchesPd = inPeriod(r.createdAt) || inPeriod(r.expiresAt);
-      return matchesQ && matchesSt && matchesPd;
+
+      return matchesQ && matchesSt && matchesPd; // && matchesEngine
     });
   });
 
@@ -355,7 +368,7 @@ selectedMode: any;
     return this.filtered().slice(start, start + this.pageSize);
   });
 
-  badgeColor(st: 'Ativo'|'Inativo') {
+  badgeColor(st: 'Ativo' | 'Inativo') {
     return st === 'Ativo' ? 'success' : 'medium';
   }
 }
