@@ -80,10 +80,13 @@ export class AuthService {
 
   // Login via token -> retorna { valid, message, access_token? }
   loginWithToken(token: string): Observable<TokenLoginResult> {
+
+    const engine = localStorage.getItem('engine') ?? 'None';
+
     return this.http
       .post<{ success: boolean; message?: string; access_token?: string; credential?: any }>(
         `${this.validadocsApi}/auth`,
-        { token }
+        { token, engine }
       )
       .pipe(
         map((res) => {

@@ -72,7 +72,7 @@ app.post('/verify', upload.single('file'), async (req, res) => {
 
     // Registra log do evento
     //BD
-    await logDB.logDBValidation(userId, engine, response.data.isValid );
+    await logDB.logDBValidation(userId, "VERIFY_DOCUMENT", engine, response.data.isValid );
     //File
     await logEvent(userId, "VERIFY_DOCUMENT", { document: response.data });
 
@@ -92,6 +92,7 @@ app.post('/verify', upload.single('file'), async (req, res) => {
   }
 });
 
+app.post("/createPlan", auth.createCredentialWithPlan);
 app.post("/create", auth.createCredential);
 app.post("/auth", auth.validateCredential);
 app.post("/revoke", auth.revokeCredential);

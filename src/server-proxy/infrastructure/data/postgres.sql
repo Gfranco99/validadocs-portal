@@ -15,8 +15,10 @@ CREATE TABLE validadocscredentials (
 CREATE TABLE validadocslogs (
     id SERIAL PRIMARY KEY,
     token VARCHAR(255) NOT NULL,
-    engine VARCHAR(10) NOT NULL,
+    action VARCHAR(50) NOT NULL,
+    engine VARCHAR(10) NOT NULL,    
     validation_status BOOLEAN NULL,
+    message TEXT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

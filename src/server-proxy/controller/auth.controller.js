@@ -4,8 +4,24 @@ const pool = require("../infrastructure/data/db");
 const { getBrasiliaExpiration, getBrasiliaNow } = require("../helpers/datetime.helper");
 const { handleSendNotification } = require("./notification.controller");
 const { parseHtmlTemplate } = require("../infrastructure/templates/template.service");
+const logDB = require("./log.controller");
 
-// cria token
+// criar token com expiração definida no plano de assinatura
+exports.createCredentialWithPlan = async (req, res) => {
+  try {
+    const { nome, email, documento, telefone, plano } = req.body; // em minutos (opcional)
+
+    //Para plano free, definir expiração padrão de 60 minutos
+    let effectiveExpiresIn = 60 * 24 * 30; //fator minutos * horas * dias  - plano free 30 dias
+    this.createCredential({ body: { nome, email, documento, telefone, expiresIn: effectiveExpiresIn } }, res);
+
+  } catch (err) {
+    console.error("Erro ao criar credencial com expiração do plano:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// criar token com expiração no parametro
 exports.createCredential = async (req, res) => {
   try {
     const { nome, email, documento, telefone, expiresIn } = req.body; // em minutos (opcional)
@@ -66,8 +82,8 @@ exports.createCredential = async (req, res) => {
 // valida token
 exports.validateCredential = async (req, res) => {
   try {
-
-    const { token } = req.body;
+    
+    const { token, engine } = req.body;
 
     const result = await pool.query(
       `SELECT * FROM validadocscredentials 
@@ -76,15 +92,28 @@ exports.validateCredential = async (req, res) => {
       [token]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(200).json({ success: false, message: "Token inválido ou inativo" });
+    if (result.rows.length === 0) {      
+      const msg = "Token inválido ou inativo";
+
+      // Registra log do evento
+      await logDB.logDBValidation(token, "VALIDATE_CREDENTIAL", engine, false, msg );
+
+      return res.status(200).json({ success: false, message: msg });
     }
 
     const cred = result.rows[0];
 
     if (cred.expires_at && new Date(cred.expires_at) < new Date()) {
-      return res.status(200).json({ success: false, message: "Token expirado" });
+      const msg = "Token expirado";
+
+      // Registra log do evento
+      await logDB.logDBValidation(token, "VALIDATE_CREDENTIAL", engine, false, msg );
+
+      return res.status(200).json({ success: false, message: msg });
     }
+
+    // Registra log do evento
+    await logDB.logDBValidation(token, "VALIDATE_CREDENTIAL", engine, true );
 
     res.json({ success: true, credential: cred });
   } catch (err) {
@@ -153,7 +182,7 @@ exports.listCredentialCollections = async (req, res) => {
 
     const result = await pool.query(
       `SELECT
-          c.id, c.user_id, c.nome, c.email, c.documento, c.token, 
+          c.id, c.user_id, c.nome, c.email, c.documento, c.telefone, c.token, 
           c.is_active, c.created_at, c.expires_at,
           COUNT(l.id) AS validation_count
         FROM
