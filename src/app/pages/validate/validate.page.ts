@@ -586,24 +586,29 @@ export class ValidatePage implements OnInit, OnDestroy {
     return '';
   }
 
-  getSignatureTooltip(s: SignatureInfo): string {
-    if (!s || s.signatureValid !== false) return '';
+  // getSignatureTooltip(s: SignatureInfo): string 
+  // {
+  //   if (!s || s.signatureValid !== false) return '';
 
-    const msgs: string[] = [];
-    const errs = (s as any)?.signatureErrors as string[] | string | undefined;
-    const alts = (s as any)?.signatureAlerts as string[] | string | undefined;
+  //   const msgs: string[] = [];
+  //   const errs = (s as any)?.signatureErrors as string[] | string | undefined;
+  //   const alts = (s as any)?.signatureAlerts as string[] | string | undefined;
 
-    if (errs) Array.isArray(errs) ? msgs.push(...errs) : msgs.push(String(errs));
-    if (alts && !errs) Array.isArray(alts) ? msgs.push(...alts) : msgs.push(String(alts));
+  //   if (errs) Array.isArray(errs) ? msgs.push(...errs) : msgs.push(String(errs));
+  //   if (alts && !errs) Array.isArray(alts) ? msgs.push(...alts) : msgs.push(String(alts));
 
-    if ((s as any)?.docModified) msgs.push('O documento foi alterado após a assinatura.');
-    if ((s as any)?.expired) msgs.push('O certificado do signatário está expirado.');
-    if ((s as any)?.revoked) msgs.push('O certificado do signatário foi revogado.');
-    if ((s as any)?.chainUntrusted) msgs.push('Cadeia de certificação não é confiável.');
-    if ((s as any)?.timestampInvalid) msgs.push('Carimbo do tempo inválido.');
-    if ((s as any)?.ocspInvalid) msgs.push('Falha em OCSP/CRL.');
+  //   if ((s as any)?.docModified) msgs.push('O documento foi alterado após a assinatura.');
+  //   if ((s as any)?.expired) msgs.push('O certificado do signatário está expirado.');
+  //   if ((s as any)?.revoked) msgs.push('O certificado do signatário foi revogado.');
+  //   if ((s as any)?.chainUntrusted) msgs.push('Cadeia de certificação não é confiável.');
+  //   if ((s as any)?.timestampInvalid) msgs.push('Carimbo do tempo inválido.');
+  //   if ((s as any)?.ocspInvalid) msgs.push('Falha em OCSP/CRL.');
 
-    return msgs.length ? msgs.join(' · ') : 'Falha na verificação criptográfica da assinatura.';
+  //   return msgs.length ? msgs.join(' · ') : 'Falha na verificação criptográfica da assinatura.';
+  // }
+
+  getSignatureTooltip(_: SignatureInfo): string {
+  return '';
   }
 
   private extractCN(subject?: string): string {
@@ -1039,10 +1044,14 @@ async exportPdf() {
           });
         }
 
-        const tooltip = this.getSignatureTooltip(s as any);
-        if (!s.signatureValid && tooltip) { para(`Detalhes da falha: ${tooltip}`); }
+         const tooltip = this.getSignatureTooltip(s as any);
+          if (!s.signatureValid && tooltip) { para(`Detalhes da falha: ${tooltip}`); }
 
-        hr(8);
+          // AJUSTE: antes havia `hr(8)` sempre, o que somava com o `hr()` da seção seguinte.
+          // Agora só desenhamos o separador entre assinaturas, nunca após a última.
+          if (idx < sigsList.length - 1) {
+            hr(8);
+          }
       });
     }
 
