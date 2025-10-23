@@ -517,7 +517,7 @@ export class ValidatePage implements OnInit, OnDestroy {
   }
 
   // ================= Tooltips =================
-  getStatusTooltip(): string {
+  getStatusTooltipBK(): string {
     const r = this.result;
     if (!r || r.isValid !== false) return '';
     const onlyOne = this.signatureCount() === 1;
@@ -537,6 +537,26 @@ export class ValidatePage implements OnInit, OnDestroy {
           if ((s as any)?.chainUntrusted) reasons.push('Cadeia de certificação não é confiável.');
         }
       }
+    }
+
+    if (reasons.length) {
+      const short = reasons.slice(0, 4).join(' · ');
+      return onlyOne ? `${short}` : `${short}`;
+    }
+    return onlyOne ? '' : '';
+  }
+
+  getStatusTooltip(): string {
+    const r = this.result;
+    const onlyOne = this.signatureCount() === 1;
+    const sigs = r?.validaDocsReturn?.digitalSignatureValidations ?? [];
+    const reasons: string[] = [];
+
+    for (const s of sigs as ExtSignature[]) {
+      const errs = (s as any)?.signatureErrors as string[] | string | undefined;
+      const alts = (s as any)?.signatureAlerts as string[] | string | undefined;
+      if (errs) Array.isArray(errs) ? reasons.push(...errs) : reasons.push(String(errs));
+      if (alts) Array.isArray(alts) ? reasons.push(...alts) : reasons.push(String(alts));      
     }
 
     if (reasons.length) {
@@ -1060,7 +1080,11 @@ async exportPdf() {
     const ef = this.geterrorfindings();
     if (ef) notas.push(ef);
     const statusTip = this.getStatusTooltip();
-    if (this.result?.isValid === false && statusTip) notas.push(statusTip);
+    console.log('Debug');
+    console.log(statusTip);
+    
+    //if (this.result?.isValid === false && statusTip) notas.push(statusTip);
+    if (statusTip) notas.push(statusTip);
 
     if (notas.length) {
       hr();

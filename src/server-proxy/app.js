@@ -45,6 +45,7 @@ app.post('/verify', upload.single('file'), async (req, res) => {
 
     const form = new FormData();
     form.append('file', fileStream, req.file.originalname);
+    form.append('language', 'pt-BR');
 
     // ATENÇÃO: INSEGURO! Usar apenas para contornar o certificado expirado em desenvolvimento.
     // NUNCA use em produção.

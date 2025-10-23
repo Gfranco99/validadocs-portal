@@ -230,7 +230,7 @@
         <!-- DIREITA -->
         <ion-col size="12" size-lg="6" class="right">
           <!-- Apontamentos -->
-          <ion-card class="errorfindings-card" *ngIf="((r.errorfindings?.length || 0) > 0)">
+          <ion-card class="errorfindings-card" *ngIf="((r.errorfindings?.length || 0) > 0) || getStatusTooltip()">
             <ion-card-header class="card-title-row">
               <ion-card-title>
                 Apontamentos da Validação
@@ -247,7 +247,7 @@
 
                 <ion-item *ngIf="getStatusTooltip()" class="finding">
                   <ion-label class="ion-text-wrap finding-label">
-                    <span class="danger-text">{{ getStatusTooltip() }}</span>
+                    <span class="warning-text">{{ getStatusTooltip() }}</span>
                   </ion-label>
                 </ion-item>
               </ion-list>

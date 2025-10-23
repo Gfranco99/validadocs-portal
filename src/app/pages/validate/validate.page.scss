@@ -109,6 +109,12 @@
   word-break: break-word;
   white-space: normal;
 }
+.warning-text {
+  color: var(--ion-color-warning);
+  font-weight: 500;
+  word-break: break-word;
+  white-space: normal;
+}
 .tooltip-text {
   color: var(--ion-color-danger);  /* CHANGED */
   font-family: var(--ion-font-family);
