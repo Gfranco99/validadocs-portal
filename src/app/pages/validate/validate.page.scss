@@ -434,3 +434,40 @@ ion-card-content .finding-label {
     box-shadow: none;
   }
 }
+
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-left: 8px;
+  font-size: 13px;
+  color: #fff; /* amarelo */
+  cursor: pointer;
+  text-decoration: none; /* remove underline */
+}
+
+.link-button:hover {
+  opacity: 0.8;
+}
+
+.link-button:focus {
+  outline: none;
+}
+
+
+/* ====== LINK "ver detalhes" ====== */
+
+.see-details {
+  cursor: pointer;
+  font-size: 0.9rem;
+
+  /* Herdar cor do tema (claro ou escuro) */
+  color: var(--ion-text-color);
+
+  opacity: 0.8;
+  transition: opacity 0.15s ease;
+}
+
+.see-details:hover {
+  opacity: 1;
+}

@@ -1,9 +1,10 @@
+/* ===== Layout base ===== */
 .wrap { max-width: 1600px; margin: 0 auto; padding: 16px; }
 
-/* 4 colunas: Período | Status | Busca (flex) | Botões (auto) */
+/* Colunas: Datas | Status | Busca (flex) | (vazio/auto) */
 .toolbar {
   display: grid;
-  grid-template-columns: 220px 200px 1fr auto;
+  grid-template-columns: 280px 150px 1fr auto;
   align-items: center;
   gap: 12px;
   margin-bottom: 12px;
@@ -15,63 +16,75 @@
   --box-shadow: none;
 }
 
-/* ===== ITI / SDK (botões “pill” minimalistas) ===== */
-.engine-buttons {
+/* ==========================================================
+   FILTRO DE DATAS (Opção B: botões + popover)
+   ========================================================== */
+.date-filters-wrap {
   display: flex;
-  align-items: center;
-  justify-content: flex-end;
+  align-items: flex-end; /* alinha com o topo da tabela */
   gap: 8px;
+  flex-wrap: nowrap;
 }
 
-/* base comum */
-.engine-btn {
-  /* tamanho compacto */
-  height: 28px;
-  --padding-start: 12px;
-  --padding-end: 12px;
-  --padding-top: 4px;
-  --padding-bottom: 4px;
+/* Item “De” e “Até” (ion-item) */
+.date-filters-wrap .date-item {
+  width: 125px;           /* cabe DD/MM e DD/MM/YYYY */
+  min-width: 110px;
+  --padding-start: 0;
+  --inner-padding-end: 0;
+  --background: transparent;
+  border: none;
+}
 
-  /* pill */
-  --border-radius: 9999px;
-
-  /* clean */
+/* Botões de data + botão LIMPAR (aparência “filtro” cinza, sem pill) */
+.date-filters-wrap .select-filter,
+.date-filters-wrap .clear-dates-btn {
+  /* aparência */
+  --border-radius: 6px;
+  --background: transparent;
   --box-shadow: none;
-  text-transform: none;         /* mantém 'ITI' / 'SDK' como está */
-  letter-spacing: 0;            /* sem espaçamento extra */
+  --border-color: var(--ion-color-step-300);
+  --color: var(--ion-color-step-650);
+
+  /* tamanho */
+  height: 32px;
+  --padding-start: 10px;
+  --padding-end: 10px;
+
+  /* tipografia */
+  text-transform: none;
+  letter-spacing: 0;
   font-weight: 600;
   font-size: 12.5px;
 }
 
-/* estado “não selecionado” (outline) */
-.engine-btn[fill="outline"] {
-  --background: transparent;
-  --border-color: var(--ion-color-step-350);
-  --border-style: solid;
-  --border-width: 1px;
-  --color: var(--ion-color-step-600);
-
-  /* hover/focus sutis */
-  &:hover,
-  &:focus {
-    --border-color: var(--ion-color-step-400);
-    --color: var(--ion-color-step-700);
-  }
+/* Espaço interno reduzido para o valor de data */
+.date-filters-wrap .select-filter::part(native) {
+  padding-top: 4px;
+  padding-bottom: 4px;
 }
 
-/* estado “selecionado” (solid) */
-.engine-btn[fill="solid"] {
-  --background: var(--ion-color-primary);
-  --color: #fff;
-  --border-color: transparent;
+/* Prefixos “De:” e “Até:” via pseudo-elemento do botão */
+.start-date-item #startDateBtn::before,
+.end-date-item   #endDateBtn::before {
+  display: inline-block;
+  margin-right: 6px;
+  font-weight: 700;
+  font-size: 12.5px;
+  color: var(--ion-color-step-800);
+  content: '';
+}
+.start-date-item #startDateBtn::before { content: 'De:';  }
+.end-date-item   #endDateBtn::before   { content: 'Até:'; }
 
-  &:hover,
-  &:focus {
-    filter: brightness(0.96);
-  }
+/* Mantém o texto da data colado ao prefixo, sem “pill” */
+#startDateBtn, #endDateBtn {
+  justify-content: flex-start;
 }
 
-/* ===== Tabela/lista ===== */
+/* ==========================================================
+   Tabela / lista
+   ========================================================== */
 .list .table { width: 100%; }
 
 .thead {
@@ -91,6 +104,7 @@
 .link.muted { opacity: .5; text-decoration: none; }
 .empty { text-align: center; padding: 24px 0; opacity: .7; }
 
+/* Paginação */
 .pager {
   display: flex; align-items: center; justify-content: center;
   gap: 12px; margin-top: 12px;
@@ -104,7 +118,7 @@
   }
 }
 
-/* coluna Ações alinhada com o início do texto do botão */
+/* Coluna Ações: texto alinhado ao início do botão */
 .table .thead ion-col.acoes,
 .table .trow  ion-col.acoes {
   --ion-grid-column-padding: 0;
@@ -115,22 +129,23 @@
   text-align: left !important;
 }
 
-/* remove o padding interno do botão para que o texto comece “no zero” */
+/* Botão sem padding extra */
 .table .trow ion-col.acoes ion-button::part(native) {
   padding-left: 0 !important;
   padding-right: 0 !important;
 }
 
-/* se usar <ion-buttons>, sem espaçamentos extras */
+/* Remover espaçamentos do <ion-buttons> */
 .table .trow ion-col.acoes ion-buttons {
   margin: 0 !important;
   padding: 0 !important;
 }
 
-/* ===== Responsivo ===== */
+/* ==========================================================
+   Responsivo
+   ========================================================== */
 @media (max-width: 980px) {
   .toolbar { grid-template-columns: 1fr 1fr; }
-  .engine-buttons { justify-content: flex-start; }
 }
 @media (max-width: 640px) {
   .toolbar { grid-template-columns: 1fr; row-gap: 8px; }

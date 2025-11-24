@@ -23,6 +23,7 @@ import jsPDF from 'jspdf';
 import { finalize } from 'rxjs/operators';
 import { LoadingController } from '@ionic/angular';
 import { TrustedRoot } from 'src/app/enum/enum';
+import { ErrorModalComponent } from 'src/app/components/error-modal/error-modal.component';
 
 // MODIFICAÇÃO: Adicionar 'signingTime' ao tipo ExtSignature
 type ExtSignature = SignatureInfo & {
@@ -45,7 +46,8 @@ type ExtSignature = SignatureInfo & {
     IonButton, IonItem, IonInput, IonNote,
     IonGrid, IonRow, IonCol, IonList, IonLabel, IonBadge, IonIcon, IonButtons,
     IonText, IonCheckbox,
-    IonAccordionGroup, IonAccordion
+    IonAccordionGroup, IonAccordion,
+    ErrorModalComponent
   ]
 })
 export class ValidatePage implements OnInit, OnDestroy {
@@ -67,6 +69,13 @@ export class ValidatePage implements OnInit, OnDestroy {
   loading = false;
   exporting = false;
   error?: string;
+
+  // mensagem longa vinda do mapeamento (ErrorsMapping/id ou friendlyMessages)
+  errorFullMessage: string | null = null;
+
+  // estado do modal de erro detalhado
+  showErrorModal = false;
+
   result?: ValidationResult;
 
   // ====== Estado específico do .p7s ======
@@ -219,7 +228,7 @@ export class ValidatePage implements OnInit, OnDestroy {
     this.router.navigateByUrl(currentPath, { replaceUrl: true })
       .then(() => {
         this.cdr.detectChanges();
-        try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch {}
+        try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch { }
       });
   }
 
@@ -247,9 +256,13 @@ export class ValidatePage implements OnInit, OnDestroy {
   onFileChange(ev: Event) {
     const input = ev.target as HTMLInputElement;
     const f = input?.files?.[0] ?? null;
-    if (!f) return;
+       if (!f) return;
 
     const name = f.name.toLowerCase();
+
+    // sempre que trocar de arquivo, limpamos mensagem longa e modal
+    this.errorFullMessage = null;
+    this.showErrorModal = false;
 
     if (name.endsWith('.p7s')) {
       this.onP7sFile(f);
@@ -258,14 +271,17 @@ export class ValidatePage implements OnInit, OnDestroy {
       this.pdfBytes = undefined;
       this.error = undefined;
       this.result = undefined;
-      f.arrayBuffer().then(buf => (this.pdfBytes = buf)).catch(() => {});
+      f.arrayBuffer().then(buf => (this.pdfBytes = buf)).catch(() => { });
     } else {
       this.file = null;
       this.result = undefined;
       this.error = 'Selecione um arquivo PDF (.pdf) ou assinatura (.p7s).';
     }
 
-    setTimeout(() => this.fileInput?.nativeElement && (this.fileInput.nativeElement.value = ''), 0);
+    setTimeout(
+      () => this.fileInput?.nativeElement && (this.fileInput.nativeElement.value = ''),
+      0
+    );
   }
 
   onDragOver(ev: DragEvent) { ev.preventDefault(); }
@@ -279,6 +295,11 @@ export class ValidatePage implements OnInit, OnDestroy {
 
   clearFile() {
     this.file = null;
+    this.result = undefined;
+    this.error = undefined;
+    this.errorFullMessage = null;
+    this.showErrorModal = false;
+
     if (this.fileInput?.nativeElement) this.fileInput.nativeElement.value = '';
   }
 
@@ -287,7 +308,10 @@ export class ValidatePage implements OnInit, OnDestroy {
     const f = (ev.target as HTMLInputElement).files?.[0];
     if (!f) return;
     await this.onP7sFile(f);
-    setTimeout(() => this.p7sInput?.nativeElement && (this.p7sInput.nativeElement.value = ''), 0);
+    setTimeout(
+      () => this.p7sInput?.nativeElement && (this.p7sInput.nativeElement.value = ''),
+      0
+    );
   }
 
   onDragOverP7s(ev: DragEvent) { ev.preventDefault(); }
@@ -295,6 +319,10 @@ export class ValidatePage implements OnInit, OnDestroy {
     ev.preventDefault();
     const f = ev.dataTransfer?.files?.[0];
     if (!f) return;
+
+    this.errorFullMessage = null;
+    this.showErrorModal = false;
+
     if (!f.name.toLowerCase().endsWith('.p7s')) {
       this.error = 'Selecione um arquivo de assinatura .p7s.';
       return;
@@ -310,12 +338,17 @@ export class ValidatePage implements OnInit, OnDestroy {
       this.p7sOk = undefined;
       this.p7sReason = undefined;
 
+      this.errorFullMessage = null;
+      this.showErrorModal = false;
+
       if (!this.p7sSummary.isSignedData) {
         this.error = 'O arquivo selecionado não é um SignedData (.p7s).';
       }
     } catch (e: any) {
       this.p7sFileName = undefined;
       this.error = e?.message || 'Falha ao processar o .p7s.';
+      this.errorFullMessage = null;
+      this.showErrorModal = false;
     }
   }
 
@@ -326,6 +359,10 @@ export class ValidatePage implements OnInit, OnDestroy {
     this.p7sOk = undefined;
     this.p7sReason = undefined;
     this.p7sFileName = undefined;
+
+    this.errorFullMessage = null;
+    this.showErrorModal = false;
+
     if (this.p7sInput?.nativeElement) this.p7sInput.nativeElement.value = '';
   }
 
@@ -335,11 +372,17 @@ export class ValidatePage implements OnInit, OnDestroy {
       const res = await this.p7sService.verifyP7s(this.p7sBytes, this.pdfBytes);
       this.p7sOk = res.ok;
       this.p7sReason = res.reason;
-      if (!res.ok) this.error = res.reason || 'Assinatura inválida.';
+      if (!res.ok) {
+        this.error = res.reason || 'Assinatura inválida.';
+        this.errorFullMessage = null;
+        this.showErrorModal = false;
+      }
     } catch (e: any) {
       this.p7sOk = false;
       this.p7sReason = e?.message || 'Erro durante verificação.';
       this.error = this.p7sReason;
+      this.errorFullMessage = null;
+      this.showErrorModal = false;
     }
   }
 
@@ -357,19 +400,29 @@ export class ValidatePage implements OnInit, OnDestroy {
     const accepted = this.form?.controls?.acceptPolicy?.value === true;
     if (!accepted) {
       this.error = 'É necessário aceitar a Política de Privacidade para validar o documento.';
+      this.errorFullMessage = null;
+      this.showErrorModal = false;
       return;
     }
     if (this.loading || !this.file) {
-      if (!this.file) this.error = 'Selecione um PDF para validar.';
+      if (!this.file) {
+        this.error = 'Selecione um PDF para validar.';
+        this.errorFullMessage = null;
+        this.showErrorModal = false;
+      }
       return;
     }
     if (this.detached && !this.p7sBytes) {
       this.error = 'Adicione o arquivo .p7s correspondente para validar.';
+      this.errorFullMessage = null;
+      this.showErrorModal = false;
       return;
     }
 
     this.loading = true;
     this.error = undefined;
+    this.errorFullMessage = null;
+    this.showErrorModal = false;
     this.result = undefined;
 
     const loading = await this.loadingCtrl.create({ message: 'Processando...' });
@@ -378,7 +431,7 @@ export class ValidatePage implements OnInit, OnDestroy {
     this.api.validatePdf(this.file!).pipe(
       finalize(async () => {
         this.loading = false;
-        try { await loading.dismiss(); } catch {}
+        try { await loading.dismiss(); } catch { }
         this.cdr.detectChanges();
         requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
       })
@@ -399,8 +452,7 @@ export class ValidatePage implements OnInit, OnDestroy {
           ...a,
           cpf: extrairCpf(a.endCertSubjectName),
           signerName: extrairSigner(a.endCertSubjectName),
-          // MODIFICAÇÃO: Garante que signingTime é copiado (caso não venha na SignatureInfo base)
-          signingTime: (a as any).signingTime, 
+          signingTime: (a as any).signingTime,
           certificateStartDate:
             (a as any).certificateStartDate ??
             (a as any).validFrom ??
@@ -411,8 +463,40 @@ export class ValidatePage implements OnInit, OnDestroy {
             (a as any).notAfter,
         }));
 
+        // ====== mensagem curta + mensagem completa do mapeamento ======
+        const anyRes: any = res;
+        const mappedFullError =
+          anyRes?.fullErrorMessage ||
+          anyRes?.validaDocsReturn?.fullErrorMessage;
+
+        // friendlyMessages vindo do backend (se existir)
+        const friendlyMessages: string[] = Array.isArray(anyRes?.friendlyMessages)
+          ? anyRes.friendlyMessages
+          : [];
+
+        // array para Apontamentos da validação (mensagem curta)
         res.errorfindings = new Array<string>();
-        res.errorfindings.push(...(res.errorMessage ? [res.errorMessage] : []));
+
+        // 1) erro curto padrão, se existir
+        if (res.errorMessage) {
+          res.errorfindings.push(res.errorMessage);
+        }
+
+        // 2) Se não houver errorMessage, usa o primeiro friendlyMessage como resumo curto
+        if (!res.errorMessage && friendlyMessages.length > 0) {
+          res.errorfindings.push(friendlyMessages[0]);
+        }
+
+        // guarda mensagem longa só para o modal
+        if (typeof mappedFullError === 'string' && mappedFullError.trim()) {
+          this.errorFullMessage = mappedFullError.trim();
+        } else if (friendlyMessages.length) {
+          // aqui usamos TODAS as mensagens amigáveis como texto completo
+          this.errorFullMessage = friendlyMessages.join('\n\n');
+        } else {
+          this.errorFullMessage = null;
+        }
+        // =============================================================
 
         const normalized: ValidationResult = {
           ...res,
@@ -426,17 +510,30 @@ export class ValidatePage implements OnInit, OnDestroy {
         this.applyState(() => {
           this.error = undefined;
           this.result = normalized;
+          this.showErrorModal = false;
         });
       },
       error: (err) => {
         this.applyState(() => {
           this.result = undefined;
-          // CORREÇÃO: Chama o método friendlyError (agora definido)
           this.error = this.friendlyError(err);
+          this.errorFullMessage = null;
+          this.showErrorModal = false;
         });
         console.error('validatePdf error', err);
       }
     });
+  }
+
+  // ===== controle do modal de erro completo =====
+  openErrorDetails(): void {
+    if (this.errorFullMessage) {
+      this.showErrorModal = true;
+    }
+  }
+
+  closeErrorDetails(): void {
+    this.showErrorModal = false;
   }
 
   // ================= Helpers de estado/UI =================
@@ -452,8 +549,9 @@ export class ValidatePage implements OnInit, OnDestroy {
     this.file = null;
     this.result = undefined;
     this.error = undefined;
+    this.errorFullMessage = null;
+    this.showErrorModal = false;
 
-    // limpa estado .p7s
     this.p7sBytes = undefined;
     this.pdfBytes = undefined;
     this.p7sSummary = undefined;
@@ -516,6 +614,58 @@ export class ValidatePage implements OnInit, OnDestroy {
     }
   }
 
+  // ===== HELPER: converte campos de erro/alerta em strings legíveis =====
+  private collectReasonsFromField(field: any, out: string[]) {
+    if (!field) return;
+
+    const handleEntry = (entry: any) => {
+      if (entry == null) return;
+
+      if (typeof entry === 'string') {
+        const txt = entry.trim();
+        if (txt) out.push(txt);
+        return;
+      }
+
+      if (typeof entry === 'object') {
+        const desc =
+          (entry.description && String(entry.description).trim()) ||
+          (entry.message && String(entry.message).trim()) ||
+          (entry.id && String(entry.id).trim());
+        if (desc) {
+          out.push(desc);
+          return;
+        }
+      }
+
+      const fallback = String(entry).trim();
+      if (fallback && fallback !== '[object Object]') {
+        out.push(fallback);
+      }
+    };
+
+    if (Array.isArray(field)) {
+      field.forEach(handleEntry);
+    } else {
+      handleEntry(field);
+    }
+  }
+
+  // ===== NOVO: lista cada apontamento individual vindo das assinaturas =====
+  getStatusNotes(): string[] {
+    const reasons: string[] = [];
+    const sigs = this.result?.validaDocsReturn?.digitalSignatureValidations ?? [];
+
+    for (const s of sigs as ExtSignature[]) {
+      const errs = (s as any)?.signatureErrors;
+      const alts = (s as any)?.signatureAlerts;
+      this.collectReasonsFromField(errs, reasons);
+      this.collectReasonsFromField(alts, reasons);
+    }
+
+    return Array.from(new Set(reasons));
+  }
+
   // ================= Tooltips =================
   getStatusTooltipBK(): string {
     const r = this.result;
@@ -546,24 +696,13 @@ export class ValidatePage implements OnInit, OnDestroy {
     return onlyOne ? '' : '';
   }
 
+  // AGORA baseado nas notas normalizadas
   getStatusTooltip(): string {
-    const r = this.result;
     const onlyOne = this.signatureCount() === 1;
-    const sigs = r?.validaDocsReturn?.digitalSignatureValidations ?? [];
-    const reasons: string[] = [];
-
-    for (const s of sigs as ExtSignature[]) {
-      const errs = (s as any)?.signatureErrors as string[] | string | undefined;
-      const alts = (s as any)?.signatureAlerts as string[] | string | undefined;
-      if (errs) Array.isArray(errs) ? reasons.push(...errs) : reasons.push(String(errs));
-      if (alts) Array.isArray(alts) ? reasons.push(...alts) : reasons.push(String(alts));      
-    }
-
-    if (reasons.length) {
-      const short = reasons.slice(0, 4).join(' · ');
-      return onlyOne ? `${short}` : `${short}`;
-    }
-    return onlyOne ? '' : '';
+    const reasons = this.getStatusNotes();
+    if (!reasons.length) return onlyOne ? '' : '';
+    const short = reasons.slice(0, 4).join(' · ');
+    return onlyOne ? `${short}` : `${short}`;
   }
 
   getPdfAValidTooltip(): string {
@@ -586,9 +725,9 @@ export class ValidatePage implements OnInit, OnDestroy {
         ? (this as any).uiFindings as string[]
         : Array.isArray(this.result?.errorfindings)
           ? (this.result!.errorfindings as any[])
-              .filter(m => m != null)
-              .map(m => String(m).trim())
-              .filter(m => m.length > 0)
+            .filter(m => m != null)
+            .map(m => String(m).trim())
+            .filter(m => m.length > 0)
           : [];
     return findings.join(' · ');
   }
@@ -623,7 +762,9 @@ export class ValidatePage implements OnInit, OnDestroy {
 
   displayCN(s: SignatureInfo): string {
     const base = s.endCertSubjectName || '—';
-    const name = (s as any).isICP ? this.stripCpfSuffix((s as any).signerName || this.extractCN(base)) : base;
+    const name = (s as any).isICP
+      ? this.stripCpfSuffix((s as any).signerName || this.extractCN(base))
+      : base;
     return this.normalizeAccents(name);
   }
 
@@ -632,11 +773,12 @@ export class ValidatePage implements OnInit, OnDestroy {
     const d = new Date(s);
     if (isNaN(d.getTime())) return String(s);
     const pad = (n: number) => n.toString().padStart(2, '0');
-    return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${pad(d.getFullYear())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
   private authorityOf(s: SignatureInfo): string {
-    return (s as any).qualified || ((s as any).isICP ? 'ICP-Brasil' : (s as any).iseGov ? 'Gov.br' : '—');
+    return (s as any).qualified ||
+      ((s as any).isICP ? 'ICP-Brasil' : (s as any).iseGov ? 'Gov.br' : '—');
   }
 
   private sigTypeLabel(s: SignatureInfo): string {
@@ -677,9 +819,8 @@ export class ValidatePage implements OnInit, OnDestroy {
 
     try {
       const r = this.result;
-      // ✅ declara uma vez e reutiliza
       const sigsList = (r.validaDocsReturn?.digitalSignatureValidations ?? []) as ExtSignature[];
-      const pdfa = r.validaDocsReturn?.pdfValidations;
+      const pdfValidations = r.validaDocsReturn?.pdfValidations;
 
       const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
 
@@ -706,7 +847,6 @@ export class ValidatePage implements OnInit, OnDestroy {
       };
       const hr = (space = 6) => { doc.setDrawColor(BRAND.border); doc.line(M, y, W - M, y); y += space; };
 
-      // ===== Cabeçalho com faixa
       let logoEl: HTMLImageElement | null = null;
       try { logoEl = await this.loadImage(this.LOGO_URL); } catch { logoEl = null; }
 
@@ -735,7 +875,6 @@ export class ValidatePage implements OnInit, OnDestroy {
       };
       drawBrandRibbon(logoEl);
 
-      // ===== Bloco de métrica com "chip"
       const sigCount = sigsList.length;
       const anyInvalid = sigsList.some(s => !s.signatureValid);
       const hasTooltips =
@@ -767,7 +906,6 @@ export class ValidatePage implements OnInit, OnDestroy {
         doc.setFillColor(...([248, 250, 252] as [number, number, number]));
         doc.roundedRect(M, yTop, bannerW, bannerH, 2, 2, 'F');
 
-        // chip à direita
         const y2 = yTop + bannerH - padY - 5;
         doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
         const chipPadX = 3, chipH = 8;
@@ -782,11 +920,9 @@ export class ValidatePage implements OnInit, OnDestroy {
         doc.text(chipText, chipX + chipPadX, y2);
         doc.setTextColor(0);
 
-        // título grande
         doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
         doc.text(metric, M, y2);
 
-        // subtítulo (linhas)
         y = yTop + bannerH + 6;
         if (subLines?.length) {
           doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.setTextColor(90);
@@ -812,17 +948,16 @@ export class ValidatePage implements OnInit, OnDestroy {
       const MARGIN = M;
       const WID = W;
 
-      // ===== helpers de layout
       const section = (title: string) => {
         addPageIfNeeded(14);
-        doc.setFont('helvetica','bold'); doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
         doc.text(title, MARGIN, y);
         y += 7;
       };
       const para = (text: string) => {
         const t = this.normalizeAccents(text);
         const width = WID - 2 * MARGIN;
-        doc.setFont('helvetica','normal'); doc.setFontSize(11);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
         const lines = doc.splitTextToSize(t, width);
         addPageIfNeeded(lines.length * 5 + 2);
         doc.text(lines, MARGIN, y);
@@ -880,18 +1015,18 @@ export class ValidatePage implements OnInit, OnDestroy {
 
       const kvFullWidth = (label: string, value: string | number) => {
         const GAP = 2;
-        doc.setFont('helvetica','bold'); doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
         const lbl = this.normalizeAccents(label) + ': ';
         const lblW = doc.getTextWidth(lbl);
 
-        doc.setFont('helvetica','normal'); doc.setFontSize(11);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
         const maxW = WID - 2 * MARGIN - lblW - GAP;
         const lines = doc.splitTextToSize(this.normalizeAccents(String(value ?? '—')), maxW);
 
         addPageIfNeeded(Math.max(5, lines.length * 5) + 4);
-        doc.setFont('helvetica','bold'); doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
         doc.text(lbl, MARGIN, y);
-        doc.setFont('helvetica','normal'); doc.setFontSize(11);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
         doc.text(lines, MARGIN + lblW + GAP, y);
         y += Math.max(5, lines.length * 5) + 4;
       };
@@ -903,7 +1038,6 @@ export class ValidatePage implements OnInit, OnDestroy {
         arr.push([label, txt]);
       };
 
-      // ===== Dados do documento
       section('Dados do documento');
       const statusValue =
         (this.result?.status && String(this.result.status).trim()) ||
@@ -920,32 +1054,30 @@ export class ValidatePage implements OnInit, OnDestroy {
       }
       kvInlineTwoCols(rowStatusPattern);
 
-      if (pdfa && pdfa.bornDigital !== undefined) {
-        kvInlineTwoCols([ ['Nato digital', pdfa.bornDigital ? 'Sim' : 'Não'] ]);
+      if (pdfValidations && pdfValidations.bornDigital !== undefined) {
+        kvInlineTwoCols([['Nato digital', pdfValidations.bornDigital ? 'Sim' : 'Não']]);
       }
 
       hr();
 
-      // ===== Conformidade PDF/A
       section('Conformidade PDF/A');
       const pdfPairs: Array<[string, string | number]> = [];
-      if (pdfa && pdfa.isValid !== undefined) pushIf(pdfPairs, 'PDF/A', pdfa.isValid ? 'Válido' : 'Inválido');
-      if (pdfa && pdfa.isPDFACompliant !== undefined) pushIf(pdfPairs, 'Conformidade', pdfa.isPDFACompliant ? 'Sim' : 'Não');
-      if (pdfa && pdfa.pdfAStandard) pushIf(pdfPairs, 'Nível do PDF/A', pdfa.pdfAStandard);
+      if (pdfValidations && pdfValidations.isValid !== undefined) pushIf(pdfPairs, 'PDF/A', pdfValidations.isValid ? 'Válido' : 'Inválido');
+      if (pdfValidations && pdfValidations.isPDFACompliant !== undefined) pushIf(pdfPairs, 'Conformidade', pdfValidations.isPDFACompliant ? 'Sim' : 'Não');
+      if (pdfValidations && pdfValidations.pdfAStandard) pushIf(pdfPairs, 'Nível do PDF/A', pdfValidations.pdfAStandard);
       if (pdfPairs.length) kvInlineTwoCols(pdfPairs);
-      if (pdfa?.alertMessage) para(`Alerta: ${pdfa.alertMessage}`);
-      if (pdfa?.errorMessage) para(`Erro: ${pdfa.errorMessage}`);
+      if (pdfValidations?.alertMessage) para(`Alerta: ${pdfValidations.alertMessage}`);
+      if (pdfValidations?.errorMessage) para(`Erro: ${pdfValidations.errorMessage}`);
       hr();
 
-      // ===== Cabeçalho “Assinaturas” com badge à direita
       const drawAssinaturasHeader = (badgeText?: string) => {
         addPageIfNeeded(14);
         const yTop = y;
-        doc.setFont('helvetica','bold'); doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
         doc.text('Assinaturas', MARGIN, yTop);
 
         if (badgeText) {
-          doc.setFont('helvetica','bold'); doc.setFontSize(11);
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
           const textW = doc.getTextWidth(badgeText);
           doc.text(badgeText, W - MARGIN - textW, yTop);
         }
@@ -957,7 +1089,6 @@ export class ValidatePage implements OnInit, OnDestroy {
       else if (sigsList.length > 1) headerBadge = sigsList.every(s => s.signatureValid) ? 'Todas válidas' : 'Com falhas';
       drawAssinaturasHeader(headerBadge);
 
-      // ===== Assinaturas (com timestamps)
       if (sigsList.length === 0) {
         para('Não foram encontradas assinaturas no documento.');
       } else {
@@ -965,35 +1096,31 @@ export class ValidatePage implements OnInit, OnDestroy {
           addPageIfNeeded(28);
 
           const tipoTxt = this.sigTypeLabel(s);
-          const nome    = this.displayCN(s) ?? '—';
+          const nome = this.displayCN(s) ?? '—';
           const tipoPar = tipoTxt && tipoTxt !== '—' ? ` (${tipoTxt})` : '';
 
-          // Título do certificado (quebra automática)
-          doc.setFont('helvetica','bold'); doc.setFontSize(12);
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
           const maxW = W - 2 * MARGIN;
           const certTitle = `Certificado ${idx + 1}: ${nome}${tipoPar}`;
           const titleLines = doc.splitTextToSize(this.normalizeAccents(certTitle), maxW);
           doc.text(titleLines, MARGIN, y);
           y += Math.max(6, titleLines.length * 6);
 
-          // Subtítulo tipo/nível
           const subt = `${s.signatureType ?? ''} ${s.signatureLevel ?? ''}`.trim();
           if (subt) {
-            doc.setFont('helvetica','normal'); doc.setTextColor(90); doc.setFontSize(11);
+            doc.setFont('helvetica', 'normal'); doc.setTextColor(90); doc.setFontSize(11);
             const subLines = doc.splitTextToSize(this.normalizeAccents(subt), maxW);
             doc.text(subLines, MARGIN, y);
             y += subLines.length * 6;
             doc.setTextColor(0);
           }
 
-          // Data/hora da assinatura (usa signatureTime do backend original)
           if ((s as any).signatureTime) {
-            doc.setFont('helvetica','normal'); doc.setFontSize(11);
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
             doc.text(this.brDateShort((s as any).signatureTime), MARGIN, y);
             y += 6;
           }
 
-          // Pares principais
           const certPairs: Array<[string, string | number]> = [];
           const pushIfLocal = (arr: Array<[string, string | number]>, label: string, value?: any) => {
             if (value === undefined || value === null) return;
@@ -1011,7 +1138,6 @@ export class ValidatePage implements OnInit, OnDestroy {
 
           if (certPairs.length) kvInlineTwoCols(certPairs);
 
-          // Carimbos de tempo (se existirem)
           const tsList: any[] =
             (Array.isArray((s as any)?.timeStamps) && (s as any).timeStamps) ||
             (Array.isArray((s as any)?.timestamps) && (s as any).timestamps) ||
@@ -1020,7 +1146,7 @@ export class ValidatePage implements OnInit, OnDestroy {
 
           if (tsList.length) {
             addPageIfNeeded(14);
-            doc.setFont('helvetica','bold'); doc.setFontSize(11);
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
             doc.text('Carimbos de tempo', MARGIN, y);
             y += 6;
 
@@ -1046,24 +1172,31 @@ export class ValidatePage implements OnInit, OnDestroy {
           const tooltip = this.getSignatureTooltip(s as any);
           if (!s.signatureValid && tooltip) { para(`Detalhes da falha: ${tooltip}`); }
 
-          // AJUSTE: antes havia `hr(8)` sempre, o que somava com o `hr()` da seção seguinte.
-          // Agora só desenhamos o separador entre assinaturas, nunca após a última.
           if (idx < sigsList.length - 1) {
             hr(8);
           }
         });
       }
 
-      // ===== Apontamentos (como antes)
-      const notas: string [] = [];
-      const ef = this.geterrorfindings();
-      if (ef) notas.push(ef);
-      const statusTip = this.getStatusTooltip();
-      console.log('Debug');
-      console.log(statusTip);
-      
-      //if (this.result?.isValid === false && statusTip) notas.push(statusTip);
-      if (statusTip) notas.push(statusTip);
+      // <<< AJUSTE NOTAS DO RELATÓRIO >>>
+      // Monta UMA linha com mensagem curta + mensagem longa, sem duplicar texto
+      const notas: string[] = [];
+      const shortMsg = this.geterrorfindings(); // ex: "Um atributo proibido assinado está presente"
+      const longMsg = (this.errorFullMessage || this.getStatusTooltip() || '').trim();
+
+      if (shortMsg) {
+        if (longMsg && longMsg !== shortMsg) {
+          // curto + espaço + completo
+          notas.push(`${shortMsg} ${longMsg}`);
+        } else {
+          // só a curta
+          notas.push(shortMsg);
+        }
+      } else if (longMsg) {
+        // se não tiver curta, usa só a longa
+        notas.push(longMsg);
+      }
+      // >>> FIM AJUSTE <<<
 
       if (notas.length) {
         hr();
@@ -1071,11 +1204,10 @@ export class ValidatePage implements OnInit, OnDestroy {
         notas.forEach(n => para('' + n));
       }
 
-      // ===== Rodapé com numeração de páginas
       const pageCount = doc.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
-        doc.setFont('helvetica','normal'); doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
         doc.setTextColor(120);
         doc.text(`Gerado por ValidaDocs • ${new Date().toLocaleString('pt-BR')}`, M, H - 6);
         doc.text(`${i} / ${pageCount}`, W - M, H - 6, { align: 'right' });
@@ -1086,6 +1218,8 @@ export class ValidatePage implements OnInit, OnDestroy {
       doc.save(`ValidaDocs_${base}.pdf`);
     } catch (e: any) {
       this.error = 'Falha ao gerar o relatório PDF: ' + (e?.message || e);
+      this.errorFullMessage = null;
+      this.showErrorModal = false;
       console.error('Export PDF error', e);
     } finally {
       this.exporting = false;

@@ -4,7 +4,9 @@ import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonButton,
   IonCard, IonCardContent, IonGrid, IonRow, IonCol,
   IonSelect, IonSelectOption, IonSearchbar, IonBadge, IonChip,
-  IonSkeletonText, IonLabel, IonItem } from '@ionic/angular/standalone';
+  IonSkeletonText, IonLabel, IonItem,
+  IonPopover, IonDatetime
+} from '@ionic/angular/standalone';
 import { FormsModule } from '@angular/forms';
 import { UserTokenMockService, UserTokenView } from 'src/app/services/user-token.mock.service';
 
@@ -25,7 +27,8 @@ type EngineMode = 'ITI' | 'SDK';
 @Component({
   standalone: true,
   selector: 'app-users-tokens',
-  imports: [IonItem, IonLabel,
+  imports: [
+    IonItem, IonLabel, IonPopover, IonDatetime,
     CommonModule, FormsModule,
     IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonButton,
     IonCard, IonCardContent, IonGrid, IonRow, IonCol,
@@ -36,32 +39,20 @@ type EngineMode = 'ITI' | 'SDK';
 })
 export class UsersTokensPage implements OnInit {
 
+  // Helper: data de hoje (ISO local YYYY-MM-DD), compatível com ion-datetime
+  private getTodayLocalISO(): string {
+    const d = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+
   // modo/engine do segmento (ITI/SDK)
   engine = signal<EngineMode>('ITI');
 
-  async ngOnInit() {
-    // Carrega o valor salvo
-    const stored = localStorage.getItem('engine');
-    if (stored === 'ITI' || stored === 'SDK') {
-      this.engine.set(stored);
-    } else {
-      this.engine.set('ITI');
-      localStorage.setItem('engine', this.engine());
-    }
+  // Datas: já começam em "hoje"
+  startDate = signal<string>(this.getTodayLocalISO());
+  endDate   = signal<string>(this.getTodayLocalISO());
 
-    this.titleSvc.setTitle('ValidaDocs');
-    await this.fetchFromApi();
-
-    // Sempre que filtros mudarem, volta para página 1
-    effect(() => { void this.filtered(); this.page.set(1); });
-  }
-
-  async refresh(): Promise<void> {
-    await this.fetchFromApi();
-  }
-
-  // filtros
-  period = signal<'Todos' | '7d' | '30d' | '90d'>('Todos');
   status = signal<'Todos' | 'Ativo' | 'Inativo'>('Todos');
   query = signal<string>('');
 
@@ -84,11 +75,32 @@ export class UsersTokensPage implements OnInit {
     private titleSvc: Title,
   ) { }
 
+  async ngOnInit() {
+    // Carrega o valor salvo do engine
+    const stored = localStorage.getItem('engine');
+    if (stored === 'ITI' || stored === 'SDK') {
+      this.engine.set(stored);
+    } else {
+      this.engine.set('ITI');
+      localStorage.setItem('engine', this.engine());
+    }
+
+    this.titleSvc.setTitle('ValidaDocs');
+    await this.fetchFromApi();
+
+    // Sempre que filtros mudarem, volta para página 1
+    effect(() => { void this.filtered(); this.page.set(1); });
+  }
+
+  async refresh(): Promise<void> {
+    await this.fetchFromApi();
+  }
+
   // Novo método para selecionar engine via botões
   selectEngine(selected: 'ITI' | 'SDK') {
     this.engine.set(selected);
     localStorage.setItem('engine', selected);
-    this.page.set(1);  // Reseta a página como antes
+    this.page.set(1);
   }
 
   private async fetchFromApi(): Promise<void> {
@@ -140,6 +152,14 @@ export class UsersTokensPage implements OnInit {
       status: active ? 'Ativo' : 'Inativo',
       qtd: (r as any)?.validation_count ?? 0,
     };
+  }
+
+  // Limpa datas → volta ambas para HOJE
+  clearDates() {
+    const today = this.getTodayLocalISO();
+    this.startDate.set(today);
+    this.endDate.set(today);
+    this.page.set(1);
   }
 
   logout() {
@@ -325,28 +345,42 @@ export class UsersTokensPage implements OnInit {
   }
 
   private escapeRegExp(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
 
+  // Lógica de filtragem considerando apenas dia/mês (ignora ano)
   filtered = computed(() => {
     const q = (this.query() || '').toLowerCase().trim();
     const st = this.status();
-    const pd = this.period();
-    // const et = this.engine(); // disponível caso queira filtrar por engine
 
-    const inPeriod = (iso: string) => {
-      if (!iso) return false;
-      if (pd === 'Todos') return true;
-      const days = pd === '7d' ? 7 : pd === '30d' ? 30 : 90;
-      const t = new Date(iso as any).getTime();
-      const min = Date.now() - days * 24 * 60 * 60 * 1000;
-      return t >= min;
+    const start = this.startDate();
+    const end = this.endDate();
+
+    // Normaliza data para comparar por dia/mês (fixa ano 2000)
+    const normalizeDate = (iso: string): Date | null => {
+      if (!iso) return null;
+      const d = new Date(iso);
+      return new Date(2000, d.getUTCMonth(), d.getUTCDate());
+    };
+
+    let startNormalized: Date | null = null;
+    if (start) startNormalized = normalizeDate(start);
+
+    let endNormalized: Date | null = null;
+    if (end) endNormalized = normalizeDate(end);
+
+    const matchesDate = (iso: string) => {
+      if (!iso) return true;
+      const recordNormalized = normalizeDate(iso);
+      if (!recordNormalized) return true;
+
+      if (startNormalized && recordNormalized.getTime() < startNormalized.getTime()) return false;
+      if (endNormalized && recordNormalized.getTime() > endNormalized.getTime()) return false;
+
+      return true;
     };
 
     return this.rows().filter(r => {
-      // Se quiser filtrar por engine no futuro:
-      // const matchesEngine = (r as any).engineType ? (r as any).engineType === et : true;
-
       const matchesQ =
         r.nome.toLowerCase().includes(q) ||
         r.email.toLowerCase().includes(q) ||
@@ -355,9 +389,11 @@ export class UsersTokensPage implements OnInit {
         r.token.includes(q);
 
       const matchesSt = st === 'Todos' ? true : r.status === st;
-      const matchesPd = inPeriod(r.createdAt) || inPeriod(r.expiresAt);
 
-      return matchesQ && matchesSt && matchesPd; // && matchesEngine
+      // Filtra por datas de criação OU expiração (apenas DD/MM)
+      const matchesDt = matchesDate(r.createdAt) || matchesDate(r.expiresAt);
+
+      return matchesQ && matchesSt && matchesDt;
     });
   });
 

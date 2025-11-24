@@ -13,24 +13,78 @@
 
 <ion-content fullscreen>
   <div class="wrap">
-    <!-- Filtros + Busca + Botões ITI/SDK -->
     <div class="toolbar">
-      <!-- Período -->
-      <ion-item lines="none" class="compact">
-        <ion-label>Período</ion-label>
-        <ion-select
-          [value]="period()"
-          interface="popover"
-          class="select-filter"
-          (ionChange)="period.set($any($event.detail.value))">
-          <ion-select-option value="Todos">Todos</ion-select-option>
-          <ion-select-option value="7d">Últimos 7 dias</ion-select-option>
-          <ion-select-option value="30d">Últimos 30 dias</ion-select-option>
-          <ion-select-option value="90d">Últimos 90 dias</ion-select-option>
-        </ion-select>
-      </ion-item>
+      <div class="date-filters-wrap">
+        <!-- De -->
+        <ion-item lines="none" class="compact date-item start-date-item">
+          <ion-button
+            id="startDateBtn"
+            class="select-filter"
+            fill="outline"
+            size="small"
+            color="medium"
+            style="--border-radius:6px"
+            aria-label="De: Data inicial">
+            {{ startDate() ? (startDate() | date:'dd/MM') : '__/__' }}
+          </ion-button>
+        </ion-item>
 
-      <!-- Status -->
+        <!-- Até -->
+        <ion-item lines="none" class="compact date-item end-date-item">
+          <ion-button
+            id="endDateBtn"
+            class="select-filter"
+            fill="outline"
+            size="small"
+            color="medium"
+            style="--border-radius:6px"
+            aria-label="Até: Data final">
+            {{ endDate() ? (endDate() | date:'dd/MM/yyyy') : '__/__/____' }}
+          </ion-button>
+        </ion-item>
+
+        <!-- Limpar (mesmo estilo cinza dos filtros) -->
+        <ion-button
+          fill="outline"
+          size="small"
+          color="medium"
+          style="--border-radius:6px"
+          class="compact clear-dates-btn"
+          [disabled]="!startDate() && !endDate()"
+          (click)="clearDates()">
+          Limpar
+        </ion-button>
+      </div>
+
+      <!-- Popover do "De" -->
+      <ion-popover trigger="startDateBtn" [keepContentsMounted]="true">
+        <ng-template>
+          <ion-datetime
+            presentation="date"
+            locale="pt-BR"
+            showDefaultButtons="true"
+            [value]="startDate()"
+            (ionChange)="startDate.set($any($event.detail.value)); page.set(1)"
+            [max]="endDate() || undefined">
+          </ion-datetime>
+        </ng-template>
+      </ion-popover>
+
+      <!-- Popover do "Até" -->
+      <ion-popover trigger="endDateBtn" [keepContentsMounted]="true">
+        <ng-template>
+          <ion-datetime
+            presentation="date"
+            locale="pt-BR"
+            showDefaultButtons="true"
+            [value]="endDate()"
+            (ionChange)="endDate.set($any($event.detail.value)); page.set(1)"
+            [min]="startDate() || undefined">
+          </ion-datetime>
+        </ng-template>
+      </ion-popover>
+
+      <!-- Status (não alterado) -->
       <ion-item lines="none" class="compact">
         <ion-label>Status</ion-label>
         <ion-select
@@ -52,25 +106,6 @@
         (ionInput)="query.set($event.detail.value ?? '')"
         (keyup.enter)="page.set(1)">
       </ion-searchbar>
-
-      <!-- Botões ITI / SDK (clean, pill e pequenos) -->
-      <!-- <div class="engine-buttons">
-        <ion-button
-          size="small"
-          [fill]="engine() === 'ITI' ? 'solid' : 'outline'"
-          (click)="selectEngine('ITI')"
-          class="engine-btn">
-          ITI
-        </ion-button>
-
-        <ion-button
-          size="small"
-          [fill]="engine() === 'SDK' ? 'solid' : 'outline'"
-          (click)="selectEngine('SDK')"
-          class="engine-btn">
-          SDK
-        </ion-button>
-      </div> -->
     </div>
 
     <!-- Lista -->
