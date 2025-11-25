@@ -231,39 +231,7 @@
         <!-- Direita -->
         <ion-col size="12" size-lg="6" class="right">
 
-          <!-- Apontamentos -->
-          <ion-card class="errorfindings-card"
-                    *ngIf="getStatusNotes().length">
-
-            <ion-card-header class="card-title-row">
-              <ion-card-title>Apontamentos da Validação</ion-card-title>
-            </ion-card-header>
-
-            <ion-card-content>
-              <ion-list>
-
-                <!-- Apenas mensagens amarelas + ver detalhes na primeira -->
-                <ion-item *ngFor="let note of getStatusNotes(); let i = index" class="finding">
-                  <ion-label class="ion-text-wrap finding-label">
-                    <span class="warning-text">{{ note }}</span>
-
-                    <!-- 'ver detalhes' só na primeira linha e na mesma frase -->
-                    <!-- <button
-                      type="button"
-                      class="link-button"
-                      *ngIf="i === 0 && errorFullMessage"
-                      (click)="openErrorDetails()">
-                      ver detalhes
-                    </button> -->
-                    <span class="see-details" (click)="openErrorDetails()"> (Ver detalhes.) </span>
-                  </ion-label>
-                </ion-item>
-
-              </ion-list>
-            </ion-card-content>
-          </ion-card>
-
-          <!-- Detalhes do Documento -->
+          <!-- Detalhes do Documento (inclui PDF/A) -->
           <ion-card class="details-card">
             <ion-card-header>
               <ion-card-title>Sobre o Documento</ion-card-title>
@@ -308,58 +276,51 @@
                 </div>
               </ion-item>
 
-            </ion-card-content>
-          </ion-card>
-
-          <!-- PDF/A -->
-          <ion-card>
-            <ion-card-header>
-              <ion-card-title>PDF/A Compliance</ion-card-title>
-            </ion-card-header>
-
-            <ion-card-content>
-              <ion-list class="info-list">
-
+              <!-- PDF/A DENTRO DO BLOCO "Sobre o Documento" -->
+              <ng-container *ngIf="r.validaDocsReturn?.pdfValidations as pdf">
                 <ion-item lines="full">
                   <ion-label class="with-help">PDF/A</ion-label>
                   <div slot="end">
-                    <ion-badge class="pill" [color]="r.validaDocsReturn?.pdfValidations?.isValid ? 'success' : 'danger'">
-                      {{ r.validaDocsReturn?.pdfValidations?.isValid ? 'Sim' : 'Não' }}
+                    <ion-badge class="pill"
+                               [color]="pdf.isPDFACompliant === false ? 'danger' : 'success'">
+                      {{
+                        pdf.isPDFACompliant === true ? 'Sim' :
+                        pdf.isPDFACompliant === false ? 'Não' : '—'
+                      }}
                     </ion-badge>
                   </div>
                 </ion-item>
 
                 <ion-item lines="full">
-                  <ion-label class="with-help">Está em conformidade com padrão?</ion-label>
+                  <ion-label class="with-help">Nível do PDF/A</ion-label>
                   <div slot="end">
-                    <ion-badge class="pill" [color]="r.validaDocsReturn?.pdfValidations?.isPDFACompliant ? 'success' : 'danger'">
-                      {{ r.validaDocsReturn?.pdfValidations?.isPDFACompliant ? 'Sim' : 'Não' }}
-                    </ion-badge>
+                    <ion-note>{{ pdf.pdfAStandard || 'Desconhecido' }}</ion-note>
                   </div>
                 </ion-item>
+              </ng-container>
 
-                <ion-item lines="full">
-                  <ion-label class="with-help">Nível</ion-label>
-                  <div slot="end">
-                    <ion-note>{{ r.validaDocsReturn?.pdfValidations?.pdfAStandard || 'Desconhecido' }}</ion-note>
-                  </div>
-                </ion-item>
+            </ion-card-content>
+          </ion-card>
 
-                <ion-item *ngIf="r.validaDocsReturn?.pdfValidations?.alertMessage" lines="full">
-                  <ion-label>Alerta</ion-label>
-                  <div slot="end">
-                    <ion-note color="warning">{{ r.validaDocsReturn?.pdfValidations?.alertMessage }}</ion-note>
-                  </div>
-                </ion-item>
+          <!-- Apontamentos da Validação (apenas 1 linha curta + ver detalhes) -->
+          <ion-card class="errorfindings-card" *ngIf="hasFindings">
 
-                <ion-item *ngIf="r.validaDocsReturn?.pdfValidations?.errorMessage" lines="full">
-                  <ion-label>Erro</ion-label>
-                  <div slot="end">
-                    <ion-note color="danger">{{ r.validaDocsReturn?.pdfValidations?.errorMessage }}</ion-note>
-                  </div>
-                </ion-item>
+            <ion-card-header class="card-title-row">
+              <ion-card-title>Apontamentos da Validação</ion-card-title>
+            </ion-card-header>
 
-              </ion-list>
+            <ion-card-content>
+              <ion-item class="finding" lines="none">
+                <ion-label class="ion-text-wrap finding-label">
+                  <span class="warning-text">{{ shortFinding }}</span>
+                  <span
+                    *ngIf="errorFullMessage"
+                    class="see-details"
+                    (click)="openErrorDetails()">
+                    (Ver detalhes.)
+                  </span>
+                </ion-label>
+              </ion-item>
             </ion-card-content>
           </ion-card>
 

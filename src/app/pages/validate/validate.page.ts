@@ -31,7 +31,7 @@ type ExtSignature = SignatureInfo & {
   signerName?: string;
   certificateStartDate?: string | number;
   certificateEndDate?: string | number;
-  signingTime?: string | number; // <--- PROPRIEDADE ADICIONADA
+  signingTime?: string | number;
 };
 
 @Component({
@@ -256,7 +256,7 @@ export class ValidatePage implements OnInit, OnDestroy {
   onFileChange(ev: Event) {
     const input = ev.target as HTMLInputElement;
     const f = input?.files?.[0] ?? null;
-       if (!f) return;
+    if (!f) return;
 
     const name = f.name.toLowerCase();
 
@@ -491,7 +491,6 @@ export class ValidatePage implements OnInit, OnDestroy {
         if (typeof mappedFullError === 'string' && mappedFullError.trim()) {
           this.errorFullMessage = mappedFullError.trim();
         } else if (friendlyMessages.length) {
-          // aqui usamos TODAS as mensagens amigáveis como texto completo
           this.errorFullMessage = friendlyMessages.join('\n\n');
         } else {
           this.errorFullMessage = null;
@@ -749,6 +748,20 @@ export class ValidatePage implements OnInit, OnDestroy {
     return '';
   }
 
+  // >>> NOVOS GETTERS PARA APRESENTAÇÃO DOS APONTAMENTOS <<<
+  get shortFinding(): string {
+    const txt = (this.geterrorfindings() || '').trim();
+    if (txt) return txt;
+
+    const notes = this.getStatusNotes();
+    return notes.length ? notes[0] : '';
+  }
+
+  get hasFindings(): boolean {
+    return !!this.shortFinding;
+  }
+  // <<< FIM NOVOS GETTERS >>>
+
   private extractCN(subject?: string): string {
     if (!subject) return '—';
     const re = /(?:^|[,/])\s*CN\s*=\s*([^,\/]+)/gi;
@@ -903,26 +916,37 @@ export class ValidatePage implements OnInit, OnDestroy {
         const bannerH = 30;
         const yTop = y;
 
+        // fundo do bloco
         doc.setFillColor(...([248, 250, 252] as [number, number, number]));
         doc.roundedRect(M, yTop, bannerW, bannerH, 2, 2, 'F');
 
+        // linha base para o título (métrica)
         const y2 = yTop + bannerH - padY - 5;
+
+        // chip
         doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
         const chipPadX = 3, chipH = 8;
         const chipW = doc.getTextWidth(chipText) + chipPadX * 2;
         const chipX = M + bannerW - padX - chipW;
-        const chipY = y2 - chipH + 2;
+
+        // NOVO: posiciona o chip na vertical, centralizado dentro do banner
+        const chipY = yTop + (bannerH - chipH) / 2;
 
         const chipColorRgb = (chipColorOk ? [34, 197, 94] : [245, 158, 11]) as [number, number, number];
         doc.setFillColor(chipColorRgb[0], chipColorRgb[1], chipColorRgb[2]);
         doc.setTextColor(255);
         doc.roundedRect(chipX, chipY, chipW, chipH, 2, 2, 'F');
-        doc.text(chipText, chipX + chipPadX, y2);
-        doc.setTextColor(0);
 
+        // NOVO: texto centralizado verticalmente no chip
+        const chipTextY = chipY + chipH / 2 + 1.3;
+        doc.text(chipText, chipX + chipPadX, chipTextY);
+
+        // métrica (ex: "1 Assinatura encontrada")
+        doc.setTextColor(0);
         doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
         doc.text(metric, M, y2);
 
+        // subtítulos (data, versão)
         y = yTop + bannerH + 6;
         if (subLines?.length) {
           doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.setTextColor(90);
@@ -1054,21 +1078,22 @@ export class ValidatePage implements OnInit, OnDestroy {
       }
       kvInlineTwoCols(rowStatusPattern);
 
+      // NATO DIGITAL
       if (pdfValidations && pdfValidations.bornDigital !== undefined) {
         kvInlineTwoCols([['Nato digital', pdfValidations.bornDigital ? 'Sim' : 'Não']]);
       }
 
+      // PDF/A + NÍVEL (conforme front)
+      const pdfALabel = this.result?.validaDocsReturn?.pdfValidations?.isPDFACompliant ? 'Sim' : 'Não';
+      const pdfALevel = this.result?.validaDocsReturn?.pdfValidations?.pdfAStandard || 'Desconhecido';
+      kvInlineTwoCols([
+        ['PDF/A', pdfALabel],
+        ['Nível do PDF/A', pdfALevel]
+      ]);
+
       hr();
 
-      section('Conformidade PDF/A');
-      const pdfPairs: Array<[string, string | number]> = [];
-      if (pdfValidations && pdfValidations.isValid !== undefined) pushIf(pdfPairs, 'PDF/A', pdfValidations.isValid ? 'Válido' : 'Inválido');
-      if (pdfValidations && pdfValidations.isPDFACompliant !== undefined) pushIf(pdfPairs, 'Conformidade', pdfValidations.isPDFACompliant ? 'Sim' : 'Não');
-      if (pdfValidations && pdfValidations.pdfAStandard) pushIf(pdfPairs, 'Nível do PDF/A', pdfValidations.pdfAStandard);
-      if (pdfPairs.length) kvInlineTwoCols(pdfPairs);
-      if (pdfValidations?.alertMessage) para(`Alerta: ${pdfValidations.alertMessage}`);
-      if (pdfValidations?.errorMessage) para(`Erro: ${pdfValidations.errorMessage}`);
-      hr();
+      // (removido bloco antigo "Conformidade PDF/A")
 
       const drawAssinaturasHeader = (badgeText?: string) => {
         addPageIfNeeded(14);
@@ -1178,25 +1203,20 @@ export class ValidatePage implements OnInit, OnDestroy {
         });
       }
 
-      // <<< AJUSTE NOTAS DO RELATÓRIO >>>
-      // Monta UMA linha com mensagem curta + mensagem longa, sem duplicar texto
+      // NOTAS
       const notas: string[] = [];
-      const shortMsg = this.geterrorfindings(); // ex: "Um atributo proibido assinado está presente"
+      const shortMsg = this.geterrorfindings();
       const longMsg = (this.errorFullMessage || this.getStatusTooltip() || '').trim();
 
       if (shortMsg) {
         if (longMsg && longMsg !== shortMsg) {
-          // curto + espaço + completo
           notas.push(`${shortMsg} ${longMsg}`);
         } else {
-          // só a curta
           notas.push(shortMsg);
         }
       } else if (longMsg) {
-        // se não tiver curta, usa só a longa
         notas.push(longMsg);
       }
-      // >>> FIM AJUSTE <<<
 
       if (notas.length) {
         hr();
