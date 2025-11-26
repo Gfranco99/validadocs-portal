@@ -25,6 +25,8 @@ export class HomePage {
   private title = inject(Title);
   private router = inject(Router);
 
+  public APP_VERSION = '1.0.0'; // Versão do aplicativo
+
   constructor(
     private authService: AuthService,
     private alertCtrl: AlertController,

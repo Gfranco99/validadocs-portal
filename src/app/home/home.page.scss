@@ -140,3 +140,10 @@ ion-toolbar::part(container), ion-toolbar::part(background) { box-shadow: none !
   text-decoration: underline;
 }
 
+.footer-version {
+  font-size: 0.75rem;       /* fonte pequena */
+  color: #6c757d;           /* cinza suave */
+  text-align: center;       /* centralizado */
+  font-weight: 300;         /* peso leve */
+  letter-spacing: 0.5px;    /* espaçamento sutil */
+}
