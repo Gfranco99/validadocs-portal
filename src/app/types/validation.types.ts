@@ -1,7 +1,18 @@
-
-export type CertAuthority = 'ICP-Brasil' | 'Gov.br' | 'Enotariado' | 'ICP-RC';
+export type CertAuthority = 'ICP-Brasil' | 'Gov.br' | 'Enotariado' | 'ICP-RC' | 'Desconhecida';
 export type SignatureKind = 'Qualificada' | 'Avancada' | 'Desconhecida';
 export type SignatureStandard = 'PAdES' | 'XAdES' | 'CAdES' | 'Outro';
+
+export interface SignatureAlertEntry {
+  id?: string | null;
+  description?: string | null;
+  message?: string | null;
+}
+
+export interface CertPathIssueEntry {
+  id?: string | null;
+  description?: string | null;
+  message?: string | null;
+}
 
 export interface CertificateInfo {
   subjectCN: string;
@@ -18,51 +29,62 @@ export interface ValidaDocsReturn {
 }
 
 export interface SignatureInfo {
-  endCertSubjectName: string;
-  signerName: string;
-  cpf: string;
-  signatureLevel: SignatureKind;
-  signatureType: SignatureStandard;  
-  qualified?: CertAuthority;
-  signatureTime?: string;
   signatureValid: boolean;
-  cardImageUrl?: string;
+  signatureErrors?: any;
+  signatureErrorsDetailed?: any;
+  signatureAlerts?: SignatureAlertEntry[] | null;
+  endCertSubjectName: string;
+
+  certificateStartDate?: string | null;
+  certificateEndDate?: string | null;
+
   isICP: boolean;
-	iseGov: boolean;
-  signatureErrors: string;
-	signatureAlerts: string;
-  certPathValid: true;
-	certPathErrors: string;
-	certPathAlerts: string;
+  iseGov: boolean;
+
   rootIssuer: string;
-  certificateStartDate?: string;
-  certificateEndDate?: string;
-  policyURI?: string;
+  signatureType?: string | null;
+  policy?: string | null;
+  policyURI?: string | null;
+  signatureLevel?: string | null;
   trustedRoot: string;
+  timeStamps?: any;
+
+  signerName?: string;
+  cpf?: string;
+  cardImageUrl?: string;
+  signatureTime?: string;
+  qualified?: CertAuthority;
+  certPathValid?: boolean;
+  certPathErrors?: CertPathIssueEntry[] | string | null;
+  certPathAlerts?: CertPathIssueEntry[] | string | null;
 }
 
 export interface PdfaInfo {
-  isValid: boolean;
-  pdfAStandard: string;
-  status: string;	
-	bornDigital: boolean;
-	isPDFACompliant: boolean;
-	errorMessage: string;
-  alertMessage: string;
+  status?: string;
+  isValid?: boolean;
+  bornDigital?: boolean;
+  isPDFACompliant?: boolean;
+  pdfAStandard?: string | null;
+  errorMessage?: string | null;
+  alertMessage?: string | null;
 }
 
 export interface ValidationResult {
-  fileName: string;
-  validationTime: string;
-  isValid: boolean;  
-  signatureType: SignatureStandard;
-  status: string;
-  softwareVersion: string;
-  policy: string; 
-  elapsedTime: number;
-  errorMessage: string;
+  status?: string;
+  isValid: boolean;
+  lpaValid?: boolean;
+
+  softwareVersion?: string;
+  errorMessage?: string | null;
+  signatureType?: string | null;
+  fileName?: string;
+  elapsedTime?: number;
+  validationTime?: string;
+
+  policy?: string | null;
 
   validaDocsReturn: ValidaDocsReturn;
-  certificates: CertificateInfo[];
-  errorfindings: string[];
+
+  certificates?: CertificateInfo[];
+  errorfindings?: string[];
 }
