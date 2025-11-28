@@ -25,7 +25,6 @@ import { LoadingController } from '@ionic/angular';
 import { TrustedRoot } from 'src/app/enum/enum';
 import { ErrorModalComponent } from 'src/app/components/error-modal/error-modal.component';
 
-// MODIFICAÇÃO: Adicionar 'signingTime' ao tipo ExtSignature
 type ExtSignature = SignatureInfo & {
   cpf?: string;
   signerName?: string;
@@ -70,7 +69,7 @@ export class ValidatePage implements OnInit, OnDestroy {
   exporting = false;
   error?: string;
 
-  // mensagem longa vinda do mapeamento (ErrorsMapping/id ou friendlyMessages)
+  // mensagem longa exibida no modal "Ver detalhes"
   errorFullMessage: string | null = null;
 
   // estado do modal de erro detalhado
@@ -80,7 +79,7 @@ export class ValidatePage implements OnInit, OnDestroy {
 
   // ====== Estado específico do .p7s ======
   p7sBytes?: ArrayBuffer;
-  pdfBytes?: ArrayBuffer; // PDF original (para .p7s detached)
+  pdfBytes?: ArrayBuffer;
   p7sSummary?: P7sSummary;
   p7sOk?: boolean;
   p7sReason?: string;
@@ -109,16 +108,16 @@ export class ValidatePage implements OnInit, OnDestroy {
     });
   }
 
-  // MODIFICAÇÃO: Adiciona o método 'friendlyError'
+  // ================== ERROS HTTP ==================
   private friendlyError(err: any): string {
     const defaultMsg = 'Ocorreu um erro desconhecido durante a validação.';
-    if (err.error && typeof err.error === 'string') {
+    if (err?.error && typeof err.error === 'string') {
       return err.error;
     }
-    if (err.message && typeof err.message === 'string') {
+    if (err?.message && typeof err.message === 'string') {
       return err.message;
     }
-    if (err.status === 401) {
+    if (err?.status === 401) {
       this.auth.logout();
       this.router.navigateByUrl('/login');
       return 'Sessão expirada. Por favor, faça login novamente.';
@@ -136,7 +135,6 @@ export class ValidatePage implements OnInit, OnDestroy {
     }
   }
 
-  /** Engine atual calculado a partir dos checkboxes */
   get engine(): 'ITI' | 'SDK' {
     return this.form.controls.engineSDK.value ? 'SDK' : 'ITI';
   }
@@ -162,7 +160,6 @@ export class ValidatePage implements OnInit, OnDestroy {
   }
 
   // ===== Helpers para Carimbos de Tempo =====
-
   get timeStamps(): any[] {
     const r: any = this.result as any;
 
@@ -260,7 +257,6 @@ export class ValidatePage implements OnInit, OnDestroy {
 
     const name = f.name.toLowerCase();
 
-    // sempre que trocar de arquivo, limpamos mensagem longa e modal
     this.errorFullMessage = null;
     this.showErrorModal = false;
 
@@ -354,7 +350,7 @@ export class ValidatePage implements OnInit, OnDestroy {
 
   clearP7s() {
     this.p7sBytes = undefined;
-    this.pdfBytes = this.pdfBytes; // mantém o PDF
+    this.pdfBytes = this.pdfBytes;
     this.p7sSummary = undefined;
     this.p7sOk = undefined;
     this.p7sReason = undefined;
@@ -463,39 +459,38 @@ export class ValidatePage implements OnInit, OnDestroy {
             (a as any).notAfter,
         }));
 
-        // ====== mensagem curta + mensagem completa do mapeamento ======
-        const anyRes: any = res;
-        const mappedFullError =
-          anyRes?.fullErrorMessage ||
-          anyRes?.validaDocsReturn?.fullErrorMessage;
+        // ====== Apontamentos da validação (SOMENTE JSON REAL) ======
+        const findings: string[] = [];
+        const sigAny = (res.validaDocsReturn?.digitalSignatureValidations as any[]) ?? [];
 
-        // friendlyMessages vindo do backend (se existir)
-        const friendlyMessages: string[] = Array.isArray(anyRes?.friendlyMessages)
-          ? anyRes.friendlyMessages
-          : [];
+        for (const s of sigAny) {
+          const alerts = s?.signatureAlerts;
 
-        // array para Apontamentos da validação (mensagem curta)
-        res.errorfindings = new Array<string>();
-
-        // 1) erro curto padrão, se existir
-        if (res.errorMessage) {
-          res.errorfindings.push(res.errorMessage);
+          if (Array.isArray(alerts)) {
+            for (const a of alerts) {
+              if (a?.description) {
+                const txt = String(a.description).trim();
+                if (txt) findings.push(txt);
+              }
+            }
+          } else if (alerts && typeof alerts === 'object') {
+            if (alerts.description) {
+              const txt = String(alerts.description).trim();
+              if (txt) findings.push(txt);
+            }
+          } else if (typeof alerts === 'string') {
+            const txt = alerts.trim();
+            if (txt) findings.push(txt);
+          }
         }
 
-        // 2) Se não houver errorMessage, usa o primeiro friendlyMessage como resumo curto
-        if (!res.errorMessage && friendlyMessages.length > 0) {
-          res.errorfindings.push(friendlyMessages[0]);
+        if (!findings.length && res.errorMessage) {
+          const txt = String(res.errorMessage).trim();
+          if (txt) findings.push(txt);
         }
 
-        // guarda mensagem longa só para o modal
-        if (typeof mappedFullError === 'string' && mappedFullError.trim()) {
-          this.errorFullMessage = mappedFullError.trim();
-        } else if (friendlyMessages.length) {
-          this.errorFullMessage = friendlyMessages.join('\n\n');
-        } else {
-          this.errorFullMessage = null;
-        }
-        // =============================================================
+        res.errorfindings = Array.from(new Set(findings));
+        // ===========================================================
 
         const normalized: ValidationResult = {
           ...res,
@@ -524,11 +519,67 @@ export class ValidatePage implements OnInit, OnDestroy {
     });
   }
 
+  // ===== helper: pega o primeiro ID de signatureAlerts =====
+  private getFirstAlertId(): string | null {
+    const sigs = this.result?.validaDocsReturn?.digitalSignatureValidations as any[] || [];
+    for (const s of sigs) {
+      const alerts = s?.signatureAlerts;
+      if (Array.isArray(alerts)) {
+        const found = alerts.find((a: any) => a?.id);
+        if (found?.id) return String(found.id);
+      } else if (alerts && typeof alerts === 'object' && alerts.id) {
+        return String(alerts.id);
+      }
+    }
+    return null;
+  }
+
+  // Getter para controlar exibição do link "(Ver detalhes.)" no HTML
+  get hasDetailsLink(): boolean {
+    return this.hasFindings;
+  }
+
   // ===== controle do modal de erro completo =====
   openErrorDetails(): void {
-    if (this.errorFullMessage) {
-      this.showErrorModal = true;
+    console.log('aquii');
+
+    const id = this.getFirstAlertId();
+
+    // Se não tiver ID, opcionalmente pode tentar mostrar um fallback com os apontamentos
+    if (!id) {
+      const fallback =
+        (this.geterrorfindings() || '').trim() ||
+        this.getStatusNotes().join('\n\n').trim();
+
+      if (!fallback) return;
+
+      this.applyState(() => {
+        this.errorFullMessage = fallback;
+        this.showErrorModal = true;
+      });
+      return;
     }
+
+    // limpa mensagem anterior
+    this.errorFullMessage = null;
+
+    // Agora usamos a rota /errorDescription/:id do app.js
+    this.api.getErrorDescriptionById(id).subscribe({
+      next: (data) => {
+        const msg = (data?.description || data?.message || '').trim();
+
+        this.applyState(() => {
+          this.errorFullMessage = msg || 'Nenhuma orientação detalhada encontrada para este apontamento.';
+          this.showErrorModal = true;
+        });
+      },
+      error: () => {
+        this.applyState(() => {
+          this.errorFullMessage = 'Não foi possível carregar os detalhes deste apontamento no momento.';
+          this.showErrorModal = true;
+        });
+      }
+    });
   }
 
   closeErrorDetails(): void {
@@ -568,14 +619,16 @@ export class ValidatePage implements OnInit, OnDestroy {
     return this.result?.validaDocsReturn?.digitalSignatureValidations?.length ?? 0;
   }
 
-  getImgTrustedRoot(sig: ExtSignature): string {
+  getImgTrustedRoot(sig: SignatureInfo): string {
     const trustedRootMap: Record<TrustedRoot, string> = {
       [TrustedRoot.ICPBrasil]: 'assets/selo_validadocs_ICPBrasil.png',
       [TrustedRoot.GovBr]: 'assets/selo_validadocs_GovBr.png',
       [TrustedRoot.eNotariado]: 'assets/selo_validadocs_Enotariado.png',
       [TrustedRoot.ICPRC]: 'assets/selo_validadocs_ICPRC.png'
     };
-    return trustedRootMap[sig.trustedRoot as TrustedRoot] ?? 'assets/selo_validadocs_Avançada.png';
+
+    const root = sig.trustedRoot as TrustedRoot;
+    return trustedRootMap[root] ?? 'assets/selo_validadocs_Avançada.png';
   }
 
   sigMetric(): string {
@@ -695,7 +748,6 @@ export class ValidatePage implements OnInit, OnDestroy {
     return onlyOne ? '' : '';
   }
 
-  // AGORA baseado nas notas normalizadas
   getStatusTooltip(): string {
     const onlyOne = this.signatureCount() === 1;
     const reasons = this.getStatusNotes();
@@ -748,7 +800,7 @@ export class ValidatePage implements OnInit, OnDestroy {
     return '';
   }
 
-  // >>> NOVOS GETTERS PARA APRESENTAÇÃO DOS APONTAMENTOS <<<
+  // >>> GETTERS PARA O CARD "APONTAMENTOS DA VALIDAÇÃO" <<<
   get shortFinding(): string {
     const txt = (this.geterrorfindings() || '').trim();
     if (txt) return txt;
@@ -760,7 +812,7 @@ export class ValidatePage implements OnInit, OnDestroy {
   get hasFindings(): boolean {
     return !!this.shortFinding;
   }
-  // <<< FIM NOVOS GETTERS >>>
+  // <<< FIM GETTERS >>>
 
   private extractCN(subject?: string): string {
     if (!subject) return '—';
@@ -916,20 +968,16 @@ export class ValidatePage implements OnInit, OnDestroy {
         const bannerH = 30;
         const yTop = y;
 
-        // fundo do bloco
         doc.setFillColor(...([248, 250, 252] as [number, number, number]));
         doc.roundedRect(M, yTop, bannerW, bannerH, 2, 2, 'F');
 
-        // linha base para o título (métrica)
         const y2 = yTop + bannerH - padY - 5;
 
-        // chip
         doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
         const chipPadX = 3, chipH = 8;
         const chipW = doc.getTextWidth(chipText) + chipPadX * 2;
         const chipX = M + bannerW - padX - chipW;
 
-        // NOVO: posiciona o chip na vertical, centralizado dentro do banner
         const chipY = yTop + (bannerH - chipH) / 2;
 
         const chipColorRgb = (chipColorOk ? [34, 197, 94] : [245, 158, 11]) as [number, number, number];
@@ -937,16 +985,13 @@ export class ValidatePage implements OnInit, OnDestroy {
         doc.setTextColor(255);
         doc.roundedRect(chipX, chipY, chipW, chipH, 2, 2, 'F');
 
-        // NOVO: texto centralizado verticalmente no chip
         const chipTextY = chipY + chipH / 2 + 1.3;
         doc.text(chipText, chipX + chipPadX, chipTextY);
 
-        // métrica (ex: "1 Assinatura encontrada")
         doc.setTextColor(0);
         doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
         doc.text(metric, M, y2);
 
-        // subtítulos (data, versão)
         y = yTop + bannerH + 6;
         if (subLines?.length) {
           doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.setTextColor(90);
@@ -1055,13 +1100,6 @@ export class ValidatePage implements OnInit, OnDestroy {
         y += Math.max(5, lines.length * 5) + 4;
       };
 
-      const pushIf = (arr: Array<[string, string | number]>, label: string, value?: any) => {
-        if (value === undefined || value === null) return;
-        const txt = String(value).trim();
-        if (!txt || txt === '—' || txt === 'Desconhecido') return;
-        arr.push([label, txt]);
-      };
-
       section('Dados do documento');
       const statusValue =
         (this.result?.status && String(this.result.status).trim()) ||
@@ -1073,17 +1111,19 @@ export class ValidatePage implements OnInit, OnDestroy {
       const rowStatusPattern: Array<[string, string | number]> = [
         ['Status', statusValue],
       ];
-      if (this.result?.policy || this.result?.signatureType) {
-        rowStatusPattern.push(['Padrão de assinatura', this.result.policy ?? this.result.signatureType]);
+
+      const padraoAssinatura =
+        (this.result?.policy ?? this.result?.signatureType ?? '').toString().trim();
+
+      if (padraoAssinatura) {
+        rowStatusPattern.push(['Padrão de assinatura', padraoAssinatura]);
       }
       kvInlineTwoCols(rowStatusPattern);
 
-      // NATO DIGITAL
       if (pdfValidations && pdfValidations.bornDigital !== undefined) {
         kvInlineTwoCols([['Nato digital', pdfValidations.bornDigital ? 'Sim' : 'Não']]);
       }
 
-      // PDF/A + NÍVEL (conforme front)
       const pdfALabel = this.result?.validaDocsReturn?.pdfValidations?.isPDFACompliant ? 'Sim' : 'Não';
       const pdfALevel = this.result?.validaDocsReturn?.pdfValidations?.pdfAStandard || 'Desconhecido';
       kvInlineTwoCols([
@@ -1092,8 +1132,6 @@ export class ValidatePage implements OnInit, OnDestroy {
       ]);
 
       hr();
-
-      // (removido bloco antigo "Conformidade PDF/A")
 
       const drawAssinaturasHeader = (badgeText?: string) => {
         addPageIfNeeded(14);
@@ -1203,20 +1241,12 @@ export class ValidatePage implements OnInit, OnDestroy {
         });
       }
 
-      // NOTAS
       const notas: string[] = [];
-      const shortMsg = this.geterrorfindings();
-      const longMsg = (this.errorFullMessage || this.getStatusTooltip() || '').trim();
+      const shortMsg = this.geterrorfindings().trim();
+      const longMsg = (this.getStatusTooltip() || '').trim();
 
-      if (shortMsg) {
-        if (longMsg && longMsg !== shortMsg) {
-          notas.push(`${shortMsg} ${longMsg}`);
-        } else {
-          notas.push(shortMsg);
-        }
-      } else if (longMsg) {
-        notas.push(longMsg);
-      }
+      if (shortMsg) notas.push(shortMsg);
+      if (longMsg && longMsg !== shortMsg) notas.push(longMsg);
 
       if (notas.length) {
         hr();

@@ -1,36 +1,52 @@
-
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { EMPTY, Observable, of } from 'rxjs';
-import { delay } from 'rxjs/operators';
+import { Observable } from 'rxjs';
 import { ValidationResult } from '../types/validation.types';
-import { MOCK_VALIDATION } from './mock-validation';
 import { ConfigService } from './config/config.service';
+
+interface ErrorDescriptionResponse {
+  success: boolean;
+  description?: string;
+  message?: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class ValidationService {
-  
+
   private validadocsApi: string;
 
-  constructor(private http: HttpClient, private config: ConfigService) {
+  constructor(
+    private http: HttpClient,
+    private config: ConfigService
+  ) {
+    // Ex.: http://localhost:3000 ou URL do seu backend
     this.validadocsApi = this.config.validadocsApi;
-  }  
+  }
 
   validatePdf(file: File): Observable<ValidationResult> {
-    if (this.validadocsApi === 'mock') {
-      return of(MOCK_VALIDATION).pipe(delay(400));
-    }
-    //return EMPTY as Observable<ValidationResult>;
-
     const headers = new HttpHeaders({
       Authorization: 'Token 424B4F58517752616B7573372F6134644463584B5A43426F414A2F6B382B4B357A32546D76727A68466C414239776A4D4134736757767134614D594B50613757',
-      // 'Content-Type' deve ser omitido para FormData (será definido automaticamente pelo browser)
     });
 
     const form = new FormData();
     form.append('file', file, file.name);
-    form.append('userid', localStorage.getItem('userId') || ''); // adiciona userId
-    form.append('engine', localStorage.getItem('engine') || ''); // adiciona motor de validação ITI ou SDK
-    return this.http.post<ValidationResult>(`${this.validadocsApi}/verify`, form, {headers});
+    form.append('userid', localStorage.getItem('userId') || '');
+    form.append('engine', localStorage.getItem('engine') || '');
+
+    return this.http.post<ValidationResult>(
+      `${this.validadocsApi}/verify`,
+      form,
+      { headers }
+    );
+  }
+
+  /**
+   * ✅ Chama o app.js na rota /errorDescription/:id
+   * Essa rota usa a função getErrorDescriptionById do backend.
+   */
+  getErrorDescriptionById(id: string): Observable<ErrorDescriptionResponse> {
+    return this.http.get<ErrorDescriptionResponse>(
+      `${this.validadocsApi}/errorDescription/${id}`
+    );
   }
 }

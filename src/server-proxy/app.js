@@ -34,18 +34,23 @@ let userId = null;
  *  3) errorMessage
  */
 async function getErrorDescriptionById(id) {
-  if (!id && id !== 0) return null;
+  if (id === undefined || id === null || id === '') return null;
 
   try {
     const url = `https://homol2.validadocs.com.br/api/ErrorsMapping/id/${id}`;
 
     const httpsAgent = new https.Agent({
-      rejectUnauthorized: false // homol2 com certificado problemático em homol, OK
+      rejectUnauthorized: false // homol2 com certificado problemático em homol
     });
+
+    console.log("|Õ| Buscando descrição de erro para ID:", id);
 
     const res = await axios.get(url, {
       httpsAgent,
-      timeout: 15000
+      timeout: 15000,
+      headers: {
+        Authorization: `Token ${process.env.TOKEN}`,
+      },
     });
 
     const data = res.data || {};
@@ -57,119 +62,54 @@ async function getErrorDescriptionById(id) {
       null
     );
   } catch (err) {
-    console.error('Erro ao buscar descrição do erro (ErrorsMapping/id):', err.message);
-    return null; // não quebra o fluxo de validação se der erro aqui
+    console.error('Erro ao buscar descrição do erro (ErrorsMapping/id):', id, err.message);
+    return null; // não quebra o fluxo se der erro aqui
   }
 }
 
 /**
+ * Extrai todos os IDs de signatureAlerts do retorno da engine
+ * (digitalSignatureValidations[*].signatureAlerts[*].id)
+ * Hoje não está sendo usado diretamente, mas mantido caso precise no futuro.
+ */
+function collectSignatureAlertIds(engineData) {
+  const vdr = engineData?.validaDocsReturn;
+  const sigs = Array.isArray(vdr?.digitalSignatureValidations)
+    ? vdr.digitalSignatureValidations
+    : [];
+
+  const ids = new Set();
+
+  for (const s of sigs) {
+    if (!s) continue;
+    const alerts = s.signatureAlerts;
+    if (!alerts) continue;
+
+    const arr = Array.isArray(alerts) ? alerts : [alerts];
+    for (const a of arr) {
+      if (a && a.id) {
+        ids.add(String(a.id));
+      }
+    }
+  }
+
+  return Array.from(ids);
+}
+
+/**
  * Mapa local de códigos -> explicações amigáveis
- * (Você pode ir alimentando isso com os códigos que mais aparecem)
+ * (Mantido como fallback, mas o front NÃO usa mais isso)
  */
 const ERROR_CODE_MAP = {
   ForbiddenSignedAttributePresent:
     'O documento contém um atributo assinado que é proibido pelas regras da política de assinatura. ' +
     'Em geral, isso indica que o documento foi assinado com alguma informação adicional não permitida, ' +
     'o que pode impactar a conformidade, mesmo que a assinatura seja criptograficamente válida.'
-  // Exemplo de como adicionar mais:
-  // SomeOtherCode: 'Explicação amigável para o código SomeOtherCode...'
 };
 
-/**
- * Monta uma lista de mensagens “amigáveis” baseadas no retorno da engine
- * - Usa fullErrorMessage se existir
- * - Junta alerts/errors das assinaturas
- * - Junta alerts/errors do PDF/A
- */
-function buildFriendlyMessages(engineData) {
-  const msgs = [];
-
-  // 1) Mensagem longa mapeada (se existir)
-  if (engineData.fullErrorMessage) {
-    msgs.push(String(engineData.fullErrorMessage).trim());
-  } else if (engineData.validaDocsReturn?.fullErrorMessage) {
-    msgs.push(String(engineData.validaDocsReturn.fullErrorMessage).trim());
-  }
-
-  const vdr = engineData.validaDocsReturn || {};
-
-  // 2) Alerts/Errors das assinaturas
-  const sigs = Array.isArray(vdr.digitalSignatureValidations)
-    ? vdr.digitalSignatureValidations
-    : [];
-
-  for (const s of sigs) {
-    // signatureErrors
-    if (s.signatureErrors) {
-      const arr = Array.isArray(s.signatureErrors)
-        ? s.signatureErrors
-        : [s.signatureErrors];
-
-      for (const entry of arr) {
-        if (!entry) continue;
-
-        if (typeof entry === 'string') {
-          const txt = entry.trim();
-          if (txt) msgs.push(txt);
-        } else if (typeof entry === 'object') {
-          const desc =
-            (entry.description && String(entry.description).trim()) ||
-            (entry.message && String(entry.message).trim());
-
-          if (desc) msgs.push(desc);
-        }
-      }
-    }
-
-    // signatureAlerts
-    if (s.signatureAlerts) {
-      const arr = Array.isArray(s.signatureAlerts)
-        ? s.signatureAlerts
-        : [s.signatureAlerts];
-
-      for (const entry of arr) {
-        if (!entry) continue;
-
-        const code = entry.id || entry.code;
-        const desc = entry.description || entry.message;
-
-        // Texto que vem da engine
-        if (desc) {
-          const txt = String(desc).trim();
-          if (txt) msgs.push(txt);
-        }
-
-        // Texto extra que vem do nosso mapa interno
-        if (code && ERROR_CODE_MAP[code]) {
-          msgs.push(ERROR_CODE_MAP[code]);
-        }
-      }
-    }
-  }
-
-  // 3) PDF/A alerts/errors
-  const pdf = vdr.pdfValidations || {};
-  if (pdf.alertMessage) {
-    const txt = String(pdf.alertMessage).trim();
-    if (txt) msgs.push(txt);
-  }
-  if (pdf.errorMessage) {
-    const txt = String(pdf.errorMessage).trim();
-    if (txt) msgs.push(txt);
-  }
-
-  // Remove duplicadas e vazias
-  const clean = Array.from(
-    new Set(
-      msgs
-        .map(m => m.trim())
-        .filter(m => m && m !== '[object Object]')
-    )
-  );
-
-  return clean;
-}
-
+// ===================================================================
+// ROTA PRINCIPAL /verify
+// ===================================================================
 app.post('/verify', upload.single('file'), async (req, res) => {
   try {
     userId = req.body.userid;
@@ -177,9 +117,9 @@ app.post('/verify', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'userId é obrigatório' });
     }
 
-    let engine = req.body.engine || Engine.ITI; // Padrão para 'ITI' se não fornecido
+    let engine = req.body.engine || Engine.ITI; // Padrão para 'ITI'
     if (engine !== Engine.ITI && engine !== Engine.SDK) {
-      engine = Engine.ITI; // Força para 'ITI' se valor inválido
+      engine = Engine.ITI;
     }
     apiEngineValidation = engine === Engine.ITI ? process.env.API_URL_ITI : process.env.API_URL_SDK;
 
@@ -190,8 +130,6 @@ app.post('/verify', upload.single('file'), async (req, res) => {
     form.append('file', fileStream, req.file.originalname);
     form.append('language', 'pt-BR');
 
-    // ATENÇÃO: INSEGURO! Usar apenas para contornar o certificado expirado em desenvolvimento.
-    // NUNCA use em produção.
     const httpsAgent = new https.Agent({
       rejectUnauthorized: false
     });
@@ -214,42 +152,8 @@ app.post('/verify', upload.single('file'), async (req, res) => {
     // Limpa arquivo temporário
     fs.unlinkSync(filePath);
 
-    // ---------- ENRIQUECER COM DESCRIÇÃO E MENSAGENS AMIGÁVEIS ----------
+    // ---------- APENAS RETORNA O JSON DA ENGINE ----------
     const engineData = response.data || {};
-
-    // Tentamos achar o ID do erro em diferentes lugares
-    const rootErrorId =
-      engineData.errorMessageId ??
-      engineData.errorId ??
-      engineData.errorCode;
-
-    const nestedErrorId =
-      engineData?.validaDocsReturn?.errorMessageId ??
-      engineData?.validaDocsReturn?.errorId ??
-      engineData?.validaDocsReturn?.errorCode;
-
-    const errorIdToLookup = nestedErrorId ?? rootErrorId;
-
-    if (errorIdToLookup !== undefined && errorIdToLookup !== null) {
-      const fullDescription = await getErrorDescriptionById(errorIdToLookup);
-      if (fullDescription) {
-        // adiciona direto no objeto de retorno
-        engineData.fullErrorMessage = fullDescription;
-
-        // se tiver bloco validaDocsReturn, também pode anexar lá
-        if (!engineData.validaDocsReturn) {
-          engineData.validaDocsReturn = {};
-        }
-        engineData.validaDocsReturn.fullErrorMessage = fullDescription;
-      }
-    }
-
-    // Monta friendlyMessages (lista de textos explicativos)
-    const friendlyMessages = buildFriendlyMessages(engineData);
-    if (friendlyMessages.length) {
-      engineData.friendlyMessages = friendlyMessages;
-    }
-    // --------------------------------------------------------
 
     // Registra log do evento
     await logDB.logDBValidation(userId, "VERIFY_DOCUMENT", engine, engineData.isValid);
@@ -274,34 +178,45 @@ app.post('/verify', upload.single('file'), async (req, res) => {
   }
 });
 
-/**
- * ENDPOINT EXISTENTE:
- * Proxy para o mapeamento de todos os erros da engine
- * Front chama: GET /errors-mapping
- */
-// app.get('/errors-mapping', async (req, res) => {
-//   try {
-//     const httpsAgent = new https.Agent({
-//       rejectUnauthorized: false // se o homol2 tiver problema de certificado
-//     });
+// ===================================================================
+// NOVA ROTA: descrição detalhada de erro por ID
+// ===================================================================
+app.get('/errorDescription/:id', async (req, res) => {
+  const { id } = req.params;
 
-//     const response = await axios.get(
-//       'https://homol2.validadocs.com.br/api/ErrorsMapping/all',
-//       {
-//         httpsAgent,
-//         timeout: 15000
-//       }
-//     );
+  if (!id) {
+    return res.status(400).json({
+      success: false,
+      message: 'Parâmetro id é obrigatório'
+    });
+  }
 
-//     res.json(response.data);
-//   } catch (error) {
-//     console.error('Erro ao buscar ErrorsMapping:', error.message);
-//     res.status(500).json({
-//       error: 'Erro ao buscar mapeamento de erros',
-//       details: error.message
-//     });
-//   }
-// });
+  try {
+    const desc = await getErrorDescriptionById(id);
+
+    if (!desc) {
+      return res.status(404).json({
+        success: false,
+        message: 'Nenhuma descrição encontrada para este ID'
+      });
+    }
+
+    return res.json({
+      success: true,
+      description: String(desc).trim()
+    });
+  } catch (err) {
+    console.error('Erro na rota /errorDescription:', err.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro ao buscar a descrição do erro'
+    });
+  }
+});
+
+// ===================================================================
+// OUTRAS ROTAS (sem alterações)
+// ===================================================================
 
 app.post("/createPlan", auth.createCredentialWithPlan);
 app.post("/create", auth.createCredential);
