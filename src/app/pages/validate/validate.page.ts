@@ -71,7 +71,6 @@ export class ValidatePage implements OnInit, OnDestroy {
 
   // mensagem longa exibida no modal "Ver detalhes"
   errorFullMessage: string | null = null;
-
   // estado do modal de erro detalhado
   showErrorModal = false;
 
@@ -459,7 +458,7 @@ export class ValidatePage implements OnInit, OnDestroy {
             (a as any).notAfter,
         }));
 
-        // ====== Apontamentos da validação (SOMENTE JSON REAL) ======
+        // ====== Apontamentos da validação (somente JSON real) ======
         const findings: string[] = [];
         const sigAny = (res.validaDocsReturn?.digitalSignatureValidations as any[]) ?? [];
 
@@ -541,11 +540,9 @@ export class ValidatePage implements OnInit, OnDestroy {
 
   // ===== controle do modal de erro completo =====
   openErrorDetails(): void {
-    console.log('aquii');
-
     const id = this.getFirstAlertId();
 
-    // Se não tiver ID, opcionalmente pode tentar mostrar um fallback com os apontamentos
+    // Se não tiver ID, tenta mostrar fallback com apontamentos
     if (!id) {
       const fallback =
         (this.geterrorfindings() || '').trim() ||
@@ -563,7 +560,7 @@ export class ValidatePage implements OnInit, OnDestroy {
     // limpa mensagem anterior
     this.errorFullMessage = null;
 
-    // Agora usamos a rota /errorDescription/:id do app.js
+    // rota /errorDescription/:id no server_proxy
     this.api.getErrorDescriptionById(id).subscribe({
       next: (data) => {
         const msg = (data?.description || data?.message || '').trim();
@@ -719,35 +716,6 @@ export class ValidatePage implements OnInit, OnDestroy {
   }
 
   // ================= Tooltips =================
-  getStatusTooltipBK(): string {
-    const r = this.result;
-    if (!r || r.isValid !== false) return '';
-    const onlyOne = this.signatureCount() === 1;
-    const sigs = r.validaDocsReturn?.digitalSignatureValidations ?? [];
-    const reasons: string[] = [];
-
-    for (const s of sigs as ExtSignature[]) {
-      if (s.signatureValid === false) {
-        const errs = (s as any)?.signatureErrors as string[] | string | undefined;
-        const alts = (s as any)?.signatureAlerts as string[] | string | undefined;
-        if (errs) Array.isArray(errs) ? reasons.push(...errs) : reasons.push(String(errs));
-        else if (alts) Array.isArray(alts) ? reasons.push(...alts) : reasons.push(String(alts));
-        else {
-          if ((s as any)?.docModified) reasons.push('O documento foi alterado após a assinatura.');
-          if ((s as any)?.expired) reasons.push('O certificado do signatário está expirado.');
-          if ((s as any)?.revoked) reasons.push('O certificado do signatário foi revogado.');
-          if ((s as any)?.chainUntrusted) reasons.push('Cadeia de certificação não é confiável.');
-        }
-      }
-    }
-
-    if (reasons.length) {
-      const short = reasons.slice(0, 4).join(' · ');
-      return onlyOne ? `${short}` : `${short}`;
-    }
-    return onlyOne ? '' : '';
-  }
-
   getStatusTooltip(): string {
     const onlyOne = this.signatureCount() === 1;
     const reasons = this.getStatusNotes();
@@ -971,13 +939,11 @@ export class ValidatePage implements OnInit, OnDestroy {
         doc.setFillColor(...([248, 250, 252] as [number, number, number]));
         doc.roundedRect(M, yTop, bannerW, bannerH, 2, 2, 'F');
 
-        const y2 = yTop + bannerH - padY - 5;
-
-        doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
         const chipPadX = 3, chipH = 8;
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+
         const chipW = doc.getTextWidth(chipText) + chipPadX * 2;
         const chipX = M + bannerW - padX - chipW;
-
         const chipY = yTop + (bannerH - chipH) / 2;
 
         const chipColorRgb = (chipColorOk ? [34, 197, 94] : [245, 158, 11]) as [number, number, number];
@@ -990,7 +956,7 @@ export class ValidatePage implements OnInit, OnDestroy {
 
         doc.setTextColor(0);
         doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
-        doc.text(metric, M, y2);
+        doc.text(metric, M, yTop + bannerH - padY - 5);
 
         y = yTop + bannerH + 6;
         if (subLines?.length) {
@@ -1100,6 +1066,7 @@ export class ValidatePage implements OnInit, OnDestroy {
         y += Math.max(5, lines.length * 5) + 4;
       };
 
+      // ===== Dados do documento
       section('Dados do documento');
       const statusValue =
         (this.result?.status && String(this.result.status).trim()) ||
@@ -1133,6 +1100,7 @@ export class ValidatePage implements OnInit, OnDestroy {
 
       hr();
 
+      // ===== Assinaturas
       const drawAssinaturasHeader = (badgeText?: string) => {
         addPageIfNeeded(14);
         const yTop = y;
@@ -1241,19 +1209,26 @@ export class ValidatePage implements OnInit, OnDestroy {
         });
       }
 
-      const notas: string[] = [];
-      const shortMsg = this.geterrorfindings().trim();
-      const longMsg = (this.getStatusTooltip() || '').trim();
+      // ===== Apontamentos e notas da validação (curta + longa) =====
+      const shortMsg = (this.shortFinding || '').trim();          // mensagem curta
+      const longMsg = (this.errorFullMessage || '').trim();       // mensagem longa do modal
 
-      if (shortMsg) notas.push(shortMsg);
-      if (longMsg && longMsg !== shortMsg) notas.push(longMsg);
-
-      if (notas.length) {
+      if (shortMsg || longMsg) {
         hr();
         section('Apontamentos e notas da validação');
-        notas.forEach(n => para('' + n));
+
+        // 1) Mensagem curta primeiro
+        if (shortMsg) {
+          para(shortMsg);
+        }
+
+        // 2) Em seguida, a mensagem longa (se existir e for diferente)
+        if (longMsg && longMsg !== shortMsg) {
+          para(longMsg);
+        }
       }
 
+      // ===== Rodapé =====
       const pageCount = doc.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
