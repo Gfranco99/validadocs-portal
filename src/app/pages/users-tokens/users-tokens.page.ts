@@ -40,7 +40,7 @@ type EngineMode = 'ITI' | 'SDK';
 export class UsersTokensPage implements OnInit {
 
   // Helper: data de hoje (ISO local YYYY-MM-DD), compatível com ion-datetime
-  private getTodayLocalISO(): string {
+  getTodayLocalISO(): string {
     const d = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -49,9 +49,9 @@ export class UsersTokensPage implements OnInit {
   // modo/engine do segmento (ITI/SDK)
   engine = signal<EngineMode>('ITI');
 
-  // Datas: já começam em "hoje"
-  startDate = signal<string>(this.getTodayLocalISO());
-  endDate   = signal<string>(this.getTodayLocalISO());
+  // Datas: começam SEM filtro (vazias)
+  startDate = signal<string>('');   // filtro desativado inicialmente
+  endDate   = signal<string>('');   // filtro desativado inicialmente
 
   status = signal<'Todos' | 'Ativo' | 'Inativo'>('Todos');
   query = signal<string>('');
@@ -154,11 +154,10 @@ export class UsersTokensPage implements OnInit {
     };
   }
 
-  // Limpa datas → volta ambas para HOJE
+  // Limpar datas → remove filtro (mostra tudo)
   clearDates() {
-    const today = this.getTodayLocalISO();
-    this.startDate.set(today);
-    this.endDate.set(today);
+    this.startDate.set('');
+    this.endDate.set('');
     this.page.set(1);
   }
 
@@ -370,9 +369,16 @@ export class UsersTokensPage implements OnInit {
     if (end) endNormalized = normalizeDate(end);
 
     const matchesDate = (iso: string) => {
-      if (!iso) return true;
+      // Se nenhum filtro de data foi definido, não restringe por data
+      if (!startNormalized && !endNormalized) {
+        return true;
+      }
+
+      // Se há filtro e o registro não tem data, não entra
+      if (!iso) return false;
+
       const recordNormalized = normalizeDate(iso);
-      if (!recordNormalized) return true;
+      if (!recordNormalized) return false;
 
       if (startNormalized && recordNormalized.getTime() < startNormalized.getTime()) return false;
       if (endNormalized && recordNormalized.getTime() > endNormalized.getTime()) return false;
@@ -390,8 +396,8 @@ export class UsersTokensPage implements OnInit {
 
       const matchesSt = st === 'Todos' ? true : r.status === st;
 
-      // Filtra por datas de criação OU expiração (apenas DD/MM)
-      const matchesDt = matchesDate(r.createdAt) || matchesDate(r.expiresAt);
+      // Filtra SOMENTE pela data de criação (cadastro), ignorando expiração
+      const matchesDt = matchesDate(r.createdAt);
 
       return matchesQ && matchesSt && matchesDt;
     });
@@ -403,6 +409,16 @@ export class UsersTokensPage implements OnInit {
     const start = (this.page() - 1) * this.pageSize;
     return this.filtered().slice(start, start + this.pageSize);
   });
+
+  // Datas para exibição no botão:
+  // se não houver filtro aplicado, mostra a data de hoje
+  displayStartISO(): string {
+    return this.startDate() || this.getTodayLocalISO();
+  }
+
+  displayEndISO(): string {
+    return this.endDate() || this.getTodayLocalISO();
+  }
 
   badgeColor(st: 'Ativo' | 'Inativo') {
     return st === 'Ativo' ? 'success' : 'medium';
