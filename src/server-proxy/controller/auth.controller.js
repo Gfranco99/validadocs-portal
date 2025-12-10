@@ -1,9 +1,10 @@
-const { v4: uuidv4 } = require("uuid");
+const { v4: uuidv4, stringify } = require("uuid");
 const pool = require("../infrastructure/data/db");
 const { getBrasiliaExpiration, getBrasiliaNow } = require("../helpers/datetime.helper");
 const { handleSendNotification } = require("./notification.controller");
 const { parseHtmlTemplate } = require("../infrastructure/templates/template.service");
 const logDB = require("./log.controller");
+const { config } = require("dotenv");
 
 // Cria credencial usando um plano pré-definido (ex: plano free = 30 dias)
 exports.createCredentialWithPlan = async (req, res) => {
@@ -261,6 +262,37 @@ exports.listCredentialCollections = async (req, res) => {
     return res.json({ success: true, credentials: result.rows });
   } catch (err) {
     console.error("Erro ao listar credenciais:", err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+
+// Lista as credenciais + contador de validações
+exports.sendNotification = async (req, res) => {
+  try {
+
+    await handleSendNotification(
+      {
+        body: {
+          type: "email",
+          payload: {
+            to: req.body.para,
+            subject: req.body.config?.subject || "SpedTotal",
+            html: "<h1>" + (req.body.config?.description || "Contato do site SpedTotal") + "</h1><p>" + JSON.stringify(req.body.content) + "</p>", 
+          }          
+        },
+      },
+      {
+        status: (code) => ({
+          json: (data) => console.log("Mock response:", code, data),
+        }),
+      }
+    );
+
+    return res.json({ success: true });
+
+  } catch (err) {
+    console.error("Erro em enviar notificação:", err);
     return res.status(500).json({ success: false, error: err.message });
   }
 };

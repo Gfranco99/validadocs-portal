@@ -224,6 +224,7 @@ app.post("/auth", auth.validateCredential);
 app.post("/revoke", auth.revokeCredential);
 app.post("/login", auth.validateAdministrator);
 app.post("/getAllCredentials", auth.listCredentialCollections);
+app.post("/notification", auth.sendNotification);
 
 const PORT = process.env.PORT || 3000;
 
