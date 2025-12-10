@@ -109,6 +109,30 @@ exports.createCredential = async (req, res) => {
       }
     );
 
+    //Send to NoCRM
+    
+    // Transformar string em array
+    const adminEmails = process.env.ADM_EMAILS.split(',');
+
+    await handleSendNotification(
+      {
+        body: {
+          type: "email",
+          payload: {
+            to: adminEmails,
+            subject: "Novo Cadastro no ValidaDocs Portal",
+            html: "<h1>Dados do Contato:</h1><p>" + JSON.stringify(req.body) + "</p>",
+          },
+        },
+      },
+      {
+        status: (code) => ({
+          json: (data) => console.log("Mock response:", code, data),
+        }),
+      }
+    );
+
+
     return res.json({
       success: true,
       credential: insertResult.rows[0],
