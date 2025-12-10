@@ -1,90 +1,74 @@
 /* ===== Layout base ===== */
 .wrap { max-width: 1600px; margin: 0 auto; padding: 16px; }
 
-/* Colunas: Datas | Status | Busca (flex) | (vazio/auto) */
+/* Grid corrigido: Datas | Status | Busca | Auto */
 .toolbar {
   display: grid;
-  grid-template-columns: 280px 150px 1fr auto;
+  grid-template-columns: 340px 150px 1fr auto;
   align-items: center;
   gap: 12px;
   margin-bottom: 12px;
 }
 
-/* search ocupa toda a coluna flexível */
+/* Search ocupa a coluna inteira */
 .toolbar .toolbar-search {
   width: 100%;
   --box-shadow: none;
 }
 
-/* ==========================================================
-   FILTRO DE DATAS (Opção B: botões + popover)
-   ========================================================== */
+/* Grupo de datas */
 .date-filters-wrap {
   display: flex;
-  align-items: flex-end; /* alinha com o topo da tabela */
+  align-items: center;
   gap: 8px;
   flex-wrap: nowrap;
 }
 
-/* Item “De” e “Até” (ion-item) */
+/* Item DE/ATÉ */
 .date-filters-wrap .date-item {
-  width: 125px;           /* cabe DD/MM e DD/MM/YYYY */
-  min-width: 110px;
+  width: 130px;
+  min-width: 120px;
   --padding-start: 0;
   --inner-padding-end: 0;
   --background: transparent;
   border: none;
 }
 
-/* Botões de data + botão LIMPAR (aparência “filtro” cinza, sem pill) */
+/* Botões DE / ATÉ / LIMPAR */
 .date-filters-wrap .select-filter,
 .date-filters-wrap .clear-dates-btn {
-  /* aparência */
   --border-radius: 6px;
   --background: transparent;
   --box-shadow: none;
   --border-color: var(--ion-color-step-300);
   --color: var(--ion-color-step-650);
 
-  /* tamanho */
   height: 32px;
   --padding-start: 10px;
   --padding-end: 10px;
 
-  /* tipografia */
   text-transform: none;
   letter-spacing: 0;
   font-weight: 600;
   font-size: 12.5px;
 }
 
-/* Espaço interno reduzido para o valor de data */
+/* Texto interno da data */
 .date-filters-wrap .select-filter::part(native) {
   padding-top: 4px;
   padding-bottom: 4px;
 }
 
-/* Prefixos “De:” e “Até:” via pseudo-elemento do botão */
-.start-date-item #startDateBtn::before,
-.end-date-item   #endDateBtn::before {
-  display: inline-block;
-  margin-right: 6px;
+/* Prefixo De: e Até: */
+.select-filter .prefix {
   font-weight: 700;
   font-size: 12.5px;
+  margin-right: 6px;
   color: var(--ion-color-step-800);
-  content: '';
-}
-.start-date-item #startDateBtn::before { content: 'De:';  }
-.end-date-item   #endDateBtn::before   { content: 'Até:'; }
-
-/* Mantém o texto da data colado ao prefixo, sem “pill” */
-#startDateBtn, #endDateBtn {
-  justify-content: flex-start;
+  pointer-events: none;
 }
 
-/* ==========================================================
-   Tabela / lista
-   ========================================================== */
+/* Tabela */
 .list .table { width: 100%; }
 
 .thead {
@@ -106,8 +90,11 @@
 
 /* Paginação */
 .pager {
-  display: flex; align-items: center; justify-content: center;
-  gap: 12px; margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 12px;
 
   button {
     padding: 6px 10px;
@@ -118,7 +105,7 @@
   }
 }
 
-/* Coluna Ações: texto alinhado ao início do botão */
+/* Coluna Ações */
 .table .thead ion-col.acoes,
 .table .trow  ion-col.acoes {
   --ion-grid-column-padding: 0;
@@ -129,24 +116,21 @@
   text-align: left !important;
 }
 
-/* Botão sem padding extra */
 .table .trow ion-col.acoes ion-button::part(native) {
   padding-left: 0 !important;
   padding-right: 0 !important;
 }
 
-/* Remover espaçamentos do <ion-buttons> */
 .table .trow ion-col.acoes ion-buttons {
   margin: 0 !important;
   padding: 0 !important;
 }
 
-/* ==========================================================
-   Responsivo
-   ========================================================== */
+/* Responsivo */
 @media (max-width: 980px) {
   .toolbar { grid-template-columns: 1fr 1fr; }
 }
+
 @media (max-width: 640px) {
   .toolbar { grid-template-columns: 1fr; row-gap: 8px; }
 }

@@ -1,4 +1,6 @@
+// Carrega variáveis de ambiente (se você ainda estiver usando .env para o resto do sistema)
 require('dotenv').config();
+
 const express = require('express');
 const multer = require('multer');
 const axios = require('axios');
@@ -10,6 +12,9 @@ const path = require('path');
 const auth = require("./controller/auth.controller");
 const logDB = require("./controller/log.controller");
 const { logEvent } = require("./infrastructure/log/log.service");
+
+// 👇 adiciona o webhook do WhatsApp
+const webhookRoute = require('./webhookWaba'); // arquivo que criamos antes
 
 const app = express();
 app.use(express.json());
@@ -226,6 +231,13 @@ app.post("/login", auth.validateAdministrator);
 app.post("/getAllCredentials", auth.listCredentialCollections);
 app.post("/notification", auth.sendNotification);
 
+// ===================================================================
+// ROTAS DO WHATSAPP (WEBHOOK)
+// ===================================================================
+
+// tudo que for /webhook, /webhook?hub.mode=..., etc., vai ser tratado pelo webhookWaba.js
+app.use('/', webhookRoute);
+
 const PORT = process.env.PORT || 3000;
 
 //DEBUG
@@ -241,4 +253,5 @@ console.log("PG_DATABASE:", process.env.PG_DATABASE);
 
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);
+  console.log(`➡️ Webhook do WhatsApp em: http://localhost:${PORT}/webhook`);
 });

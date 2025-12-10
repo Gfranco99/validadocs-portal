@@ -314,8 +314,8 @@
                 <ion-label class="ion-text-wrap finding-label">
                   <span class="warning-text">{{ shortFinding }}</span>
                   <span
-                    
                     class="see-details"
+                    *ngIf="hasDetailsLink"
                     (click)="openErrorDetails()">
                     (Ver detalhes.)
                   </span>
@@ -372,6 +372,52 @@
                         <span class="issuer-value">{{ s.signatureType }} / {{ s.signatureLevel }}</span>
                       </p>
 
+                      <!-- Carimbos de tempo (Accordion Ionic) -->
+                      <ng-container *ngIf="($any(s)?.timeStamps || $any(s)?.timestamps || $any(s)?.timeStampValidations) as tsList">
+                        <div class="ts-inside-cert ion-margin-top" *ngIf="tsList?.length">
+                          <ion-accordion-group>
+                            <ion-accordion *ngFor="let ts of tsList; let j = index"
+                                           [value]="'ts-'+i+'-'+j"
+                                           class="ts-outline-accordion">
+                              <ion-item slot="header" lines="none" class="ts-header ts-outline" button>
+                                <ion-label>Carimbo de tempo</ion-label>
+                                <ion-icon name="chevron-forward-outline" slot="end" class="ts-chevron"></ion-icon>
+                              </ion-item>
+
+                              <div slot="content" class="ion-padding">
+                                <ion-list lines="none">
+                                  <ion-item>
+                                    <ion-label>Data do carimbo</ion-label>
+                                    <ion-note slot="end">{{ formatDate(tsDate(ts)) }}</ion-note>
+                                  </ion-item>
+
+                                  <ion-item *ngIf="tsSigner(ts)?.issuer">
+                                    <ion-label>Assinante</ion-label>
+                                    <ion-note slot="end">{{ normalizeAccents(tsSigner(ts)?.issuer) }}</ion-note>
+                                  </ion-item>
+
+                                  <ion-item *ngIf="tsSigner(ts)?.tsa">
+                                    <ion-label>Emissor TSA</ion-label>
+                                    <ion-note slot="end">{{ normalizeAccents(tsSigner(ts)?.tsa) }}</ion-note>
+                                  </ion-item>
+
+                                  <ion-item *ngIf="tsSigner(ts)?.certificateStartDate">
+                                    <ion-label>Emitido em</ion-label>
+                                    <ion-note slot="end">{{ formatDate(tsSigner(ts)?.certificateStartDate) }}</ion-note>
+                                  </ion-item>
+
+                                  <ion-item *ngIf="tsSigner(ts)?.certificateEndDate">
+                                    <ion-label>Válido até</ion-label>
+                                    <ion-note slot="end">{{ formatDate(tsSigner(ts)?.certificateEndDate) }}</ion-note>
+                                  </ion-item>
+                                </ion-list>
+                              </div>
+                            </ion-accordion>
+                          </ion-accordion-group>
+                        </div>
+                      </ng-container>
+                      <!-- /Carimbos de tempo -->
+
                     </ion-label>
 
                   </ion-item>
@@ -387,7 +433,7 @@
     </ion-grid>
   </ng-container>
 
-  <!-- Modal -->
+  <!-- Modal de detalhes -->
   <app-error-modal
     [open]="showErrorModal"
     [message]="errorFullMessage ?? null"

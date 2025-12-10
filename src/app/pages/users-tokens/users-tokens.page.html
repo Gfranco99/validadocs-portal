@@ -25,7 +25,8 @@
             color="medium"
             style="--border-radius:6px"
             aria-label="De: Data inicial">
-            {{ startDate() ? (startDate() | date:'dd/MM') : '__/__' }}
+            <span class="prefix">De:</span>
+            {{ displayStartISO() | date:'dd/MM' }}
           </ion-button>
         </ion-item>
 
@@ -39,11 +40,12 @@
             color="medium"
             style="--border-radius:6px"
             aria-label="Até: Data final">
-            {{ endDate() ? (endDate() | date:'dd/MM/yyyy') : '__/__/____' }}
+            <span class="prefix">Até:</span>
+            {{ displayEndISO() | date:'dd/MM/yyyy' }}
           </ion-button>
         </ion-item>
 
-        <!-- Limpar (mesmo estilo cinza dos filtros) -->
+        <!-- Limpar -->
         <ion-button
           fill="outline"
           size="small"
@@ -63,7 +65,9 @@
             presentation="date"
             locale="pt-BR"
             showDefaultButtons="true"
-            [value]="startDate()"
+            done-text="OK"
+            cancel-text="Cancelar"
+            [value]="startDate() || getTodayLocalISO()"
             (ionChange)="startDate.set($any($event.detail.value)); page.set(1)"
             [max]="endDate() || undefined">
           </ion-datetime>
@@ -77,14 +81,16 @@
             presentation="date"
             locale="pt-BR"
             showDefaultButtons="true"
-            [value]="endDate()"
+            done-text="OK"
+            cancel-text="Cancelar"
+            [value]="endDate() || getTodayLocalISO()"
             (ionChange)="endDate.set($any($event.detail.value)); page.set(1)"
             [min]="startDate() || undefined">
           </ion-datetime>
         </ng-template>
       </ion-popover>
 
-      <!-- Status (não alterado) -->
+      <!-- Status -->
       <ion-item lines="none" class="compact">
         <ion-label>Status</ion-label>
         <ion-select
