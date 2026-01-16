@@ -18,11 +18,10 @@
 </ion-header>
 
 <ion-content class="ion-padding">
-  <!-- Inputs "reais" mas escondidos -->
   <input
     #fileInput
     type="file"
-    accept="application/pdf,.p7s"
+    accept="application/pdf"
     (change)="onFileChange($event)"
     hidden
   />
@@ -34,7 +33,6 @@
     hidden
   />
 
-  <!-- Upload (drag & drop + clique) -->
   <ion-card class="upload-card" *ngIf="!result">
     <ion-card-header>
       <ion-card-title>
@@ -44,7 +42,6 @@
     </ion-card-header>
 
     <ion-card-content>
-      <!-- Dropzone do PDF -->
       <div class="file-drop"
            (click)="fileInput.click()"
            (dragover)="onDragOver($event)"
@@ -54,13 +51,11 @@
            [attr.aria-label]="file ? 'Arquivo selecionado: ' + file.name : 'Solte o arquivo aqui ou clique para escolher'">
         <ion-icon name="cloud-upload-outline"></ion-icon>
 
-        <!-- placeholder padrão -->
         <div *ngIf="!file; else fileChosen">
           <span>Solte o arquivo aqui </span>
           <span class="muted"> ou clique para escolher</span>
         </div>
 
-        <!-- quando já houver PDF selecionado -->
         <ng-template #fileChosen>
           <div class="chosen-file">
             <ion-icon name="document-outline"></ion-icon>
@@ -69,7 +64,6 @@
         </ng-template>
       </div>
 
-      <!-- Opção: Assinatura destacada (.p7s) -->
       <ion-item lines="none" class="ion-margin-top">
         <ion-checkbox
           slot="start"
@@ -79,7 +73,6 @@
         <ion-label>Se a assinatura for destacada, selecione o arquivo .p7s</ion-label>
       </ion-item>
 
-      <!-- Dropzone do .p7s -->
       <div *ngIf="detached" class="ion-margin-top">
         <div class="file-drop secondary"
              (click)="p7sInput.click()"
@@ -103,7 +96,6 @@
           </ng-template>
         </div>
 
-        <!-- Feedback de verificação .p7s -->
         <div class="ion-padding-top" *ngIf="p7sOk !== undefined">
           <ion-text color="success" *ngIf="p7sOk === true"></ion-text>
           <ion-text color="danger" *ngIf="p7sOk === false">
@@ -112,7 +104,6 @@
         </div>
       </div>
 
-      <!-- Engine -->
       <div class="engine-block ion-margin-top">
 
         <ion-item lines="none" class="engine-item">
@@ -141,9 +132,19 @@
           </ion-checkbox>
           <ion-label>Validação avançada</ion-label>
         </ion-item>
+
+        <ion-item lines="none" class="engine-item">
+          <ion-checkbox
+            slot="start"
+            [(ngModel)]="useAI"
+            aria-label="Diagnóstico com I.A.">
+          </ion-checkbox>
+          <ion-label>
+            Diagnóstico com I.A.
+          </ion-label>
+        </ion-item>
       </div>
 
-      <!-- Aceite -->
       <ion-item lines="none" class="ion-margin-top">
         <ion-checkbox
           slot="start"
@@ -162,10 +163,8 @@
         É necessário aceitar a Política de Privacidade para validar.
       </ion-note>
 
-      <!-- Erro geral -->
       <ion-note color="danger" *ngIf="error" class="ion-margin-top">{{ error }}</ion-note>
 
-      <!-- Botão -->
       <ion-button
         class="ion-margin-top"
         expand="block"
@@ -177,13 +176,11 @@
     </ion-card-content>
   </ion-card>
 
-  <!-- Resultado -->
   <ng-container *ngIf="result as r">
 
     <ion-grid class="val-grid">
       <ion-row class="val-row">
 
-        <!-- Esquerda -->
         <ion-col size="12" size-lg="6" class="left">
 
           <ion-card class="summary-card">
@@ -226,12 +223,11 @@
               </ion-list>
             </ion-card-content>
           </ion-card>
+
         </ion-col>
 
-        <!-- Direita -->
         <ion-col size="12" size-lg="6" class="right">
 
-          <!-- Detalhes do Documento (inclui PDF/A) -->
           <ion-card class="details-card">
             <ion-card-header>
               <ion-card-title>Sobre o Documento</ion-card-title>
@@ -276,7 +272,6 @@
                 </div>
               </ion-item>
 
-              <!-- PDF/A DENTRO DO BLOCO "Sobre o Documento" -->
               <ng-container *ngIf="r.validaDocsReturn?.pdfValidations as pdf">
                 <ion-item lines="full">
                   <ion-label class="with-help">PDF/A</ion-label>
@@ -302,7 +297,6 @@
             </ion-card-content>
           </ion-card>
 
-          <!-- Apontamentos da Validação (apenas 1 linha curta + ver detalhes) -->
           <ion-card class="errorfindings-card" *ngIf="hasFindings">
 
             <ion-card-header class="card-title-row">
@@ -324,7 +318,6 @@
             </ion-card-content>
           </ion-card>
 
-          <!-- Certificados -->
           <ng-container *ngIf="r.validaDocsReturn?.digitalSignatureValidations as certList">
 
             <ng-container *ngFor="let s of certList; let i = index; trackBy: trackByName">
@@ -372,7 +365,6 @@
                         <span class="issuer-value">{{ s.signatureType }} / {{ s.signatureLevel }}</span>
                       </p>
 
-                      <!-- Carimbos de tempo (Accordion Ionic) -->
                       <ng-container *ngIf="($any(s)?.timeStamps || $any(s)?.timestamps || $any(s)?.timeStampValidations) as tsList">
                         <div class="ts-inside-cert ion-margin-top" *ngIf="tsList?.length">
                           <ion-accordion-group>
@@ -416,9 +408,7 @@
                           </ion-accordion-group>
                         </div>
                       </ng-container>
-                      <!-- /Carimbos de tempo -->
-
-                    </ion-label>
+                      </ion-label>
 
                   </ion-item>
 
@@ -428,12 +418,75 @@
             </ng-container>
           </ng-container>
 
+          <ion-card class="details-card ion-margin-top" *ngIf="useAI && (aiLoading || aiData)">
+            <ion-card-header>
+              <ion-card-title>
+                Análise de IA (Nova)
+              </ion-card-title>
+            </ion-card-header>
+  
+            <ion-card-content>
+              
+              <div *ngIf="aiLoading" class="ion-text-center ion-padding">
+                <ion-spinner name="crescent" color="primary"></ion-spinner>
+                <p><small class="ion-text-muted">A I.A. está analisando o documento...</small></p>
+              </div>
+  
+              <div *ngIf="!aiLoading && aiData" class="animate__animated animate__fadeIn">
+
+                <ion-item lines="full" *ngIf="aiData.documentType">
+                  <ion-label position="stacked" style="font-size: 20px;">Tipo de Documento</ion-label>
+                  <ion-text class="ion-text-wrap" style="margin-top: 6px; display: block; color: var(--ion-text-color); font-size: 16px;">
+                    {{ aiData.documentType }}
+                  </ion-text>
+                </ion-item>
+
+                <ion-item lines="full" *ngIf="aiData.summary">
+                  <ion-label position="stacked" style="font-size: 20px;">Resumo do Documento</ion-label>
+                  <ion-text class="ion-text-wrap" style="margin-top: 6px; display: block; line-height: 1.5; color: var(--ion-text-color); font-size: 16px;">
+                    {{ aiData.summary }}
+                  </ion-text>
+                </ion-item>
+
+                <ion-item lines="full" *ngIf="aiData.signatureType">
+                  <ion-label position="stacked" style="font-size: 20px;">Tipo de Assinatura</ion-label>
+                  <ion-text class="ion-text-wrap" style="margin-top: 6px; display: block; color: var(--ion-text-color); font-size: 16px;">
+                    {{ aiData.signatureType }}
+                  </ion-text>
+                </ion-item>
+
+                <ion-item lines="full" *ngIf="aiData.signers && aiData.signers.length">
+                  <ion-label position="stacked" style="font-size: 20px;">Signatários</ion-label>
+                  <div style="margin-top: 6px;">
+                    <div *ngFor="let signer of aiData.signers" style="margin-bottom: 4px; color: var(--ion-text-color); font-size: 16px;">
+                      {{ signer }}
+                    </div>
+                  </div>
+                </ion-item>
+
+                <ion-item lines="full" *ngIf="aiData.answer">
+                  <ion-label position="stacked" style="font-size: 20px;">Análise da Nova IA</ion-label>
+                  <ion-text class="ion-text-wrap" style="margin-top: 6px; display: block; line-height: 1.5; color: var(--ion-text-color); font-size: 16px;">
+                    {{ aiData.answer }}
+                  </ion-text>
+                </ion-item>
+
+                <ion-item lines="none" *ngIf="aiData.confidenceNotes">
+                  <ion-label position="stacked" style="font-size: 20px;">Nota</ion-label>
+                  <ion-text class="ion-text-wrap" style="margin-top: 6px; display: block; color: var(--ion-text-color); font-size: 16px;">
+                    {{ aiData.confidenceNotes }}
+                  </ion-text>
+                </ion-item>
+
+              </div>
+            </ion-card-content>
+          </ion-card>
+
         </ion-col>
       </ion-row>
     </ion-grid>
   </ng-container>
 
-  <!-- Modal de detalhes -->
   <app-error-modal
     [open]="showErrorModal"
     [message]="errorFullMessage ?? null"

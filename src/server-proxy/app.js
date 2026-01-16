@@ -230,6 +230,65 @@ app.post("/revoke", auth.revokeCredential);
 app.post("/login", auth.validateAdministrator);
 app.post("/getAllCredentials", auth.listCredentialCollections);
 
+app.post('/consultar-webhook', upload.single('file'), async (req, res) => {
+  
+  // 1. Valida se o arquivo chegou
+  if (!req.file) {
+    console.warn('[Proxy] Requisição sem arquivo.');
+    return res.status(400).json({ success: false, error: 'Nenhum arquivo enviado.' });
+  }
+
+  const { idDocumento } = req.body;
+  const filePath = req.file.path; // Caminho temporário do arquivo
+
+  console.log(`[Proxy] Enviando PDF para Webhook (n8n). ID: ${idDocumento}`);
+
+  try {
+    // 👇 CONFIRA SE A URL ESTÁ CERTA PARA O SEU N8N
+    const URL_DO_WEBHOOK = 'https://n8n.albacore.com.br/webhook/validar-documento';
+
+    // 2. Prepara o formulário para repassar ao n8n
+    const form = new FormData();
+    
+    // Lê o arquivo do disco e anexa no form
+    form.append('file', fs.createReadStream(filePath), req.file.originalname);
+    
+    // Anexa os metadados
+    form.append('id', idDocumento || 'Sem-ID');
+    form.append('origem', 'ValidaDocs Portal');
+    form.append('dataHora', new Date().toISOString());
+
+    // 3. Envia para o n8n
+    const response = await axios.post(URL_DO_WEBHOOK, form, {
+      headers: {
+        ...form.getHeaders() // Headers obrigatórios para envio de arquivo
+      },
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity
+    });
+
+    // 4. Limpeza: Deleta o arquivo temporário do seu servidor
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+
+    console.log('[Proxy] Resposta do n8n recebida com sucesso.');
+
+    return res.json({
+      success: true,
+      data: response.data
+    });
+
+  } catch (error) {
+    // Garante a limpeza do arquivo mesmo em caso de erro
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+
+    console.error('Erro ao chamar webhook externo:', error.message);
+    return res.status(500).json({
+      success: false,
+      error: 'Falha ao comunicar com a inteligência artificial.'
+    });
+  }
+});
+
 // ===================================================================
 // ROTAS DO WHATSAPP (WEBHOOK)
 // ===================================================================

@@ -3,7 +3,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
-  ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators
+  ReactiveFormsModule, FormBuilder, FormsModule, FormGroup, FormControl, Validators
 } from '@angular/forms';
 import { Router } from '@angular/router';
 
@@ -16,7 +16,7 @@ import {
   IonBadge, IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardTitle,
   IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonInput, IonItem, IonLabel,
   IonList, IonNote, IonRow, IonTitle, IonToolbar, IonText, IonCheckbox,
-  IonAccordionGroup, IonAccordion
+  IonAccordionGroup, IonAccordion, IonSpinner
 } from '@ionic/angular/standalone';
 
 import jsPDF from 'jspdf';
@@ -39,13 +39,13 @@ type ExtSignature = SignatureInfo & {
   styleUrls: ['./validate.page.scss'],
   standalone: true,
   imports: [
-    CommonModule, ReactiveFormsModule,
+    CommonModule, ReactiveFormsModule, FormsModule,
     IonHeader, IonToolbar, IonTitle, IonContent,
     IonCard, IonCardHeader, IonCardTitle, IonCardContent,
     IonButton, IonItem, IonInput, IonNote,
     IonGrid, IonRow, IonCol, IonList, IonLabel, IonBadge, IonIcon, IonButtons,
     IonText, IonCheckbox,
-    IonAccordionGroup, IonAccordion,
+    IonAccordionGroup, IonAccordion, IonSpinner,
     ErrorModalComponent
   ]
 })
@@ -68,6 +68,12 @@ export class ValidatePage implements OnInit, OnDestroy {
   loading = false;
   exporting = false;
   error?: string;
+
+  // ====== VARIÁVEIS NOVAS PARA A I.A. ======
+  useAI: boolean = false;       // Controla o Checkbox
+  aiLoading: boolean = false;   // Controla o Spinner da IA
+  aiData: any = null;           // 🆕 Guarda o OBJETO da IA (Formatado)
+  // ========================================
 
   // mensagem longa exibida no modal "Ver detalhes"
   errorFullMessage: string | null = null;
@@ -392,6 +398,7 @@ export class ValidatePage implements OnInit, OnDestroy {
 
   // ================= Validação (PDF) =================
   async submit() {
+    // 1. Verificações iniciais
     const accepted = this.form?.controls?.acceptPolicy?.value === true;
     if (!accepted) {
       this.error = 'É necessário aceitar a Política de Privacidade para validar o documento.';
@@ -414,15 +421,21 @@ export class ValidatePage implements OnInit, OnDestroy {
       return;
     }
 
+    // 2. Prepara o estado
     this.loading = true;
     this.error = undefined;
     this.errorFullMessage = null;
     this.showErrorModal = false;
     this.result = undefined;
 
+    // 🆕 Limpa o estado da I.A.
+    this.aiData = null; 
+    this.aiLoading = false;
+
     const loading = await this.loadingCtrl.create({ message: 'Processando...' });
     await loading.present();
 
+    // 3. Validação do PDF
     this.api.validatePdf(this.file!).pipe(
       finalize(async () => {
         this.loading = false;
@@ -432,11 +445,9 @@ export class ValidatePage implements OnInit, OnDestroy {
       })
     ).subscribe({
       next: (res: ValidationResult) => {
+        // --- Processa assinaturas ---
         const sigs = res.validaDocsReturn?.digitalSignatureValidations ?? [];
-
-        const extrairCpf = (subject: string): string =>
-          subject?.match(/:(\d{11})$/)?.[1] ?? '';
-
+        const extrairCpf = (subject: string): string => subject?.match(/:(\d{11})$/)?.[1] ?? '';
         const extrairSigner = (subject: string): string => {
           const cnPart = subject?.split(',')?.find(p => p.trim().startsWith('CN='));
           const nameWithCPF = cnPart?.split('=')[1];
@@ -448,23 +459,16 @@ export class ValidatePage implements OnInit, OnDestroy {
           cpf: extrairCpf(a.endCertSubjectName),
           signerName: extrairSigner(a.endCertSubjectName),
           signingTime: (a as any).signingTime,
-          certificateStartDate:
-            (a as any).certificateStartDate ??
-            (a as any).validFrom ??
-            (a as any).notBefore,
-          certificateEndDate:
-            (a as any).certificateEndDate ??
-            (a as any).validTo ??
-            (a as any).notAfter,
+          certificateStartDate: (a as any).certificateStartDate ?? (a as any).validFrom ?? (a as any).notBefore,
+          certificateEndDate: (a as any).certificateEndDate ?? (a as any).validTo ?? (a as any).notAfter,
         }));
 
-        // ====== Apontamentos da validação (somente JSON real) ======
+        // --- Processa Findings ---
         const findings: string[] = [];
         const sigAny = (res.validaDocsReturn?.digitalSignatureValidations as any[]) ?? [];
 
         for (const s of sigAny) {
           const alerts = s?.signatureAlerts;
-
           if (Array.isArray(alerts)) {
             for (const a of alerts) {
               if (a?.description) {
@@ -489,8 +493,8 @@ export class ValidatePage implements OnInit, OnDestroy {
         }
 
         res.errorfindings = Array.from(new Set(findings));
-        // ===========================================================
 
+        // --- Normaliza Resultado ---
         const normalized: ValidationResult = {
           ...res,
           validaDocsReturn: {
@@ -505,6 +509,47 @@ export class ValidatePage implements OnInit, OnDestroy {
           this.result = normalized;
           this.showErrorModal = false;
         });
+
+        // ==========================================================
+        // 🆕 LÓGICA DA I.A. (WEBHOOK) - PROCESSA O JSON
+        // ==========================================================
+        if (this.useAI) {
+          this.aiLoading = true;
+          this.cdr.detectChanges();
+
+          const idParaConsultar = (res as any).id || this.file?.name || 'ID-Desconhecido';
+          console.log('[Frontend] Solicitando diagnóstico IA para:', idParaConsultar);
+
+          (this.api as any).chamarValidacaoExterna(this.file!, idParaConsultar).subscribe({
+            next: (respIA: any) => {
+              console.log('[Frontend] Retorno IA:', respIA);
+
+              // Tenta pegar o objeto dentro de 'data', ou usa o próprio respIA
+              let conteudo = respIA?.data || respIA;
+
+              // Se vier como string (JSON string), converte para Objeto
+              if (typeof conteudo === 'string') {
+                try {
+                  conteudo = JSON.parse(conteudo);
+                } catch (e) {
+                  console.warn('Falha no parse JSON da IA (usando texto puro):', e);
+                }
+              }
+
+              this.aiData = conteudo; // Salva o objeto para o HTML usar
+              this.aiLoading = false;
+              this.cdr.detectChanges();
+            },
+            error: (errIA: any) => {
+              console.error('[Frontend] Erro IA:', errIA);
+              // Fallback para exibir erro no card
+              this.aiData = { answer: 'Não foi possível obter a análise da I.A. no momento.' };
+              this.aiLoading = false;
+              this.cdr.detectChanges();
+            }
+          });
+        }
+        // ==========================================================
       },
       error: (err) => {
         this.applyState(() => {
@@ -598,6 +643,10 @@ export class ValidatePage implements OnInit, OnDestroy {
     this.error = undefined;
     this.errorFullMessage = null;
     this.showErrorModal = false;
+
+    // 🆕 Limpa estado da I.A. também
+    this.aiData = null;
+    this.aiLoading = false;
 
     this.p7sBytes = undefined;
     this.pdfBytes = undefined;
@@ -989,8 +1038,10 @@ export class ValidatePage implements OnInit, OnDestroy {
         doc.text(title, MARGIN, y);
         y += 7;
       };
-      const para = (text: string) => {
-        const t = this.normalizeAccents(text);
+      
+      // 👇 MODIFICADO: Aceita parâmetro 'raw' para pular normalização
+      const para = (text: string, raw = false) => {
+        const t = raw ? text : this.normalizeAccents(text);
         const width = WID - 2 * MARGIN;
         doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
         const lines = doc.splitTextToSize(t, width);
@@ -998,6 +1049,7 @@ export class ValidatePage implements OnInit, OnDestroy {
         doc.text(lines, MARGIN, y);
         y += lines.length * 5 + 2;
       };
+
       const kvInlineTwoCols = (pairs: Array<[string, string | number]>) => {
         const colW = (WID - 2 * MARGIN) / 2;
         const rowGap = 4;
@@ -1048,7 +1100,8 @@ export class ValidatePage implements OnInit, OnDestroy {
         }
       };
 
-      const kvFullWidth = (label: string, value: string | number) => {
+      // 👇 MODIFICADO: Aceita parâmetro 'raw' para pular normalização
+      const kvFullWidth = (label: string, value: string | number, raw = false) => {
         const GAP = 2;
         doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
         const lbl = this.normalizeAccents(label) + ': ';
@@ -1056,7 +1109,12 @@ export class ValidatePage implements OnInit, OnDestroy {
 
         doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
         const maxW = WID - 2 * MARGIN - lblW - GAP;
-        const lines = doc.splitTextToSize(this.normalizeAccents(String(value ?? '—')), maxW);
+        
+        // Se raw=true, usa o texto direto. Se não, normaliza.
+        const textVal = String(value ?? '—');
+        const finalText = raw ? textVal : this.normalizeAccents(textVal);
+
+        const lines = doc.splitTextToSize(finalText, maxW);
 
         addPageIfNeeded(Math.max(5, lines.length * 5) + 4);
         doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
@@ -1210,8 +1268,8 @@ export class ValidatePage implements OnInit, OnDestroy {
       }
 
       // ===== Apontamentos e notas da validação (curta + longa) =====
-      const shortMsg = (this.shortFinding || '').trim();          // mensagem curta
-      const longMsg = (this.errorFullMessage || '').trim();       // mensagem longa do modal
+      const shortMsg = (this.shortFinding || '').trim();
+      const longMsg = (this.errorFullMessage || '').trim();
 
       if (shortMsg || longMsg) {
         hr();
@@ -1227,6 +1285,76 @@ export class ValidatePage implements OnInit, OnDestroy {
           para(longMsg);
         }
       }
+
+      // ===========================================
+      // 🆕 BLOCO NOVO: ANÁLISE INTELIGENTE (I.A.) NO PDF
+      // ===========================================
+      if (this.aiData) {
+        hr();
+        section('Análise de IA (Nova)');
+
+        // 1. Tipo de Documento
+        if (this.aiData.documentType) {
+          // Passamos 'true' para indicar RAW (sem normalização)
+          kvFullWidth('Tipo de Documento', this.aiData.documentType, true);
+        }
+
+        // 2. Resumo
+        if (this.aiData.summary) {
+          addPageIfNeeded(10);
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+          doc.text('Resumo do Documento:', MARGIN, y);
+          y += 5;
+          // Passamos 'true'
+          para(this.aiData.summary, true);
+          y += 2;
+        }
+
+        // 3. Tipo de Assinatura
+        if (this.aiData.signatureType) {
+          kvFullWidth('Tipo de Assinatura', this.aiData.signatureType, true);
+        }
+
+        // 4. Signatários (Lista)
+        if (Array.isArray(this.aiData.signers) && this.aiData.signers.length > 0) {
+          addPageIfNeeded(10);
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+          doc.text('Signatários identificados:', MARGIN, y);
+          y += 5;
+          doc.setFont('helvetica', 'normal');
+          
+          this.aiData.signers.forEach((signer: string) => {
+            // Imprime sem bullet point e SEM normalização
+            const line = signer; 
+            const width = WID - 2 * MARGIN;
+            const lines = doc.splitTextToSize(line, width); // <-- Sem normalizeAccents
+            addPageIfNeeded(lines.length * 5);
+            doc.text(lines, MARGIN, y);
+            y += lines.length * 5;
+          });
+          y += 2;
+        }
+
+        // 5. Análise da Nova IA
+        if (this.aiData.answer) {
+          addPageIfNeeded(10);
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+          doc.text('Análise detalhada:', MARGIN, y);
+          y += 5;
+          para(this.aiData.answer, true);
+          y += 2;
+        }
+
+        // 6. Nota
+        if (this.aiData.confidenceNotes) {
+          addPageIfNeeded(10);
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+          doc.text('Nota:', MARGIN, y);
+          y += 5;
+          para(this.aiData.confidenceNotes, true);
+        }
+      }
+      // ===========================================
 
       // ===== Rodapé =====
       const pageCount = doc.getNumberOfPages();
