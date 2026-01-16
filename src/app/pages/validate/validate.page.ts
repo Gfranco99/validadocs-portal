@@ -1291,7 +1291,7 @@ export class ValidatePage implements OnInit, OnDestroy {
       // ===========================================
       if (this.aiData) {
         hr();
-        section('Análise de IA (Nova)');
+        section('Análise de IA (Nova) ');
 
         // 1. Tipo de Documento
         if (this.aiData.documentType) {
