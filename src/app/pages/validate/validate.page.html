@@ -183,6 +183,70 @@
 
         <ion-col size="12" size-lg="6" class="left">
 
+          <ion-card class="summary-card" style="margin-bottom: 24px;" *ngIf="useAI && (aiLoading || aiData)">
+            <ion-card-header>
+              <ion-card-title>
+                Análise de IA (Nova)
+              </ion-card-title>
+            </ion-card-header>
+  
+            <ion-card-content>
+              
+              <div *ngIf="aiLoading" class="ion-text-center ion-padding">
+                <ion-spinner name="crescent" color="primary"></ion-spinner>
+                <p><small class="ion-text-muted">A I.A. está analisando o documento...</small></p>
+              </div>
+  
+              <div *ngIf="!aiLoading && aiData" class="animate__animated animate__fadeIn">
+
+                <ion-item lines="full" *ngIf="aiData.documentType">
+                  <ion-label position="stacked">Tipo de Documento</ion-label>
+                  <ion-text class="ion-text-wrap" style="margin-top: 6px; display: block; color: var(--ion-text-color);">
+                    {{ aiData.documentType }}
+                  </ion-text>
+                </ion-item>
+
+                <ion-item lines="full" *ngIf="aiData.summary">
+                  <ion-label position="stacked">Resumo do Documento</ion-label>
+                  <ion-text class="ion-text-wrap" style="margin-top: 6px; display: block; line-height: 1.5; color: var(--ion-text-color);">
+                    {{ aiData.summary }}
+                  </ion-text>
+                </ion-item>
+
+                <ion-item lines="full" *ngIf="aiData.signatureType">
+                  <ion-label position="stacked">Tipo de Assinatura</ion-label>
+                  <ion-text class="ion-text-wrap" style="margin-top: 6px; display: block; color: var(--ion-text-color);">
+                    {{ aiData.signatureType }}
+                  </ion-text>
+                </ion-item>
+
+                <ion-item lines="full" *ngIf="aiData.signers && aiData.signers.length">
+                  <ion-label position="stacked">Signatários</ion-label>
+                  <div style="margin-top: 6px;">
+                    <div *ngFor="let signer of aiData.signers" style="margin-bottom: 4px; color: var(--ion-text-color);">
+                      {{ signer }}
+                    </div>
+                  </div>
+                </ion-item>
+
+                <ion-item lines="full" *ngIf="aiData.answer">
+                  <ion-label position="stacked">Análise de IA (Nova)</ion-label>
+                  <ion-text class="ion-text-wrap" style="margin-top: 6px; display: block; line-height: 1.5; color: var(--ion-text-color);">
+                    {{ aiData.answer }}
+                  </ion-text>
+                </ion-item>
+
+                <ion-item lines="none" *ngIf="aiData.confidenceNotes">
+                  <ion-label position="stacked">Nota</ion-label>
+                  <ion-text class="ion-text-wrap" style="margin-top: 6px; display: block; line-height: 1.5; color: var(--ion-text-color);">
+                    {{ aiData.confidenceNotes }}
+                  </ion-text>
+                </ion-item>
+
+              </div>
+            </ion-card-content>
+          </ion-card>
+
           <ion-card class="summary-card">
             <ion-card-header>
               <ion-card-title>Resumo da validação</ion-card-title>
@@ -417,70 +481,6 @@
 
             </ng-container>
           </ng-container>
-
-          <ion-card class="details-card ion-margin-top" *ngIf="useAI && (aiLoading || aiData)">
-            <ion-card-header>
-              <ion-card-title>
-                Análise de IA (Nova)
-              </ion-card-title>
-            </ion-card-header>
-  
-            <ion-card-content>
-              
-              <div *ngIf="aiLoading" class="ion-text-center ion-padding">
-                <ion-spinner name="crescent" color="primary"></ion-spinner>
-                <p><small class="ion-text-muted">A I.A. está analisando o documento...</small></p>
-              </div>
-  
-              <div *ngIf="!aiLoading && aiData" class="animate__animated animate__fadeIn">
-
-                <ion-item lines="full" *ngIf="aiData.documentType">
-                  <ion-label position="stacked" style="font-size: 20px;">Tipo de Documento</ion-label>
-                  <ion-text class="ion-text-wrap" style="margin-top: 6px; display: block; color: var(--ion-text-color); font-size: 16px;">
-                    {{ aiData.documentType }}
-                  </ion-text>
-                </ion-item>
-
-                <ion-item lines="full" *ngIf="aiData.summary">
-                  <ion-label position="stacked" style="font-size: 20px;">Resumo do Documento</ion-label>
-                  <ion-text class="ion-text-wrap" style="margin-top: 6px; display: block; line-height: 1.5; color: var(--ion-text-color); font-size: 16px;">
-                    {{ aiData.summary }}
-                  </ion-text>
-                </ion-item>
-
-                <ion-item lines="full" *ngIf="aiData.signatureType">
-                  <ion-label position="stacked" style="font-size: 20px;">Tipo de Assinatura</ion-label>
-                  <ion-text class="ion-text-wrap" style="margin-top: 6px; display: block; color: var(--ion-text-color); font-size: 16px;">
-                    {{ aiData.signatureType }}
-                  </ion-text>
-                </ion-item>
-
-                <ion-item lines="full" *ngIf="aiData.signers && aiData.signers.length">
-                  <ion-label position="stacked" style="font-size: 20px;">Signatários</ion-label>
-                  <div style="margin-top: 6px;">
-                    <div *ngFor="let signer of aiData.signers" style="margin-bottom: 4px; color: var(--ion-text-color); font-size: 16px;">
-                      {{ signer }}
-                    </div>
-                  </div>
-                </ion-item>
-
-                <ion-item lines="full" *ngIf="aiData.answer">
-                  <ion-label position="stacked" style="font-size: 20px;">Análise da Nova IA</ion-label>
-                  <ion-text class="ion-text-wrap" style="margin-top: 6px; display: block; line-height: 1.5; color: var(--ion-text-color); font-size: 16px;">
-                    {{ aiData.answer }}
-                  </ion-text>
-                </ion-item>
-
-                <ion-item lines="none" *ngIf="aiData.confidenceNotes">
-                  <ion-label position="stacked" style="font-size: 20px;">Nota</ion-label>
-                  <ion-text class="ion-text-wrap" style="margin-top: 6px; display: block; color: var(--ion-text-color); font-size: 16px;">
-                    {{ aiData.confidenceNotes }}
-                  </ion-text>
-                </ion-item>
-
-              </div>
-            </ion-card-content>
-          </ion-card>
 
         </ion-col>
       </ion-row>

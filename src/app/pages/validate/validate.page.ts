@@ -116,12 +116,8 @@ export class ValidatePage implements OnInit, OnDestroy {
   // ================== ERROS HTTP ==================
   private friendlyError(err: any): string {
     const defaultMsg = 'Ocorreu um erro desconhecido durante a validação.';
-    if (err?.error && typeof err.error === 'string') {
-      return err.error;
-    }
-    if (err?.message && typeof err.message === 'string') {
-      return err.message;
-    }
+    if (err?.error && typeof err.error === 'string') return err.error;
+    if (err?.message && typeof err.message === 'string') return err.message;
     if (err?.status === 401) {
       this.auth.logout();
       this.router.navigateByUrl('/login');
@@ -1291,7 +1287,7 @@ export class ValidatePage implements OnInit, OnDestroy {
       // ===========================================
       if (this.aiData) {
         hr();
-        section('Análise de IA (Nova) ');
+        section('Análise Inteligente');
 
         // 1. Tipo de Documento
         if (this.aiData.documentType) {
