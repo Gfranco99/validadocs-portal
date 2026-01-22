@@ -1,13 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, HostListener, Input, Output } from '@angular/core';
 
 @Component({
   standalone: true,
   selector: 'app-error-modal',
   imports: [CommonModule],
   template: `
-    <div class="error-modal-backdrop" *ngIf="open">
-      <div class="error-modal-container">
+    <div class="error-modal-backdrop" *ngIf="open" (click)="onBackdropClick()">
+      <div class="error-modal-container" (click)="$event.stopPropagation()">
         <button
           type="button"
           class="error-modal-close"
@@ -29,15 +29,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
           </ng-template>
         </div>
 
-        <div class="error-modal-footer">
-          <button
-            type="button"
-            class="error-modal-button"
-            (click)="onClose()"
-          >
-            Fechar
-          </button>
-        </div>
+        <div class="error-modal-footer"></div>
       </div>
     </div>
   `,
@@ -94,22 +86,6 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
       justify-content: flex-end;
     }
 
-    .error-modal-button {
-      border: none;
-      border-radius: 8px;
-      padding: 6px 16px;
-      font-size: 0.95rem;
-      cursor: pointer;
-      background: var(--ion-color-primary, #3880ff);
-      color: var(--ion-color-primary-contrast, #ffffff);
-      transition: background 0.15s ease, transform 0.05s ease;
-    }
-
-    .error-modal-button:hover {
-      background: var(--ion-color-primary-shade, #3171e0);
-      transform: translateY(-1px);
-    }
-
     .error-modal-close {
       position: absolute;
       top: 10px;
@@ -135,5 +111,16 @@ export class ErrorModalComponent {
 
   onClose(): void {
     this.closed.emit();
+  }
+
+  onBackdropClick(): void {
+    if (this.open) this.onClose();
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  onEsc(ev: KeyboardEvent): void {
+    if (this.open && (ev.key === 'Escape' || ev.key === 'Esc')) {
+      this.onClose();
+    }
   }
 }
