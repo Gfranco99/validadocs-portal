@@ -87,7 +87,7 @@
 }
 
 /* =========================================================
-   BANNER DA I.A. (AJUSTADO: MAIS CLARO)
+   BANNER DA I.A.
    ========================================================= */
 .ai-banner-card {
   border-radius: 12px;
@@ -255,6 +255,16 @@
   word-break: break-word;
 }
 
+.see-details {
+  cursor: pointer;            
+  font-weight: 600;          
+  margin-left: 4px;          
+  color: var(--ion-text-color);
+  opacity: 0.85;
+  text-decoration: none;
+}
+.see-details:hover { opacity: 1; }
+
 .details-card ion-item ion-label {
   color: var(--ion-color-medium);
   font-weight: 400;
@@ -364,9 +374,6 @@ ion-item.cert-item ion-label > p { margin: 0 !important; }
   letter-spacing: -0.005em;
 }
 
-/* =========================================================
-   MODAL I.A. (COR AJUSTADA PARA ION-CARD-BACKGROUND)
-   ========================================================= */
 ion-modal.ai-details-modal {
   --width: 90%;
   --height: 85%;
@@ -376,7 +383,6 @@ ion-modal.ai-details-modal {
   --box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
   --backdrop-opacity: 0.4;
   
-  /* ✅ AJUSTE: Usa 'card-background' (cinza no dark, branco no light) */
   --background: var(--ion-card-background, #ffffff);
 
   &::part(content) {
@@ -398,7 +404,6 @@ ion-modal.ai-details-modal {
     box-shadow: none !important;
   }
 
-  /* Conteúdo com PADDING */
   ion-content.ai-modal-content {
     --background: var(--ion-card-background, #ffffff) !important;
     --color: var(--ion-text-color) !important;
@@ -410,7 +415,6 @@ ion-modal.ai-details-modal {
     --padding-bottom: 24px;
   }
 
-  /* Estilização das Seções */
   .ai-section {
     margin-bottom: 20px;
     padding-bottom: 16px;
@@ -445,19 +449,20 @@ ion-modal.ai-details-modal {
     gap: 8px;
   }
 
-  // /* Item da lista de signatários (com fundo um pouco diferente) */
   // .signer-item {
   //   padding: 12px;
   //   border-radius: 8px;
-  //   /* Usa um step para diferenciar levemente do fundo do card */
   //   background: var(--ion-color-step-100, #f2f2f2);
   //   color: var(--ion-text-color);
   //   display: flex;
   //   align-items: center;
+  //   justify-content: flex-start;
   //   gap: 10px;
   //   font-weight: 500;
+  //   text-align: left;
+  //   width: 100%;
   // }
-  
+  .signer-item span { flex: 1; text-align: left; }
 }
 
 /* =========================================================
@@ -469,12 +474,12 @@ ion-modal.ai-details-modal {
     --ion-grid-padding-end: 6px;
     --ion-grid-column-padding: 6px;
   }
-  :host { --summary-max-w: 680px; }
+  :host { --summary-max-w: 100%; }
 }
 
 @media (max-width: 768px) {
   :host {
-    --summary-max-w: 92vw;
+    --summary-max-w: 100%;
     --seal-w: 260px;
     --seal-h: 120px;
   }
@@ -482,26 +487,75 @@ ion-modal.ai-details-modal {
   .kpi { font-size: 26px; }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 576px) {
   :host {
     --seal-w: 220px;
     --seal-h: 104px;
   }
   .summary-card ion-card-content { padding: 10px; }
   
-  /* Ajuste do banner mobile */
+  /* Banner I.A. Mobile */
+  .ai-banner-card {
+    position: relative;
+    overflow: hidden; 
+    contain: content; 
+  }
+
   .ai-banner-card ion-card-content.ai-banner {
-    height: auto;
-    min-height: 180px;
-    flex-direction: column;
-    align-items: flex-start;
+    display: block !important;
+    height: auto !important; 
+    min-height: auto !important;
+    padding: 0 !important;
   }
-  .ai-banner-content {
-    max-width: 100%;
-    padding-bottom: 60px;
+
+  .ai-banner-img {
+    position: relative !important;
+    width: 100% !important;
+    height: auto !important;
+    max-width: 100% !important;
+    object-fit: contain;
+    display: block;
   }
+
+  .ai-banner-content { display: none !important; }
+  
   .ai-banner-btn {
-    right: 20px;
-    bottom: 15px;
+    position: absolute !important;
+    right: 10px !important;
+    bottom: 10px !important;
+    transform: scale(0.9);
+    margin: 0 !important;
+  }
+
+  /*Selo da Assinatura ABAIXO e PREENCHENDO */
+  .sig-item::part(native) {
+    flex-direction: column !important; /* Empilha verticalmente */
+    align-items: flex-start !important; /* Alinha à esquerda */
+    height: auto !important;
+    padding-bottom: 12px;
+  }
+
+  /* Label ocupa toda a largura */
+  .sig-item ion-label {
+    margin-right: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Selo Preenche o Espaço e Fica Grande */
+  .seal-box {
+    margin-left: 0 !important;   /* Tira margem esquerda */
+    margin-top: 16px !important; /* Adiciona margem topo */
+    
+    width: 100% !important;      /* ✅ PREENCHE A LARGURA */
+    height: auto !important;     /* ✅ Altura automática para manter proporção */
+    min-height: 80px;            /* Garante que não fique minúsculo */
+    
+    align-self: flex-start;
+  }
+
+  .seal-img-box {
+    width: 100% !important;      /* ✅ Imagem estica */
+    height: auto !important;
+    object-fit: contain;         /* ✅ Garante que apareça inteira */
   }
 }
