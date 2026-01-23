@@ -229,7 +229,6 @@ app.post("/auth", auth.validateCredential);
 app.post("/revoke", auth.revokeCredential);
 app.post("/login", auth.validateAdministrator);
 app.post("/getAllCredentials", auth.listCredentialCollections);
-app.post("/notification", auth.sendNotification);
 
 app.post('/consultar-webhook', upload.single('file'), async (req, res) => {
   
