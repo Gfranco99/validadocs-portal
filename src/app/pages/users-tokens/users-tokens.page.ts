@@ -181,7 +181,7 @@ export class UsersTokensPage implements OnInit {
           name: 'expiresIn',
           type: 'number',
           placeholder: 'Validade (minutos)',
-          value: '60',
+          value: '',
           min: 0,
           attributes: { inputmode: 'numeric', pattern: '[0-9]*', step: 1 }
         },

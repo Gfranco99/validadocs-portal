@@ -1,18 +1,21 @@
 :host {
-  /* Variáveis locais usadas na tela */
-  --seal-w: 300px;          /* largura do selo à direita */
-  --seal-h: 140px;          /* altura do selo à direita */
-  --summary-max-w: 760px;   /* largura máx. do card de resumo */
+  /* Variáveis locais */
+  --seal-w: 300px;
+  --seal-h: 140px;
+  --summary-max-w: 760px;
 
-  /* Espaçamentos utilitários */
+  /* Espaçamentos */
   --gap-xxs: 4px;
   --gap-xs: 8px;
   --gap-sm: 12px;
   --gap-md: 16px;
+
+  /* Ajuste fino para alinhamento dos conteúdos dos cards */
+  --val-left-pad: 24px;
 }
 
 /* =========================================================
-   GRID (puxado mais para esquerda)
+   GRID & ALINHAMENTO
    ========================================================= */
 .val-grid {
   width: 100%;
@@ -20,8 +23,25 @@
   --ion-grid-padding-end: 8px;
   --ion-grid-column-padding: 8px;
 }
-.val-row { align-items: flex-start; }
-.left, .right { display: block; }
+
+.val-row {
+  align-items: flex-start; /* Alinha topo das colunas */
+}
+
+/* Flexbox para controlar o espaçamento vertical entre cards */
+.left,
+.right {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-md); /* Espaço uniforme entre cards */
+}
+
+/* Cards ocupam 100% da largura da coluna */
+.left ion-card,
+.right ion-card {
+  width: 100%;
+  margin: 0;
+}
 
 /* =========================================================
    CARD DE RESUMO
@@ -29,31 +49,143 @@
 .summary-card {
   max-width: var(--summary-max-w);
   width: 100%;
-  margin: 0;
   border-radius: 12px;
   padding: 0;
 }
-.summary-card ion-card-header { padding: var(--gap-sm) var(--gap-md); }
+
+.summary-card ion-card-header {
+  padding: var(--gap-sm) var(--gap-md);
+}
+
 .summary-card ion-card-title {
   display: flex;
   align-items: center;
   gap: var(--gap-xs);
   font-weight: 600;
 }
-.summary-card ion-card-content { padding: 14px; }
 
-/* KPI discreto */
+.summary-card ion-card-content {
+  padding: 14px;
+}
+
 .summary-metrics {
   display: flex;
   flex-direction: column;
   gap: var(--gap-xxs);
   margin-bottom: var(--gap-sm);
 }
-.kpi { font-size: 30px; line-height: 1; font-weight: 700; }
-.kpi-sub { font-size: 12px; color: var(--ion-color-medium); }
+
+.kpi {
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.kpi-sub {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+}
 
 /* =========================================================
-   LISTA DE ASSINATURAS (lado esquerdo)
+   BANNER DA I.A. (AJUSTADO: MAIS CLARO)
+   ========================================================= */
+.ai-banner-card {
+  border-radius: 12px;
+  overflow: hidden; 
+  /* gap na .left cuida do espaçamento inferior */
+}
+
+.ai-banner-card ion-card-content.ai-banner {
+  padding: 0 !important;
+  margin: 0 !important;
+  position: relative;
+  height: 160px; 
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+/* Imagem de fundo Full */
+.ai-banner-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+/* Texto do Banner */
+.ai-banner-content {
+  position: relative;
+  z-index: 2;
+  padding: 20px;
+  color: #ffffff;
+  max-width: 65%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+}
+
+.ai-banner-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.ai-title-text {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.badge-new {
+  background: #ffffff;
+  color: var(--ion-color-primary);
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.ai-banner-body {
+  font-size: 0.95rem;
+  line-height: 1.3;
+  opacity: 0.95;
+  font-weight: 400;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  
+  strong {
+    font-weight: 700;
+    color: #a5f3fc;
+  }
+}
+
+/* Botão na Direita */
+.ai-banner-btn {
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
+  z-index: 3;
+  
+  --color: #ffffff;
+  --border-color: #ffffff;
+  --border-width: 1.5px;
+  --border-radius: 99px;
+  --background: rgba(255, 255, 255, 0.1);
+  --background-hover: rgba(255, 255, 255, 0.25);
+  
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  font-size: 0.8rem;
+  height: 36px;
+}
+
+/* =========================================================
+   LISTA DE ASSINATURAS
    ========================================================= */
 .sig-item {
   --inner-padding-start: 0;
@@ -62,12 +194,19 @@
   --padding-end: 0;
   min-height: 100px;
 
-  .sig-head { display: flex; align-items: center; gap: var(--gap-xs); }
+  .sig-head {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-xs);
+  }
   .sig-name { font-weight: 600; }
-  .sig-sub  { color: var(--ion-color-medium); font-size: 13px; line-height: 1.2; }
+  .sig-sub {
+    color: var(--ion-color-medium);
+    font-size: 13px;
+    line-height: 1.2;
+  }
 }
 
-/* Selo à direita do item de assinatura */
 .seal-box {
   width: var(--seal-w);
   height: var(--seal-h);
@@ -78,6 +217,7 @@
   border-radius: 14px;
   overflow: hidden;
 }
+
 .seal-img-box {
   width: 100%;
   height: 100%;
@@ -86,107 +226,104 @@
 }
 
 /* =========================================================
-   APONTAMENTOS (lado direito)
+   APONTAMENTOS & DETALHES
    ========================================================= */
-.errorfindings-card ion-card-title {
+.errorfindings-card ion-card-title,
+.details-card ion-card-title,
+.upload-card ion-card-title {
   display: flex;
   align-items: center;
   gap: var(--gap-xs);
 }
+
 .finding {
   --inner-padding-start: 0;
   --inner-padding-end: 0;
-  align-items: flex-start; /* texto alinha ao topo do item */
+  align-items: flex-start;
 }
-.finding ion-icon {
-  margin-right: 8px;
-  margin-top: 2px;        /* alinha com a primeira linha do texto */
-  flex: 0 0 auto;
-}
-.danger-text {
-  color: var(--ion-color-danger);
-  font-weight: 500;
-  word-break: break-word;
-  white-space: normal;
-}
+
 .warning-text {
   color: var(--ion-color-warning);
   font-weight: 500;
   word-break: break-word;
   white-space: normal;
 }
+
 .tooltip-text {
-  color: var(--ion-color-danger);  /* CHANGED */
-  font-family: var(--ion-font-family);
+  color: var(--ion-color-danger);
   font-weight: 400;
-  white-space: normal;
   word-break: break-word;
-  overflow-wrap: anywhere;
 }
 
-/* Callout positivo (ok) */
-.callout-ok {
+.details-card ion-item ion-label {
+  color: var(--ion-color-medium);
+  font-weight: 400;
+}
+
+.details-card ion-input::part(native) {
+  font-weight: 400;
+  color: var(--ion-text-color);
+}
+
+/* Headers e Contents Padrão */
+ion-card-header {
   display: flex;
   align-items: center;
-  gap: var(--gap-xs);
-  color: var(--ion-color-success);
-  font-weight: 600;
-  ion-icon { font-size: 18px; }
+  justify-content: flex-start;
+  padding-left: var(--val-left-pad) !important;
 }
 
-/* =========================================================
-   LISTA "Sobre o documento" (rótulos mais neutros)
-   ========================================================= */
-.info-list ion-item {
+ion-card-header ion-card-title {
+  text-align: left !important;
+  justify-content: flex-start !important;
+  margin: 0;
+  width: 100%;
+}
+
+ion-card-content {
+  padding-left: var(--val-left-pad) !important;
+  padding-right: 16px;
+}
+
+ion-card-content ion-item {
+  --padding-start: 0;
   --inner-padding-start: 0;
   --inner-padding-end: 0;
-  ion-label { color: var(--ion-color-medium); }
-  ion-note[slot="end"] { font-size: 15px; font-weight: 600; margin-left: auto; }
 }
 
 /* =========================================================
    UPLOAD
    ========================================================= */
-.upload-card ion-card-title {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-xs);
-}
 .file-drop {
   display: flex;
   align-items: center;
   gap: var(--gap-sm);
   padding: var(--gap-md);
-  border: 2px solid rgba(0,0,0,.1);
+  border: 2px solid color-mix(in srgb, var(--ion-text-color) 15%, transparent);
   border-radius: 10px;
   cursor: pointer;
-  transition: border-color .2s ease;
+  transition: border-color 0.2s ease;
 }
-.file-drop:hover { border-color: rgba(0,0,0,.2); }
+.file-drop:hover {
+  border-color: color-mix(in srgb, var(--ion-text-color) 30%, transparent);
+}
 .file-drop ion-icon { font-size: 28px; }
 .muted { color: var(--ion-color-medium); }
 
 /* =========================================================
-   CERTIFICADOS — layout e tipografia
+   CERTIFICADOS
    ========================================================= */
-
-/* Zera paddings internos do ion-item */
 ion-item.cert-item {
   --inner-padding-start: 0;
   --inner-padding-end: 0;
 }
-
-/* MÉTODO ÚNICO de espaçamento ENTRE linhas do certificado: */
-
 ion-item.cert-item ion-label {
-  display: grid;             /* empilha os <p> em coluna */
+  display: grid;
   grid-auto-rows: min-content;
-  row-gap: 8px;              /* ajuste aqui o “respiro” (6–12px) */
+  row-gap: 8px;
 }
-/* Evita somar margens dos <p> com o row-gap acima */
 ion-item.cert-item ion-label > p { margin: 0 !important; }
 
-/* Tipos de texto dentro do item de certificado */
 .cert-item .cert-subject,
 .cert-item .cert-issuer,
 .cert-item .issuer-label,
@@ -196,42 +333,25 @@ ion-item.cert-item ion-label > p { margin: 0 !important; }
   color: var(--ion-color-medium) !important;
 }
 
-/* CN (titular) — sem margem; gap cuida do espaço */
 .cert-item .cert-subject {
   font-weight: 400;
   font-size: var(--font-size-base);
   line-height: 1.4;
-  letter-spacing: 0;
   margin: 0;
   white-space: normal;
   word-break: break-word;
-  overflow-wrap: anywhere;
 }
 
-/* Emissor e metadados */
 .cert-item .cert-issuer {
   font-size: calc(var(--font-size-base) - 1px);
   line-height: 1.45;
   margin: 0;
   white-space: normal;
   word-break: break-word;
-  overflow-wrap: anywhere;
-
-  .issuer-label { font-weight: 400; margin-right: 4px; }
-  .issuer-value { font-weight: 400; }
 }
-.cert-item .cert-meta {
-  font-size: calc(var(--font-size-base) - 2px);
-  margin: 0;
-}
+.cert-item .cert-issuer .issuer-label { font-weight: 400; margin-right: 4px; }
+.cert-item .cert-issuer .issuer-value { font-weight: 400; }
 
-/* Espaço ENTRE itens de certificado no ion-list
-   (mantemos apenas o método oficial do Ionic) */
-ion-list ion-item.cert-item + ion-item.cert-item {
-  --inner-padding-top: 12px; /* “jeito Ionic” */
-}
-
-/* Header do card de certificado com badge no topo (se usado) */
 .cert-item .cert-title-row {
   display: flex;
   align-items: center;
@@ -245,6 +365,102 @@ ion-list ion-item.cert-item + ion-item.cert-item {
 }
 
 /* =========================================================
+   MODAL I.A. (COR AJUSTADA PARA ION-CARD-BACKGROUND)
+   ========================================================= */
+ion-modal.ai-details-modal {
+  --width: 90%;
+  --height: 85%;
+  --max-width: 1100px;
+  --max-height: 900px;
+  --border-radius: 12px;
+  --box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  --backdrop-opacity: 0.4;
+  
+  /* ✅ AJUSTE: Usa 'card-background' (cinza no dark, branco no light) */
+  --background: var(--ion-card-background, #ffffff);
+
+  &::part(content) {
+    border-radius: 12px;
+    background-color: var(--ion-card-background, #ffffff) !important;
+    color: var(--ion-text-color, #000000);
+    opacity: 1 !important;
+    backdrop-filter: none !important;
+  }
+
+  ion-toolbar {
+    --background: var(--ion-card-background, #ffffff) !important;
+    --color: var(--ion-text-color) !important;
+    --border-width: 0 !important;
+    padding-left: 10px; 
+  }
+
+  ion-header {
+    box-shadow: none !important;
+  }
+
+  /* Conteúdo com PADDING */
+  ion-content.ai-modal-content {
+    --background: var(--ion-card-background, #ffffff) !important;
+    --color: var(--ion-text-color) !important;
+
+    /* Espaçamento interno */
+    --padding-start: 24px;
+    --padding-end: 24px;
+    --padding-top: 24px;
+    --padding-bottom: 24px;
+  }
+
+  /* Estilização das Seções */
+  .ai-section {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--ion-color-step-150, #e0e0e0);
+  }
+
+  .ai-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+  }
+
+  .ai-section h3 {
+    margin: 0 0 8px 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--ion-color-medium);
+    opacity: 0.9;
+  }
+
+  .ai-section p {
+    margin: 0;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    color: var(--ion-text-color);
+    white-space: pre-wrap;
+  }
+
+  .signers-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  // /* Item da lista de signatários (com fundo um pouco diferente) */
+  // .signer-item {
+  //   padding: 12px;
+  //   border-radius: 8px;
+  //   /* Usa um step para diferenciar levemente do fundo do card */
+  //   background: var(--ion-color-step-100, #f2f2f2);
+  //   color: var(--ion-text-color);
+  //   display: flex;
+  //   align-items: center;
+  //   gap: 10px;
+  //   font-weight: 500;
+  // }
+  
+}
+
+/* =========================================================
    RESPONSIVO
    ========================================================= */
 @media (max-width: 992px) {
@@ -255,219 +471,37 @@ ion-list ion-item.cert-item + ion-item.cert-item {
   }
   :host { --summary-max-w: 680px; }
 }
+
 @media (max-width: 768px) {
-  :host { --summary-max-w: 92vw; --seal-w: 260px; --seal-h: 120px; }
+  :host {
+    --summary-max-w: 92vw;
+    --seal-w: 260px;
+    --seal-h: 120px;
+  }
   .summary-card ion-card-content { padding: 12px; }
   .kpi { font-size: 26px; }
 }
+
 @media (max-width: 480px) {
-  :host { --seal-w: 220px; --seal-h: 104px; }
+  :host {
+    --seal-w: 220px;
+    --seal-h: 104px;
+  }
   .summary-card ion-card-content { padding: 10px; }
-}
-
-/* =========================================================
-   ÁREA DE EXPORTAÇÃO (captura com html2canvas/jsPDF)
-   ========================================================= */
-.print-area { background: #fff; }
-.print-area.export-big { font-size: 1.12rem; }
-.print-area.export-a4 {
-  background: #fff;
-  padding: 24px 64px;
-  box-sizing: border-box;
-}
-/* Layout vertical para exportação */
-.print-area.export-vertical .val-row {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: var(--gap-sm);
-}
-.print-area.export-vertical .left,
-.print-area.export-vertical .right,
-.print-area.export-vertical ion-col {
-  max-width: 100% !important;
-  flex: 0 0 100% !important;
-}
-.print-area.export-vertical .left  { order: 1; }
-.print-area.export-vertical .right { order: 2; }
-/* Evita quebra dentro de cards/itens ao paginar no PDF */
-.print-area.export-vertical ion-card,
-.print-area.export-vertical ion-item {
-  break-inside: avoid;
-  page-break-inside: avoid;
-}
-
-/* =========================================================
-   “Sobre o Documento” com rótulos neutros
-   ========================================================= */
-.details-card ion-item ion-label {
-  color: var(--ion-color-medium);
-  font-weight: 400;           /* tira negrito */
-}
-.details-card ion-input::part(native) {
-  font-weight: 400;           /* tira negrito */
-  color: var(--ion-text-color);
-  /* Se quiser cinza também, troque por: color: var(--ion-color-medium); */
-}
-.errorfindings-card ion-item.finding.no-indent {
-  --padding-start: 0 !important;
-  --inner-padding-start: 0 !important;
-  --padding-end: 0;
-  --inner-padding-end: 0;
-  --min-height: auto;
-  position: relative;               /* base para o ícone absoluto */
-}
-
-/* mantém o padding do card coerente e retira recuo do <ion-list> */
-.errorfindings-card ion-card-content { padding: 14px; }
-.errorfindings-card ion-list { margin: 0; padding: 0; }
-
-/* Ícone fica no “gutter” e NÃO empurra o texto */
-.errorfindings-card .finding.no-indent .finding-ico {
-  position: absolute;
-  left: -18px;                      /* puxa levemente para fora, ajuste fino: -16 ~ -22 */
-  top: 10px;                        /* alinha com primeira linha do texto */
-  margin: 0;                        /* sem margem extra */
-  width: 18px; height: 18px;        /* largura fixa para previsibilidade */
-}
-
-/* Texto alinha no canto esquerdo, sem parágrafo */
-.errorfindings-card .finding.no-indent .finding-txt {
-  margin: 0 !important;
-  color: var(--ion-color-danger);
-  font-family: var(--ion-font-family);
-  font-weight: 400;
-  white-space: normal;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-}
-:host {
-  /* ajuste fino: mude 24px -> 16/20/28 se quiser mais/menos recuo */
-  --val-left-pad: 24px;
-}
-
-/* Header do card (onde fica <ion-card-title>) */
-ion-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  padding-left: var(--val-left-pad) !important;
-}
-
-/* Título do card */
-ion-card-header ion-card-title {
-  text-align: left !important;
-  justify-content: flex-start !important;
-  margin: 0;
-  width: 100%;
-}
-
-/* Conteúdo do card com o MESMO recuo do header */
-ion-card-content {
-  padding-left: var(--val-left-pad) !important;
-  padding-right: 16px; /* pode ajustar à vontade */
-}
-
-/* Zera o recuo padrão do ion-item para que ele "herde" o padding do card-content */
-ion-card-content ion-item {
-  --padding-start: 0;
-  --inner-padding-start: 0;
-  --inner-padding-end: 0;
-}
-
-/* Labels e textos ficam alinhados ao mesmo grid */
-ion-card-content ion-label,
-ion-card-content .ion-text-wrap,
-ion-card-content .finding-label {
-  margin: 0;
-}
-/* container dos carimbos */
-.ts-inside-cert {
-  /* aparência do BOTÃO (header) do acordeão */
-  ion-accordion::part(header) {
-    background: color-mix(in srgb, var(--ion-background-color) 86%, #fff 14%);
-    backdrop-filter: blur(3px);
-    -webkit-backdrop-filter: blur(3px);
-    border: 1px solid color-mix(in srgb, var(--ion-text-color) 8%, transparent);
-    border-radius: 12px;
-    padding: 6px 8px;
-    transition: background .18s ease, border-color .18s ease, box-shadow .18s ease;
+  
+  /* Ajuste do banner mobile */
+  .ai-banner-card ion-card-content.ai-banner {
+    height: auto;
+    min-height: 180px;
+    flex-direction: column;
+    align-items: flex-start;
   }
-  ion-accordion:hover::part(header) {
-    background: color-mix(in srgb, var(--ion-background-color) 78%, #fff 22%);
-    border-color: color-mix(in srgb, var(--ion-text-color) 14%, transparent);
+  .ai-banner-content {
+    max-width: 100%;
+    padding-bottom: 60px;
   }
-  ion-accordion[aria-expanded="true"]::part(header) {
-    background: color-mix(in srgb, var(--ion-background-color) 70%, #fff 30%);
-    border-color: color-mix(in srgb, var(--ion-text-color) 18%, transparent);
+  .ai-banner-btn {
+    right: 20px;
+    bottom: 15px;
   }
-
-  /* sem borda/contorno no conteúdo, só no header */
-  ion-accordion::part(content) {
-    border: none;
-    box-shadow: none;
-    background: transparent;
-  }
-
-  /* Estilo para o botão header (agora <ion-button>) */
-  .ts-header {
-    --background: color-mix(in srgb, var(--ion-background-color) 86%, #fff 14%);  /* Mesma cor do header do accordion */
-    --inner-padding-start: 12px;
-    --inner-padding-end: 12px;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    min-height: 44px;
-    border-radius: 12px;  /* Para combinar com o design do accordion */
-    color: var(--ion-color-contrast);  /* Cor do texto para contraste */
-  }
-  .ts-header-label {
-    flex: 1 1 auto;     /* ocupa toda a largura */
-    white-space: normal;/* permite quebrar linha (nome por extenso) */
-    font-weight: 600;
-    line-height: 1.25;
-  }
-
-  /* remove qualquer contorno/realce residual ao focar/clicar */
-  ion-accordion::part(header):focus,
-  ion-accordion::part(header):focus-visible {
-    outline: none;
-    box-shadow: none;
-  }
-}
-
-.link-button {
-  background: none;
-  border: none;
-  padding: 0;
-  margin-left: 8px;
-  font-size: 13px;
-  color: #fff; /* amarelo */
-  cursor: pointer;
-  text-decoration: none; /* remove underline */
-}
-
-.link-button:hover {
-  opacity: 0.8;
-}
-
-.link-button:focus {
-  outline: none;
-}
-
-
-/* ====== LINK "ver detalhes" ====== */
-
-.see-details {
-  cursor: pointer;
-  font-size: 0.9rem;
-
-  /* Herdar cor do tema (claro ou escuro) */
-  color: var(--ion-text-color);
-
-  opacity: 0.8;
-  transition: opacity 0.15s ease;
-}
-
-.see-details:hover {
-  opacity: 1;
 }

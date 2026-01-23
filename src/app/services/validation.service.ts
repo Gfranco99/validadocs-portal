@@ -49,4 +49,15 @@ export class ValidationService {
       `${this.validadocsApi}/errorDescription/${id}`
     );
   }
+  chamarValidacaoExterna(file: File, idDocumento: string): Observable<any> {
+    const urlBackend = `${this.validadocsApi}/consultar-webhook`; 
+
+    // Prepara o formulário para envio de arquivo
+    const form = new FormData();
+    form.append('file', file, file.name); // 👈 Anexa o PDF
+    form.append('idDocumento', idDocumento);
+
+    return this.http.post(urlBackend, form);
+  
+  }
 }

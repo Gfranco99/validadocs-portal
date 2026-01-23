@@ -18,23 +18,11 @@
 </ion-header>
 
 <ion-content class="ion-padding">
-  <!-- Inputs "reais" mas escondidos -->
-  <input
-    #fileInput
-    type="file"
-    accept="application/pdf,.p7s"
-    (change)="onFileChange($event)"
-    hidden
-  />
-  <input
-    #p7sInput
-    type="file"
-    accept=".p7s"
-    (change)="onP7sChange($event)"
-    hidden
-  />
 
-  <!-- Upload (drag & drop + clique) -->
+  <input #fileInput type="file" accept="application/pdf" (change)="onFileChange($event)" hidden />
+  <input #p7sInput type="file" accept=".p7s" (change)="onP7sChange($event)" hidden />
+
+  <!-- ================= UPLOAD ================= -->
   <ion-card class="upload-card" *ngIf="!result">
     <ion-card-header>
       <ion-card-title>
@@ -44,23 +32,21 @@
     </ion-card-header>
 
     <ion-card-content>
-      <!-- Dropzone do PDF -->
       <div class="file-drop"
            (click)="fileInput.click()"
            (dragover)="onDragOver($event)"
            (drop)="onDrop($event)"
-           role="button" tabindex="0"
-           (keyup.enter)="fileInput.click()"
-           [attr.aria-label]="file ? 'Arquivo selecionado: ' + file.name : 'Solte o arquivo aqui ou clique para escolher'">
+           role="button"
+           tabindex="0"
+           (keyup.enter)="fileInput.click()">
+
         <ion-icon name="cloud-upload-outline"></ion-icon>
 
-        <!-- placeholder padrão -->
         <div *ngIf="!file; else fileChosen">
-          <span>Solte o arquivo aqui </span>
+          <span>Solte o arquivo aqui</span>
           <span class="muted"> ou clique para escolher</span>
         </div>
 
-        <!-- quando já houver PDF selecionado -->
         <ng-template #fileChosen>
           <div class="chosen-file">
             <ion-icon name="document-outline"></ion-icon>
@@ -69,30 +55,25 @@
         </ng-template>
       </div>
 
-      <!-- Opção: Assinatura destacada (.p7s) -->
       <ion-item lines="none" class="ion-margin-top">
-        <ion-checkbox
-          slot="start"
-          [formControl]="form.controls.detached"
-          aria-label="Assinatura destacada (.p7s)">
-        </ion-checkbox>
+        <ion-checkbox slot="start" [formControl]="form.controls.detached"></ion-checkbox>
         <ion-label>Se a assinatura for destacada, selecione o arquivo .p7s</ion-label>
       </ion-item>
 
-      <!-- Dropzone do .p7s -->
       <div *ngIf="detached" class="ion-margin-top">
         <div class="file-drop secondary"
              (click)="p7sInput.click()"
              (dragover)="onDragOverP7s($event)"
              (drop)="onDropP7s($event)"
-             role="button" tabindex="0"
-             (keyup.enter)="p7sInput.click()"
-             [attr.aria-label]="p7sFileName ? 'Assinatura selecionada: ' + p7sFileName : 'Solte o arquivo .p7s aqui ou clique para escolher'">
+             role="button"
+             tabindex="0"
+             (keyup.enter)="p7sInput.click()">
+
           <ion-icon name="key-outline"></ion-icon>
 
           <div *ngIf="!p7sFileName; else p7sChosen">
-            <span>Adicionar arquivo de assinatura </span>
-            <span class="muted">(.p7s)</span>
+            <span>Adicionar arquivo de assinatura</span>
+            <span class="muted"> (.p7s)</span>
           </div>
 
           <ng-template #p7sChosen>
@@ -103,255 +84,245 @@
           </ng-template>
         </div>
 
-        <!-- Feedback de verificação .p7s -->
-        <div class="ion-padding-top" *ngIf="p7sOk !== undefined">
-          <ion-text color="success" *ngIf="p7sOk === true"></ion-text>
-          <ion-text color="danger" *ngIf="p7sOk === false">
+        <div class="ion-padding-top" *ngIf="p7sOk === false">
+          <ion-text color="danger">
             <p><b>Falha na verificação .p7s:</b> {{ p7sReason }}</p>
           </ion-text>
         </div>
       </div>
 
-      <!-- Engine -->
       <div class="engine-block ion-margin-top">
-
-        <ion-item lines="none" class="engine-item">
-          <ion-checkbox
-            slot="start"
-            [checked]="form.controls.engineITI?.value"
-            (ionChange)="onToggleEngine('ITI', $event.detail.checked)"
-            aria-label="Usar engine ITI">
+        <ion-item lines="none">
+          <ion-checkbox slot="start"
+                        [checked]="form.controls.engineITI?.value"
+                        (ionChange)="onToggleEngine('ITI', $event.detail.checked)">
           </ion-checkbox>
           <ion-label>Validação básica (ITI)</ion-label>
         </ion-item>
 
-        <ion-note
-          class="engine-note"
-          color="medium"
-          *ngIf="form.controls.engineITI?.value">
+        <ion-note color="medium" *ngIf="form.controls.engineITI?.value">
           Observação: a validação básica pode não observar todos os critérios atuais de validação.
         </ion-note>
 
-        <ion-item lines="none" class="engine-item">
-          <ion-checkbox
-            slot="start"
-            [checked]="form.controls.engineSDK?.value"
-            (ionChange)="onToggleEngine('SDK', $event.detail.checked)"
-            aria-label="Usar engine SDK">
+        <ion-item lines="none">
+          <ion-checkbox slot="start"
+                        [checked]="form.controls.engineSDK?.value"
+                        (ionChange)="onToggleEngine('SDK', $event.detail.checked)">
           </ion-checkbox>
           <ion-label>Validação avançada</ion-label>
         </ion-item>
+
+        <ion-item lines="none" class="ai-diagnostic-item">
+          <ion-checkbox
+            slot="start"
+            [(ngModel)]="useAI">
+          </ion-checkbox>
+
+  <ion-label>
+    Diagnóstico com I.A.
+    <a
+      class="ai-privacy-link"
+      href="http://homol.assinaweb.com.br/app/content/protocolos/politica_validadocs.html"
+      target="_blank"
+      rel="noopener noreferrer"
+      (click)="$event.stopPropagation()"
+    >
+      Termos de Uso
+    </a>
+  </ion-label>
+</ion-item>
       </div>
 
-      <!-- Aceite -->
       <ion-item lines="none" class="ion-margin-top">
-        <ion-checkbox
-          slot="start"
-          [formControl]="form.controls.acceptPolicy"
-          aria-label="Li e aceito a Política de Privacidade">
-        </ion-checkbox>
+        <ion-checkbox slot="start" [formControl]="form.controls.acceptPolicy"></ion-checkbox>
         <ion-label>
           Li e aceito a
-          <a href="http://homol.assinaweb.com.br/app/content/protocolos/politica_validadocs.html" target="_blank" rel="noopener">
+          <a href="http://homol.assinaweb.com.br/app/content/protocolos/politica_validadocs.html"
+             target="_blank"
+             rel="noopener">
             Política de Privacidade
           </a>
         </ion-label>
       </ion-item>
 
-      <ion-note color="medium" *ngIf="!form?.value?.acceptPolicy" class="ion-margin-start">
+      <ion-note color="medium" *ngIf="!form.value?.acceptPolicy" class="ion-margin-start">
         É necessário aceitar a Política de Privacidade para validar.
       </ion-note>
 
-      <!-- Erro geral -->
       <ion-note color="danger" *ngIf="error" class="ion-margin-top">{{ error }}</ion-note>
 
-      <!-- Botão -->
-      <ion-button
-        class="ion-margin-top"
-        expand="block"
-        color="primary"
-        (click)="submit()"
-        [disabled]="loading || !canValidate()">
+      <ion-button expand="block"
+                  color="primary"
+                  class="ion-margin-top"
+                  (click)="submit()"
+                  [disabled]="loading || !canValidate()">
         Validar Documento
       </ion-button>
     </ion-card-content>
   </ion-card>
 
-  <!-- Resultado -->
+  <!-- ================= RESULTADO ================= -->
   <ng-container *ngIf="result as r">
-
     <ion-grid class="val-grid">
-      <ion-row class="val-row">
+      <ion-row class="val-row ion-align-items-start">
 
-        <!-- Esquerda -->
+        <!-- ===== COLUNA ESQUERDA ===== -->
         <ion-col size="12" size-lg="6" class="left">
 
-          <ion-card class="summary-card">
-            <ion-card-header>
-              <ion-card-title>Resumo da validação</ion-card-title>
-            </ion-card-header>
+        <!-- ✅ BANNER IA (sem loading) -->
+       <ion-card class="summary-card ai-banner-card" *ngIf="useAI">
+            <ion-card-content class="ai-banner">
 
-            <ion-card-content>
+              <img
+                class="ai-banner-img"
+                src="assets/validadocsai3.png"
+                alt="Banner Análise de IA"
+              />
 
-              <div class="summary-metrics">
-                <div class="kpi">{{ sigMetric() }}</div>
-              </div>
+              <ion-button
+                fill="outline"
+                shape="round"
+                class="ai-banner-btn"
+                (click)="setAiModalOpen(true)"
+                [disabled]="aiLoading || !aiData"
+              >
+                <ng-container *ngIf="aiLoading">
+                  <ion-spinner name="crescent" style="width: 14px; height: 14px; margin-right: 8px; --color: #ffffff;"></ion-spinner>
+                  Analisando...
+                </ng-container>
 
-              <ion-list class="ion-margin-top">
+                <ng-container *ngIf="!aiLoading">
+                  Ver detalhes
+                </ng-container>
+              </ion-button>
 
-                <ion-item *ngFor="let s of r.validaDocsReturn?.digitalSignatureValidations"
-                          lines="full" class="sig-item">
-                  <ion-label class="ion-text-wrap">
-                    <div class="sig-head">Assinado por: {{ normalizeAccents(s.signerName) }}</div>
-                    <div class="sig-head" *ngIf="s.cpf">CPF: {{ s.cpf }}</div>
-                    <div class="sig-sub">{{ s.signatureLevel }}</div>
-                    <div class="sig-sub">{{ s.trustedRoot }}</div>
-                    <div class="sig-sub" *ngIf="s.signatureTime">
-                      {{ s.signatureTime | date:'dd/MM/yyyy HH:mm' }}
-                    </div>
-
-                    <div>
-                      <ion-icon name="checkmark-circle" color="success"></ion-icon>
-                      <ion-label class="ion-text-wrap" [color]="validColor(s.signatureValid)">
-                        {{ s.signatureValid ? 'Assinatura aprovada' : 'Assinatura reprovada' }}
-                      </ion-label>
-                    </div>
-                  </ion-label>
-
-                  <div slot="end" class="seal-box">
-                    <img [src]="getImgTrustedRoot(s)" alt="Selo ValidaDocs" class="seal-img-box" />
-                  </div>
-                </ion-item>
-
-              </ion-list>
             </ion-card-content>
           </ion-card>
+
+        <ion-card class="summary-card">
+          <ion-card-header>
+            <ion-card-title>Resumo da validação</ion-card-title>
+          </ion-card-header>
+
+          <ion-card-content>
+            <div class="summary-metrics">
+              <div class="kpi">{{ sigMetric() }}</div>
+            </div>
+
+            <ion-list class="ion-margin-top">
+              <ion-item *ngFor="let s of r.validaDocsReturn?.digitalSignatureValidations"
+                        lines="full"
+                        class="sig-item">
+                <ion-label>
+                  <div class="sig-head">Assinado por: {{ normalizeAccents(s.signerName) }}</div>
+                  <div *ngIf="s.cpf">CPF: {{ s.cpf }}</div>
+                  <div class="sig-sub">{{ s.signatureLevel }}</div>
+                  <div class="sig-sub">{{ s.trustedRoot }}</div>
+                  <div class="sig-sub" *ngIf="s.signatureTime">
+                    {{ s.signatureTime | date:'dd/MM/yyyy HH:mm' }}
+                  </div>
+
+                  <div>
+                    {{ s.signatureValid ? 'Assinatura aprovada' : 'Assinatura reprovada' }}
+                  </div>
+                </ion-label>
+
+                <div slot="end" class="seal-box">
+                  <img [src]="getImgTrustedRoot(s)" class="seal-img-box" />
+                </div>
+              </ion-item>
+            </ion-list>
+          </ion-card-content>
+        </ion-card>
+
         </ion-col>
 
-        <!-- Direita -->
+        <!-- ===== COLUNA DIREITA ===== -->
         <ion-col size="12" size-lg="6" class="right">
 
-          <!-- Detalhes do Documento (inclui PDF/A) -->
           <ion-card class="details-card">
             <ion-card-header>
               <ion-card-title>Sobre o Documento</ion-card-title>
             </ion-card-header>
 
             <ion-card-content>
-
-              <ion-item lines="full">
+              <ion-item>
                 <ion-label position="stacked">Nome do documento</ion-label>
-                <ion-input class="doc-name" [value]="normalizeAccents(r.fileName)" readonly></ion-input>
+                <ion-input [value]="normalizeAccents(r.fileName)" readonly></ion-input>
               </ion-item>
 
-              <ion-item lines="full">
-                <ion-label class="with-help">Status</ion-label>
-                <div slot="end">
-                  <ion-badge class="pill" [color]="r.isValid ? 'success' : 'danger'">
-                    {{ r.isValid ? 'Válido' : 'Inválido' }}
-                  </ion-badge>
-                </div>
+              <ion-item>
+                <ion-label>Status</ion-label>
+                <ion-badge slot="end" [color]="r.isValid ? 'success' : 'danger'">
+                  {{ r.isValid ? 'Válido' : 'Inválido' }}
+                </ion-badge>
               </ion-item>
 
-              <ion-item lines="full">
-                <ion-label class="with-help">Nato digital</ion-label>
-                <div slot="end">
-                  <ion-badge class="pill" [color]="r.validaDocsReturn?.pdfValidations?.bornDigital ? 'success' : 'danger'">
-                    {{ r.validaDocsReturn?.pdfValidations?.bornDigital ? 'Sim' : 'Não' }}
-                  </ion-badge>
-                </div>
+              <ion-item>
+                <ion-label>Nato digital</ion-label>
+                <ion-badge slot="end"
+                           [color]="r.validaDocsReturn?.pdfValidations?.bornDigital ? 'success' : 'danger'">
+                  {{ r.validaDocsReturn?.pdfValidations?.bornDigital ? 'Sim' : 'Não' }}
+                </ion-badge>
               </ion-item>
 
-              <ion-item lines="full">
+              <ion-item>
                 <ion-label>Padrão das assinaturas</ion-label>
-                <div slot="end">
-                  <ion-note>{{ r.signatureType }}</ion-note>
-                </div>
+                <ion-note slot="end">{{ r.signatureType }}</ion-note>
               </ion-item>
 
-              <ion-item lines="full">
+              <ion-item>
                 <ion-label>Versão do software</ion-label>
-                <div slot="end">
-                  <ion-note>{{ r.softwareVersion }}</ion-note>
-                </div>
+                <ion-note slot="end">{{ r.softwareVersion }}</ion-note>
               </ion-item>
 
-              <!-- PDF/A DENTRO DO BLOCO "Sobre o Documento" -->
+              <!-- ✅ REINSERIDO: PDF/A e Nível (você já usava antes) -->
               <ng-container *ngIf="r.validaDocsReturn?.pdfValidations as pdf">
                 <ion-item lines="full">
-                  <ion-label class="with-help">PDF/A</ion-label>
-                  <div slot="end">
-                    <ion-badge class="pill"
-                               [color]="pdf.isPDFACompliant === false ? 'danger' : 'success'">
-                      {{
-                        pdf.isPDFACompliant === true ? 'Sim' :
-                        pdf.isPDFACompliant === false ? 'Não' : '—'
-                      }}
-                    </ion-badge>
-                  </div>
+                  <ion-label>PDF/A</ion-label>
+                  <ion-badge slot="end"
+                             [color]="pdf.isPDFACompliant === false ? 'danger' : 'success'">
+                    {{ pdf.isPDFACompliant === true ? 'Sim' : pdf.isPDFACompliant === false ? 'Não' : '—' }}
+                  </ion-badge>
                 </ion-item>
 
                 <ion-item lines="full">
-                  <ion-label class="with-help">Nível do PDF/A</ion-label>
-                  <div slot="end">
-                    <ion-note>{{ pdf.pdfAStandard || 'Desconhecido' }}</ion-note>
-                  </div>
+                  <ion-label>Nível do PDF/A</ion-label>
+                  <ion-note slot="end">{{ pdf.pdfAStandard || 'Desconhecido' }}</ion-note>
                 </ion-item>
               </ng-container>
-
             </ion-card-content>
           </ion-card>
 
-          <!-- Apontamentos da Validação (apenas 1 linha curta + ver detalhes) -->
+          <!-- ✅ REINSERIDO: Apontamentos -->
           <ion-card class="errorfindings-card" *ngIf="hasFindings">
-
             <ion-card-header class="card-title-row">
               <ion-card-title>Apontamentos da Validação</ion-card-title>
             </ion-card-header>
-
             <ion-card-content>
               <ion-item class="finding" lines="none">
                 <ion-label class="ion-text-wrap finding-label">
                   <span class="warning-text">{{ shortFinding }}</span>
-                  <span
-                    class="see-details"
-                    *ngIf="hasDetailsLink"
-                    (click)="openErrorDetails()">
-                    (Ver detalhes.)
-                  </span>
+                  <span class="see-details" *ngIf="hasDetailsLink" (click)="openErrorDetails()">(Ver detalhes.)</span>
                 </ion-label>
               </ion-item>
             </ion-card-content>
           </ion-card>
 
-          <!-- Certificados -->
+          <!-- ✅ REINSERIDO: Certificados (o mesmo padrão que você já tinha) -->
           <ng-container *ngIf="r.validaDocsReturn?.digitalSignatureValidations as certList">
-
             <ng-container *ngFor="let s of certList; let i = index; trackBy: trackByName">
-
               <ion-card class="cert-card ion-margin-bottom">
                 <ion-card-header></ion-card-header>
-
                 <ion-card-content>
-
                   <ion-item lines="full" class="cert-item">
-
                     <ion-label class="ion-text-wrap">
-
                       <div class="cert-title-row">
-                        <span class="cert-title">
-                          Certificado
-                          <ng-container *ngIf="certList.length > 1">{{ i + 1 }}</ng-container>
-                        </span>
-
-                        <ion-badge class="pill" [color]="sigColor(s)">
-                          {{ s.signatureValid ? 'Válida' : 'Inválida' }}
-                        </ion-badge>
+                        <span class="cert-title">Certificado <ng-container *ngIf="certList.length > 1">{{ i + 1 }}</ng-container></span>
+                        <ion-badge class="pill" [color]="sigColor(s)">{{ s.signatureValid ? 'Válida' : 'Inválida' }}</ion-badge>
                       </div>
 
-                      <p class="cert-subject ion-text-wrap">
-                        {{ normalizeAccents(s.endCertSubjectName) || '—' }}
-                      </p>
+                      <p class="cert-subject ion-text-wrap">{{ normalizeAccents(s.endCertSubjectName) || '—' }}</p>
 
                       <p class="cert-meta" *ngIf="s.certificateStartDate">
                         <span class="issuer-label">Emitido em:</span>
@@ -368,17 +339,10 @@
                         <span class="issuer-value">{{ normalizeAccents(s.rootIssuer) || '—' }}</span>
                       </p>
 
-                      <p class="cert-meta" *ngIf="s.signatureType || s.signatureLevel">
-                        <span class="issuer-value">{{ s.signatureType }} / {{ s.signatureLevel }}</span>
-                      </p>
-
-                      <!-- Carimbos de tempo (Accordion Ionic) -->
                       <ng-container *ngIf="($any(s)?.timeStamps || $any(s)?.timestamps || $any(s)?.timeStampValidations) as tsList">
                         <div class="ts-inside-cert ion-margin-top" *ngIf="tsList?.length">
                           <ion-accordion-group>
-                            <ion-accordion *ngFor="let ts of tsList; let j = index"
-                                           [value]="'ts-'+i+'-'+j"
-                                           class="ts-outline-accordion">
+                            <ion-accordion *ngFor="let ts of tsList; let j = index" [value]="'ts-'+i+'-'+j" class="ts-outline-accordion">
                               <ion-item slot="header" lines="none" class="ts-header ts-outline" button>
                                 <ion-label>Carimbo de tempo</ion-label>
                                 <ion-icon name="chevron-forward-outline" slot="end" class="ts-chevron"></ion-icon>
@@ -416,27 +380,98 @@
                           </ion-accordion-group>
                         </div>
                       </ng-container>
-                      <!-- /Carimbos de tempo -->
-
                     </ion-label>
-
                   </ion-item>
-
                 </ion-card-content>
               </ion-card>
-
             </ng-container>
           </ng-container>
 
         </ion-col>
+
       </ion-row>
     </ion-grid>
   </ng-container>
 
-  <!-- Modal de detalhes -->
+  <!-- MODAL IA -->
+  <ion-modal
+    [isOpen]="isAiModalOpen"
+    (didDismiss)="setAiModalOpen(false)"
+    [backdropDismiss]="true"
+    [keyboardClose]="true"
+    class="ai-details-modal"
+  >
+    <ng-template #content>
+      <ion-header class="ion-no-border">
+        <ion-toolbar class="ai-modal-toolbar">
+          <ion-title class="ai-modal-title">Análise de IA (Nova)</ion-title>
+
+          <ion-buttons slot="end">
+            <ion-button
+              type="button"
+              fill="clear"
+              class="ai-modal-close"
+              aria-label="Fechar"
+              (click)="setAiModalOpen(false)"
+            >
+              <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content class="ai-modal-content">
+        <div class="ai-wrap" *ngIf="aiData; else noAi">
+
+          <div class="ai-section" *ngIf="aiData.documentType">
+            <h3>Tipo de Documento</h3>
+            <p>{{ aiData.documentType }}</p>
+          </div>
+
+          <div class="ai-section" *ngIf="aiData.summary">
+            <h3>Resumo do Documento</h3>
+            <p>{{ aiData.summary }}</p>
+          </div>
+
+          <div class="ai-section" *ngIf="aiData.signatureType">
+            <h3>Tipo de Assinatura</h3>
+            <p>{{ aiData.signatureType }}</p>
+          </div>
+
+          <div class="ai-section" *ngIf="aiData.signers?.length">
+            <h3>Signatários Identificados</h3>
+            <div class="signers-list">
+              <div *ngFor="let signer of aiData.signers" class="signer-item">
+                {{ signer }}
+              </div>
+            </div>
+          </div>
+
+          <div class="ai-section main-answer" *ngIf="aiData.answer">
+            <h3>Análise Detalhada da IA</h3>
+            <p>{{ aiData.answer }}</p>
+          </div>
+
+          <div class="ai-section" *ngIf="aiData.confidenceNotes">
+            <h3>Nota / Observações</h3>
+            <p>{{ aiData.confidenceNotes }}</p>
+          </div>
+
+        </div>
+
+        <ng-template #noAi>
+          <div class="ai-wrap">
+            <p>Sem dados da análise para exibir.</p>
+          </div>
+        </ng-template>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+
+
   <app-error-modal
     [open]="showErrorModal"
     [message]="errorFullMessage ?? null"
     (closed)="closeErrorDetails()">
   </app-error-modal>
-</ion-content>
