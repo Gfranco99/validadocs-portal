@@ -559,3 +559,67 @@ ion-modal.ai-details-modal {
     object-fit: contain;         /* ✅ Garante que apareça inteira */
   }
 }
+
+.ai-details-modal .raw-log-pre {
+  margin: 0;
+
+  /* mantém o comportamento de log */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;  /* melhor que break-all */
+  word-break: normal;
+
+  /* faz ficar IGUAL ao resto */
+  font: inherit !important;          /* pega família + tamanho + peso */
+  font-family: var(--ion-font-family) !important;
+  font-size: 1rem !important;
+  line-height: 1.45 !important;
+  color: var(--ion-text-color) !important;
+
+  /* opcional: tira aparência “caixa” se tiver */
+  background: transparent;
+}
+
+
+/* validate.page.scss */
+
+.ai-details-modal {
+
+  /* 1) Padroniza o recuo do bloco inteiro */
+  .tech-block {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  /* 2) Faz o H3 usar o MESMO recuo do bloco (sem herdar "margens estranhas") */
+  .tech-title {
+    margin: 0 0 12px 0;
+    padding: 0;
+  }
+
+  /* 3) Tira o padding do accordion-group (se houver) pra não "quebrar" o alinhamento */
+  .tech-acc {
+    padding: 0;
+    margin: 0;
+  }
+
+  /* 4) Força o ion-item do header a ter o mesmo start/end do bloco */
+  .tech-acc-header {
+    --padding-start: 0px;
+    --padding-end: 0px;
+    --inner-padding-start: 0px;
+    --inner-padding-end: 0px;
+    --min-height: 48px;
+  }
+
+  /* 5) Remove margem/padding que o label adiciona */
+  .tech-acc-header ion-label {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* 6) Garante que o ícone do chevron não empurre o texto pra dentro */
+  .tech-acc-header ion-icon[slot="end"] {
+    margin: 0 !important;
+  }
+}
+

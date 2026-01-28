@@ -12,7 +12,6 @@ import { ValidationResult, SignatureInfo } from 'src/app/types/validation.types'
 import { AuthService } from 'src/app/guard/auth.service';
 import { P7sService, P7sSummary } from 'src/app/services/p7s.service';
 
-// ✅ ADICIONADO IonSpinner AQUI
 import {
   IonBadge, IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardTitle,
   IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonInput, IonItem, IonLabel,
@@ -27,7 +26,7 @@ import { TrustedRoot } from 'src/app/enum/enum';
 import { ErrorModalComponent } from 'src/app/components/error-modal/error-modal.component';
 
 import { addIcons } from 'ionicons';
-import { closeOutline } from 'ionicons/icons';
+import { closeOutline, personOutline } from 'ionicons/icons';
 
 type ExtSignature = SignatureInfo & {
   cpf?: string;
@@ -50,7 +49,7 @@ type ExtSignature = SignatureInfo & {
     IonGrid, IonRow, IonCol, IonList, IonLabel, IonBadge, IonIcon, IonButtons,
     IonText, IonCheckbox,
     IonAccordionGroup, IonAccordion, IonModal,
-    IonSpinner, // ✅ ADICIONADO NOS IMPORTS DO COMPONENTE
+    IonSpinner,
     ErrorModalComponent
   ]
 })
@@ -78,8 +77,54 @@ export class ValidatePage implements OnInit, OnDestroy {
   useAI = false;
   aiData: any = null;
   isAiModalOpen = false;
-  aiLoading = false; // ✅ VARIÁVEL CRIADA
+  aiLoading = false;
   // ==============================
+
+  signatureLevelLabel(value?: string | null): string {
+  if (!value) return '—';
+
+  const v = value.toLowerCase();
+
+  if (v.includes('qualified')) return 'Qualificada';
+  if (v.includes('advanced') || v.includes('ades')) return 'Avançada';
+  if (v.includes('basic')) return 'Básica';
+  if (v.includes('simple') || v.includes('simples')) return 'Simples';
+
+  return value;
+}
+
+signatureTypeLabel(value?: string | null): string {
+  if (!value) return '—';
+
+  const v = value.toLowerCase();
+
+  // tipos de assinatura comuns que aparecem no retorno
+  if (v.includes('pades')) return 'PAdES';
+  if (v.includes('cades')) return 'CAdES';
+  if (v.includes('xades')) return 'XAdES';
+
+  // variações de PKCS7 que às vezes aparecem no "signatureType"
+  if (v.includes('pkcs7.detached')) return 'PKCS 7 destacada';
+  if (v.includes('pkcs7')) return 'PKCS 7';
+
+  // fallback: mantém o original
+  return value;
+}
+
+
+trustedRootLabel(value?: string | null): string {
+  if (!value) return '—';
+
+  const raw = String(value);
+  const v = raw.toLowerCase().replace(/[_\s]/g, '');
+
+  if (v.includes('icpbrasil')) return 'ICP-Brasil';
+  if (v.includes('govbr')) return 'Gov.br';
+  if (v.includes('enotariado')) return 'e-Notariado';
+
+  return raw.replace(/_/g, ' ');
+}
+
 
   errorFullMessage: string | null = null;
   showErrorModal = false;
@@ -94,6 +139,58 @@ export class ValidatePage implements OnInit, OnDestroy {
   p7sReason?: string;
 
   private readonly LOGO_URL = 'assets/validadocs-logo.png';
+
+    // =================== LABELS (PT-BR) PARA EXIBIÇÃO DO JSON DA IA ===================
+  readonly aiLabels: Record<string, string> = {
+    // Top-level
+    documentType: 'Tipo de documento',
+    summary: 'Resumo',
+    signatureType: 'Tipo de Assinatura',
+    signers: 'Signatários',
+    answer: 'Resposta IA',
+    notes: 'Notas',
+    confidenceNotes: 'Notas',
+
+    // Technical Evidence (titulações)
+    technicalEvidence: 'Evidência Técnica',
+
+    // File
+    file: 'Arquivo',
+    path: 'Caminho',
+    hashAlgorithm: 'Algoritmo',
+    processingNotes: 'Notas de Processamento',
+
+    // Signatures
+    signatures: 'Signatários',
+    count: 'Qtd',
+    details: 'Detalhes',
+    fieldName: 'Nome do campo',
+    signerName: 'Nome do Signatário',
+    signerDocument: 'Documento',
+    distinguishedName: 'Nome Distinto',
+    certificateIssuer: 'Emissor',
+    certificateChain: 'Cadeia',
+    signingTime: 'Data/hora da Assinatura',
+    byteRange: 'Intervalo',
+    documentModifiedAfterSignature: 'Documento modificado após assinatura?',
+    cryptographicValidity: 'Validade Criptográfica',
+    certificateTrust: 'Confiança do Certificado',
+    documentIntegrity: 'Integridade do documento',
+
+    // Verification
+    verification: 'Verificação',
+    overallStatus: 'Estado Geral',
+    warnings: 'Alertas',
+    errors: 'Erros',
+
+    // PdfSig
+    rawPdfsigOutput: 'Saída do PdfSig',
+    basic: 'Básico',
+  };
+
+  labelOf(key: string): string {
+    return this.aiLabels[key] || key;
+  }
 
   constructor(
     private fb: FormBuilder,
@@ -117,11 +214,38 @@ export class ValidatePage implements OnInit, OnDestroy {
     });
   }
 
+  // ✅ 1. Verifica se é Array (para o HTML)
+  isArray(obj: any): boolean {
+    return Array.isArray(obj);
+  }
+
+  // ✅ 2. Formata o Log Bruto visualmente
+  formatRawLog(text: any): string {
+    if (!text) return '';
+    const str = String(text);
+
+    // Se já tiver quebra de linha (\n), retorna igual (já está formatado)
+    if (str.includes('\n')) {
+      return str;
+    }
+
+    // Se for linha única, aplica a formatação visual:
+    // Quebra linha após os dois pontos ":" e substitui vírgulas por bullets "•"
+    const firstColon = str.indexOf(':');
+    if (firstColon > -1) {
+      const header = str.substring(0, firstColon + 1);
+      const body = str.substring(firstColon + 1);
+      return header + '\n• ' + body.replace(/, /g, '\n• ').trim();
+    }
+
+    // Fallback simples
+    return str.replace(/, /g, '\n• ');
+  }
+
   setAiModalOpen(isOpen: boolean) {
     this.isAiModalOpen = isOpen;
   }
 
-  // ================== ERROS HTTP ==================
   private friendlyError(err: any): string {
     const defaultMsg = 'Ocorreu um erro desconhecido durante a validação.';
     if (err?.error && typeof err.error === 'string') return err.error;
@@ -135,7 +259,7 @@ export class ValidatePage implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    addIcons({ closeOutline });
+    addIcons({ closeOutline, personOutline });
 
     const stored = (localStorage.getItem('engine') || 'ITI').toUpperCase();
     if (stored === 'SDK') {
@@ -247,7 +371,7 @@ export class ValidatePage implements OnInit, OnDestroy {
 
       this.aiData = null;
       this.isAiModalOpen = false;
-      this.aiLoading = false; // Reset loading
+      this.aiLoading = false;
 
       f.arrayBuffer().then(buf => (this.pdfBytes = buf)).catch(() => { });
     } else {
@@ -359,11 +483,11 @@ export class ValidatePage implements OnInit, OnDestroy {
     this.showErrorModal = false;
     this.result = undefined;
 
-    // ✅ Reset de estado da IA
+    // Reset estado IA
     this.aiData = null;
     this.isAiModalOpen = false;
-    
-    // ✅ Se usar IA, liga o spinner
+
+    // Se usar IA, liga spinner
     if (this.useAI) {
       this.aiLoading = true;
     } else {
@@ -433,7 +557,7 @@ export class ValidatePage implements OnInit, OnDestroy {
           this.showErrorModal = false;
         });
 
-        // ✅ Lógica IA (Com Loading Visual)
+        // ✅ LÓGICA DA I.A. (ATUALIZADA)
         if (this.useAI) {
           const idParaConsultar = (res as any).id || this.file?.name || 'ID-Desconhecido';
 
@@ -443,22 +567,33 @@ export class ValidatePage implements OnInit, OnDestroy {
               if (typeof conteudo === 'string') {
                 try { conteudo = JSON.parse(conteudo); } catch { }
               }
-              this.aiData = conteudo;
-              this.aiLoading = false; // ✅ Desliga loading com sucesso
+
+              // Mapeamento MANUAL do JSON para o HTML
+              this.aiData = {
+                documentType: conteudo.documentType,
+                summary: conteudo.summary,
+                signatureType: conteudo.signatureType,
+                signers: conteudo.signers,
+                answer: conteudo.answer,
+                notes: conteudo.confidenceNotes || conteudo.Notas, 
+                technicalEvidence: conteudo.technicalEvidence
+              };
+
+              this.aiLoading = false;
               this.cdr.detectChanges();
             },
             error: () => {
-              this.aiLoading = false; // ✅ Desliga loading com erro
+              this.aiLoading = false;
               this.aiData = { answer: 'Não foi possível obter a análise da I.A. no momento.' };
               this.cdr.detectChanges();
             }
           });
         } else {
-          this.aiLoading = false; // Garante desligado se não usar AI
+          this.aiLoading = false;
         }
       },
       error: (err) => {
-        this.aiLoading = false; // ✅ Desliga loading se falhar a validação principal
+        this.aiLoading = false;
         this.applyState(() => {
           this.result = undefined;
           this.error = this.friendlyError(err);
@@ -469,7 +604,7 @@ export class ValidatePage implements OnInit, OnDestroy {
     });
   }
 
-  // ... (Helpers do modal e UI mantidos) ...
+  // ... (Restante do código igual) ...
   private getFirstAlertId(): string | null {
     const sigs = this.result?.validaDocsReturn?.digitalSignatureValidations as any[] || [];
     for (const s of sigs) {
@@ -525,7 +660,7 @@ export class ValidatePage implements OnInit, OnDestroy {
 
     this.aiData = null;
     this.isAiModalOpen = false;
-    this.aiLoading = false; // Reset
+    this.aiLoading = false;
 
     this.p7sBytes = undefined; this.pdfBytes = undefined;
     if (this.fileInput?.nativeElement) this.fileInput.nativeElement.value = '';
@@ -684,16 +819,51 @@ export class ValidatePage implements OnInit, OnDestroy {
   }
 
   private authorityOf(s: SignatureInfo): string {
-    return (s as any).qualified || ((s as any).isICP ? 'ICP-Brasil' : (s as any).iseGov ? 'Gov.br' : '—');
-  }
+  const q = (s as any)?.qualified;
+
+  // alguns retornos vêm como boolean, outros como string
+  if (q === true) return 'Qualificada';
+  if (typeof q === 'string' && q.trim()) return this.signatureLevelLabel(q);
+
+  if ((s as any)?.isICP) return 'ICP-Brasil';
+  if ((s as any)?.iseGov) return 'Gov.br';
+  return '—';
+}
+
+
+  // private authorityOf(s: SignatureInfo): string {
+  //   return (s as any).qualified || ((s as any).isICP ? 'ICP-Brasil' : (s as any).iseGov ? 'Gov.br' : '—');
+  // }
+
+  // private sigTypeLabel(s: SignatureInfo): string {
+  //   const isICP = (s as any)?.isICP || (s as any)?.trustedRoot === 'ICP-Brasil';
+  //   const isGov = (s as any)?.iseGov || (s as any)?.trustedRoot === 'Gov.br';
+  //   if (isICP) return 'ICP-Brasil';
+  //   if (isGov) return 'Gov.br';
+  //   return 'Padrão';
+  // }
 
   private sigTypeLabel(s: SignatureInfo): string {
-    const isICP = (s as any)?.isICP || (s as any)?.trustedRoot === 'ICP-Brasil';
-    const isGov = (s as any)?.iseGov || (s as any)?.trustedRoot === 'Gov.br';
-    if (isICP) return 'ICP-Brasil';
-    if (isGov) return 'Gov.br';
-    return 'Padrão';
+  const level =
+    (s as any)?.signatureLevel ||
+    ((s as any)?.qualified ? 'qualified' : '');
+
+  const v = String(level).toLowerCase();
+
+  if (v.includes('qualif') || v.includes('qualified') || v.includes('qes')) {
+    return 'Qualificada';
   }
+
+  if (v.includes('advanced') || v.includes('ades')) {
+    return 'Avançada';
+  }
+
+  if (v.includes('basic') || v.includes('simple')) {
+    return 'Simples';
+  }
+
+  return 'Padrão';
+}
 
   private baseName(name?: string): string {
     const raw = (name || 'relatorio').replace(/\.[^/.]+$/, '').trim();
@@ -713,312 +883,545 @@ export class ValidatePage implements OnInit, OnDestroy {
     });
   }
 
-  // ================= Exportar PDF =================
-  async exportPdf() {
-    if (!this.result || this.exporting) return;
-    this.exporting = true;
+ // ================= Exportar PDF =================
+async exportPdf() {
+  if (!this.result || this.exporting) return;
+  this.exporting = true;
 
-    try {
-      const r = this.result;
-      const sigsList = (r.validaDocsReturn?.digitalSignatureValidations ?? []) as ExtSignature[];
-      const pdfValidations = r.validaDocsReturn?.pdfValidations;
+  try {
+    const r = this.result;
+    const sigsList = (r.validaDocsReturn?.digitalSignatureValidations ?? []) as ExtSignature[];
+    const pdfValidations = r.validaDocsReturn?.pdfValidations;
 
-      const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+    const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
 
-      // Configurações de estilo
-      const BASE: [number, number, number] = [0x4E, 0x6F, 0x70];
-      const lighten = (rgb: [number, number, number], p: number): [number, number, number] => ([
-        Math.round(rgb[0] + (255 - rgb[0]) * p),
-        Math.round(rgb[1] + (255 - rgb[1]) * p),
-        Math.round(rgb[2] + (255 - rgb[2]) * p),
-      ]);
-      const BRAND = {
-        dark: BASE, mid: lighten(BASE, 0.35), panel: [248, 250, 252] as [number, number, number], border: 230
-      };
+    // Configurações de estilo
+    const BASE: [number, number, number] = [0x4E, 0x6F, 0x70];
+    const lighten = (rgb: [number, number, number], p: number): [number, number, number] => ([
+      Math.round(rgb[0] + (255 - rgb[0]) * p),
+      Math.round(rgb[1] + (255 - rgb[1]) * p),
+      Math.round(rgb[2] + (255 - rgb[2]) * p),
+    ]);
+    const BRAND = {
+      dark: BASE, mid: lighten(BASE, 0.35), panel: [248, 250, 252] as [number, number, number], border: 230
+    };
 
-      const M = 15;
-      const W = doc.internal.pageSize.getWidth();
-      const H = doc.internal.pageSize.getHeight();
-      let y = M;
+    const M = 15;
+    const W = doc.internal.pageSize.getWidth();
+    const H = doc.internal.pageSize.getHeight();
+    let y = M;
 
-      const addPageIfNeeded = (min = 18) => { if (y > H - M - min) { doc.addPage(); y = M; } };
-      const hr = (space = 6) => { doc.setDrawColor(BRAND.border); doc.line(M, y, W - M, y); y += space; };
+    const addPageIfNeeded = (min = 18) => {
+      if (y > H - M - min) { doc.addPage(); y = M; }
+    };
+    const hr = (space = 6) => {
+      doc.setDrawColor(BRAND.border);
+      doc.line(M, y, W - M, y);
+      y += space;
+    };
 
-      let logoEl: HTMLImageElement | null = null;
-      try { logoEl = await this.loadImage(this.LOGO_URL); } catch { logoEl = null; }
+    let logoEl: HTMLImageElement | null = null;
+    try { logoEl = await this.loadImage(this.LOGO_URL); } catch { logoEl = null; }
 
-      const drawBrandRibbon = (logo: HTMLImageElement | null) => {
-        const bannerW = W - 2 * M; const bannerH = 26;
-        doc.setFillColor(...BRAND.dark); doc.roundedRect(M, y, bannerW, bannerH, 3, 3, 'F');
-        doc.setTextColor(255);
-        if (logo) {
-          const logoH = 16; const logoW = (logo.width / logo.height) * logoH;
-          doc.addImage(logo, 'PNG', M + 8, y + (bannerH - logoH) / 2, logoW, logoH);
-        } else {
-          doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.text('ValidaDocs', M + 10, y + 16);
-        }
-        doc.setFont('helvetica', 'bold'); doc.setFontSize(20);
-        doc.text('Relatório de conformidade', M + bannerW / 2, y + 17, { align: 'center' });
-        doc.setTextColor(0); y += bannerH + 8;
-      };
-      drawBrandRibbon(logoEl);
-
-      const sigCount = sigsList.length;
-      const anyInvalid = sigsList.some(s => !s.signatureValid);
-      const hasTooltips = !!this.getStatusTooltip() || !!this.getPdfAValidTooltip() || !!this.getPdfACompliantTooltip() || !!this.getBornDigitalTooltip() || !!this.getPdfALevelTooltip();
-      const hasFindings = (this.result?.errorfindings?.length || 0) > 0 || anyInvalid || hasTooltips;
-
-      const chip = sigCount === 0
-        ? { text: 'Sem assinaturas', ok: false }
-        : hasFindings
-          ? { text: 'Validação com apontamentos', ok: false }
-          : { text: sigCount === 1 ? 'Assinatura válida' : 'Todas válidas', ok: true };
-
-      const headerBlock = (metric: string, chipText: string, chipColorOk: boolean, subLines: string[]) => {
-        const padX = 6, padY = 5; const bannerW = W - 2 * M; const bannerH = 30; const yTop = y;
-        doc.setFillColor(...([248, 250, 252] as [number, number, number])); doc.roundedRect(M, yTop, bannerW, bannerH, 2, 2, 'F');
-        const chipPadX = 3, chipH = 8; doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
-        const chipW = doc.getTextWidth(chipText) + chipPadX * 2;
-        const chipX = M + bannerW - padX - chipW; const chipY = yTop + (bannerH - chipH) / 2;
-        const chipColorRgb = (chipColorOk ? [34, 197, 94] : [245, 158, 11]) as [number, number, number];
-        doc.setFillColor(chipColorRgb[0], chipColorRgb[1], chipColorRgb[2]); doc.setTextColor(255);
-        doc.roundedRect(chipX, chipY, chipW, chipH, 2, 2, 'F');
-        const chipTextY = chipY + chipH / 2 + 1.3; doc.text(chipText, chipX + chipPadX, chipTextY);
-        doc.setTextColor(0); doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
-        doc.text(metric, M, yTop + bannerH - padY - 5);
-        y = yTop + bannerH + 6;
-        if (subLines?.length) {
-          doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.setTextColor(90);
-          doc.text(subLines.map(l => this.normalizeAccents(l)), M, y);
-          doc.setTextColor(0); y += subLines.length * 5 + 1;
-        }
-        doc.setDrawColor(230); doc.line(M, y, W - M, y); y += 6;
-      };
-
-      headerBlock(
-        this.sigMetric(),
-        chip.text,
-        chip.ok,
-        [
-          `Validado em ${new Date((this.result as any)?.validationTime || Date.now()).toLocaleString('pt-BR')}`,
-          `Versão do software: ${(this.result as any)?.softwareVersion || '—'}`
-        ]
-      );
-
-      const MARGIN = M; const WID = W;
-
-      const section = (title: string) => { addPageIfNeeded(14); doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.text(title, MARGIN, y); y += 7; };
-
-      const para = (text: string, raw = false) => {
-        const t = raw ? text : this.normalizeAccents(text);
-        const width = WID - 2 * MARGIN;
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
-        const lines = doc.splitTextToSize(t, width);
-        addPageIfNeeded(lines.length * 5 + 2); doc.text(lines, MARGIN, y); y += lines.length * 5 + 2;
-      };
-
-      const kvInlineTwoCols = (pairs: Array<[string, string | number]>) => {
-        const colW = (WID - 2 * MARGIN) / 2; const rowGap = 4; const labelGap = 2; const lineH = 5;
-        const measurePair = (label: string, value: string | number) => {
-          doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
-          const lblW = Math.min(doc.getTextWidth(this.normalizeAccents(label) + ': '), colW * 0.6);
-          const valMaxW = Math.max(8, colW - lblW - labelGap);
-          doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
-          const lines = doc.splitTextToSize(this.normalizeAccents(String(value ?? '—')), valMaxW);
-          const h = Math.max(lineH, lines.length * lineH); return { lblW, valMaxW, lines, h };
-        };
-        const drawPair = (x: number, label: string, value: string | number, meas?: ReturnType<typeof measurePair>) => {
-          const m = meas ?? measurePair(label, value); const labelText = this.normalizeAccents(label) + ': ';
-          doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.text(labelText, x, y);
-          doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
-          if (m.lines.length) {
-            doc.text(m.lines[0], x + m.lblW + labelGap, y);
-            for (let i = 1; i < m.lines.length; i++) doc.text(m.lines[i], x + m.lblW + labelGap, y + i * lineH);
-          }
-          return m.h;
-        };
-        let i = 0;
-        while (i < pairs.length) {
-          const L = pairs[i]; const R = pairs[i + 1];
-          const mL = L ? measurePair(L[0], L[1]) : { h: 0, lblW: 0, valMaxW: 0, lines: [] as string[] };
-          const mR = R ? measurePair(R[0], R[1]) : { h: 0, lblW: 0, valMaxW: 0, lines: [] as string[] };
-          const rowH = Math.max(mL.h, mR.h, lineH);
-          addPageIfNeeded(rowH + 4);
-          if (L) drawPair(MARGIN, L[0], L[1], mL); if (R) drawPair(MARGIN + colW, R[0], R[1], mR);
-          y += rowH + rowGap; i += 2;
-        }
-      };
-
-      const kvFullWidth = (label: string, value: string | number, raw = false) => {
-        const GAP = 2; doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
-        const lbl = this.normalizeAccents(label) + ': '; const lblW = doc.getTextWidth(lbl);
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
-        const maxW = WID - 2 * MARGIN - lblW - GAP;
-
-        const textVal = String(value ?? '—');
-        const finalText = raw ? textVal : this.normalizeAccents(textVal);
-
-        const lines = doc.splitTextToSize(finalText, maxW);
-        addPageIfNeeded(Math.max(5, lines.length * 5) + 4);
-        doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.text(lbl, MARGIN, y);
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.text(lines, MARGIN + lblW + GAP, y);
-        y += Math.max(5, lines.length * 5) + 4;
-      };
-
-      section('Dados do documento');
-      const statusValue = ((this.result as any)?.status && String((this.result as any).status).trim()) || ((this.result as any)?.isValid === true ? 'OK' : (this.result as any)?.isValid === false ? 'Inválido' : '—');
-      kvFullWidth('Nome do documento', (this.result as any)?.fileName || '—');
-      const rowStatusPattern: Array<[string, string | number]> = [['Status', statusValue]];
-      const padraoAssinatura = (((this.result as any)?.policy ?? (this.result as any)?.signatureType ?? '') as any).toString().trim();
-      if (padraoAssinatura) rowStatusPattern.push(['Padrão de assinatura', padraoAssinatura]);
-      kvInlineTwoCols(rowStatusPattern);
-      if (pdfValidations && (pdfValidations as any).bornDigital !== undefined) kvInlineTwoCols([['Nato digital', (pdfValidations as any).bornDigital ? 'Sim' : 'Não']]);
-      const pdfALabel = (this.result as any)?.validaDocsReturn?.pdfValidations?.isPDFACompliant ? 'Sim' : 'Não';
-      const pdfALevel = (this.result as any)?.validaDocsReturn?.pdfValidations?.pdfAStandard || 'Desconhecido';
-      kvInlineTwoCols([['PDF/A', pdfALabel], ['Nível do PDF/A', pdfALevel]]);
-      hr();
-
-      const drawAssinaturasHeader = (badgeText?: string) => {
-        addPageIfNeeded(14); const yTop = y;
-        doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.text('Assinaturas', MARGIN, yTop);
-        if (badgeText) {
-          doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
-          const textW = doc.getTextWidth(badgeText); doc.text(badgeText, W - MARGIN - textW, yTop);
-        }
-        y = yTop + 7;
-      };
-      let headerBadge = '';
-      if (sigsList.length === 1) headerBadge = sigsList[0].signatureValid ? 'Válida' : 'Inválida';
-      else if (sigsList.length > 1) headerBadge = sigsList.every(s => s.signatureValid) ? 'Todas válidas' : 'Com falhas';
-      drawAssinaturasHeader(headerBadge);
-
-      if (sigsList.length === 0) {
-        para('Não foram encontradas assinaturas no documento.');
+    const drawBrandRibbon = (logo: HTMLImageElement | null) => {
+      const bannerW = W - 2 * M; const bannerH = 26;
+      doc.setFillColor(...BRAND.dark); doc.roundedRect(M, y, bannerW, bannerH, 3, 3, 'F');
+      doc.setTextColor(255);
+      if (logo) {
+        const logoH = 16; const logoW = (logo.width / logo.height) * logoH;
+        doc.addImage(logo, 'PNG', M + 8, y + (bannerH - logoH) / 2, logoW, logoH);
       } else {
-        sigsList.forEach((s, idx) => {
-          addPageIfNeeded(28);
-          const tipoTxt = this.sigTypeLabel(s); const nome = this.displayCN(s) ?? '—';
-          const tipoPar = tipoTxt && tipoTxt !== '—' ? ` (${tipoTxt})` : '';
-          doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
-          const maxW = W - 2 * MARGIN;
-          const certTitle = `Certificado ${idx + 1}: ${nome}${tipoPar}`;
-          const titleLines = doc.splitTextToSize(this.normalizeAccents(certTitle), maxW);
-          doc.text(titleLines, MARGIN, y); y += Math.max(6, titleLines.length * 6);
-          const subt = `${(s as any).signatureType ?? ''} ${(s as any).signatureLevel ?? ''}`.trim();
-          if (subt) {
-            doc.setFont('helvetica', 'normal'); doc.setTextColor(90); doc.setFontSize(11);
-            const subLines = doc.splitTextToSize(this.normalizeAccents(subt), maxW);
-            doc.text(subLines, MARGIN, y); y += subLines.length * 6; doc.setTextColor(0);
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.text('ValidaDocs', M + 10, y + 16);
+      }
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(20);
+      doc.text('Relatório de conformidade', M + bannerW / 2, y + 17, { align: 'center' });
+      doc.setTextColor(0); y += bannerH + 8;
+    };
+    drawBrandRibbon(logoEl);
+
+    const sigCount = sigsList.length;
+    const anyInvalid = sigsList.some(s => !s.signatureValid);
+    const hasTooltips =
+      !!this.getStatusTooltip() ||
+      !!this.getPdfAValidTooltip() ||
+      !!this.getPdfACompliantTooltip() ||
+      !!this.getBornDigitalTooltip() ||
+      !!this.getPdfALevelTooltip();
+
+    const hasFindings = (this.result?.errorfindings?.length || 0) > 0 || anyInvalid || hasTooltips;
+
+    const chip = sigCount === 0
+      ? { text: 'Sem assinaturas', ok: false }
+      : hasFindings
+        ? { text: 'Validação com apontamentos', ok: false }
+        : { text: sigCount === 1 ? 'Assinatura válida' : 'Todas válidas', ok: true };
+
+    const headerBlock = (metric: string, chipText: string, chipColorOk: boolean, subLines: string[]) => {
+      const padX = 6, padY = 5; const bannerW = W - 2 * M; const bannerH = 30; const yTop = y;
+      doc.setFillColor(...([248, 250, 252] as [number, number, number])); doc.roundedRect(M, yTop, bannerW, bannerH, 2, 2, 'F');
+      const chipPadX = 3, chipH = 8; doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+      const chipW = doc.getTextWidth(chipText) + chipPadX * 2;
+      const chipX = M + bannerW - padX - chipW; const chipY = yTop + (bannerH - chipH) / 2;
+      const chipColorRgb = (chipColorOk ? [34, 197, 94] : [245, 158, 11]) as [number, number, number];
+      doc.setFillColor(chipColorRgb[0], chipColorRgb[1], chipColorRgb[2]); doc.setTextColor(255);
+      doc.roundedRect(chipX, chipY, chipW, chipH, 2, 2, 'F');
+      const chipTextY = chipY + chipH / 2 + 1.3; doc.text(chipText, chipX + chipPadX, chipTextY);
+      doc.setTextColor(0); doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
+      doc.text(metric, M, yTop + bannerH - padY - 5);
+      y = yTop + bannerH + 6;
+      if (subLines?.length) {
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.setTextColor(90);
+        doc.text(subLines.map(l => this.normalizeAccents(l)), M, y);
+        doc.setTextColor(0); y += subLines.length * 5 + 1;
+      }
+      doc.setDrawColor(230); doc.line(M, y, W - M, y); y += 6;
+    };
+
+    headerBlock(
+      this.sigMetric(),
+      chip.text,
+      chip.ok,
+      [
+        `Validado em ${new Date((this.result as any)?.validationTime || Date.now()).toLocaleString('pt-BR')}`,
+        `Versão do software: ${(this.result as any)?.softwareVersion || '—'}`
+      ]
+    );
+
+    const MARGIN = M;
+    const WID = W;
+
+    const section = (title: string) => {
+      addPageIfNeeded(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.text(title, MARGIN, y);
+      y += 7;
+    };
+
+    const para = (text: string, raw = false) => {
+      const t = raw ? text : this.normalizeAccents(text);
+      const width = WID - 2 * MARGIN;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
+      const lines = doc.splitTextToSize(t, width);
+      addPageIfNeeded(lines.length * 5 + 2);
+      doc.text(lines, MARGIN, y);
+      y += lines.length * 5 + 2;
+    };
+
+    const kvInlineTwoCols = (pairs: Array<[string, string | number]>) => {
+      const colW = (WID - 2 * MARGIN) / 2; const rowGap = 4; const labelGap = 2; const lineH = 5;
+      const measurePair = (label: string, value: string | number) => {
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+        const lblW = Math.min(doc.getTextWidth(this.normalizeAccents(label) + ': '), colW * 0.6);
+        const valMaxW = Math.max(8, colW - lblW - labelGap);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
+        const lines = doc.splitTextToSize(this.normalizeAccents(String(value ?? '—')), valMaxW);
+        const h = Math.max(lineH, lines.length * lineH);
+        return { lblW, valMaxW, lines, h };
+      };
+      const drawPair = (x: number, label: string, value: string | number, meas?: ReturnType<typeof measurePair>) => {
+        const m = meas ?? measurePair(label, value); const labelText = this.normalizeAccents(label) + ': ';
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.text(labelText, x, y);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
+        if (m.lines.length) {
+          doc.text(m.lines[0], x + m.lblW + labelGap, y);
+          for (let i = 1; i < m.lines.length; i++) {
+            doc.text(m.lines[i], x + m.lblW + labelGap, y + i * lineH);
           }
-          if ((s as any).signatureTime) {
-            doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
-            doc.text(this.brDateShort((s as any).signatureTime), MARGIN, y); y += 6;
-          }
-          const certPairs: Array<[string, string | number]> = [];
-          const pushIfLocal = (arr: Array<[string, string | number]>, label: string, value?: any) => {
-            if (value === undefined || value === null) return;
-            const txt = String(value).trim(); if (!txt || txt === '—' || txt === 'Desconhecido') return;
-            arr.push([label, txt]);
-          };
-          pushIfLocal(certPairs, 'CPF/CNPJ', (s as any).cpf);
-          pushIfLocal(certPairs, 'Assinado em', this.brDateShort((s as any).signatureTime));
-          pushIfLocal(certPairs, 'Emitido em', this.brDateShort((s as any).certificateStartDate));
-          pushIfLocal(certPairs, 'Válido até', this.brDateShort((s as any).certificateEndDate));
-          const issuer = (s as any).rootIssuer || (s as any).issuer;
-          if (issuer) pushIfLocal(certPairs, 'Emissor raiz', this.normalizeAccents(issuer));
-          pushIfLocal(certPairs, 'Autoridade', this.authorityOf(s));
-          if (certPairs.length) kvInlineTwoCols(certPairs);
-
-          const tsList: any[] =
-            (Array.isArray((s as any)?.timeStamps) && (s as any).timeStamps) ||
-            (Array.isArray((s as any)?.timestamps) && (s as any).timestamps) ||
-            (Array.isArray((s as any)?.timeStampValidations) && (s as any).timeStampValidations) || [];
-
-          if (tsList.length) {
-            addPageIfNeeded(14);
-            doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.text('Carimbos de tempo', MARGIN, y); y += 6;
-            tsList.forEach((ts) => {
-              const signer = this.tsSigner(ts); const tsPairs: Array<[string, string | number]> = [];
-              const pf = (arr: Array<[string, string | number]>, label: string, value?: any) => {
-                if (value === undefined || value === null) return;
-                const txt = String(value).trim(); if (!txt || txt === '—' || txt === 'Desconhecido') return;
-                arr.push([label, txt]);
-              };
-              pf(tsPairs, 'Data do carimbo', this.formatDate(this.tsDate(ts)));
-              if (signer?.issuer) pf(tsPairs, 'Assinante', this.normalizeAccents(signer.issuer));
-              if (signer?.tsa) pf(tsPairs, 'Emissor TSA', this.normalizeAccents(signer.tsa));
-              if (signer?.certificateStartDate) pf(tsPairs, 'Emitido em', this.formatDate(signer.certificateStartDate));
-              if (signer?.certificateEndDate) pf(tsPairs, 'Válido até', this.formatDate(signer.certificateEndDate));
-              if (tsPairs.length) kvInlineTwoCols(tsPairs);
-            });
-          }
-
-          const tooltip = this.getSignatureTooltip(s as any);
-          if (!(s as any).signatureValid && tooltip) { para(`Detalhes da falha: ${tooltip}`); }
-          if (idx < sigsList.length - 1) hr(8);
-        });
+        }
+        return m.h;
+      };
+      let i = 0;
+      while (i < pairs.length) {
+        const L = pairs[i]; const R = pairs[i + 1];
+        const mL = L ? measurePair(L[0], L[1]) : { h: 0, lblW: 0, valMaxW: 0, lines: [] as string[] };
+        const mR = R ? measurePair(R[0], R[1]) : { h: 0, lblW: 0, valMaxW: 0, lines: [] as string[] };
+        const rowH = Math.max(mL.h, mR.h, lineH);
+        addPageIfNeeded(rowH + 4);
+        if (L) drawPair(MARGIN, L[0], L[1], mL);
+        if (R) drawPair(MARGIN + colW, R[0], R[1], mR);
+        y += rowH + rowGap; i += 2;
       }
+    };
 
-      const shortMsg = (this.shortFinding || '').trim();
-      const longMsg = (this.errorFullMessage || '').trim();
-      if (shortMsg || longMsg) {
-        hr(); section('Apontamentos e notas da validação');
-        if (shortMsg) para(shortMsg);
-        if (longMsg && longMsg !== shortMsg) para(longMsg);
+    const kvFullWidth = (label: string, value: string | number, raw = false) => {
+      const GAP = 2;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+      const lbl = this.normalizeAccents(label) + ': ';
+      const lblW = doc.getTextWidth(lbl);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
+      const maxW = WID - 2 * MARGIN - lblW - GAP;
+
+      const textVal = String(value ?? '—');
+      const finalText = raw ? textVal : this.normalizeAccents(textVal);
+
+      const lines = doc.splitTextToSize(finalText, maxW);
+      addPageIfNeeded(Math.max(5, lines.length * 5) + 4);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.text(lbl, MARGIN, y);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.text(lines, MARGIN + lblW + GAP, y);
+      y += Math.max(5, lines.length * 5) + 4;
+    };
+
+    // helpers para Evidência Técnica (imprimir completo e “bonito”)
+    const bullets = (title: string, items: any[]) => {
+      const arr = Array.isArray(items) ? items : [];
+      if (!arr.length) return;
+      addPageIfNeeded(12);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+      doc.text(this.normalizeAccents(title) + ':', MARGIN, y); y += 5;
+
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
+      const width = WID - 2 * MARGIN;
+      for (const it of arr) {
+        const line = `• ${this.normalizeAccents(String(it))}`;
+        const lines = doc.splitTextToSize(line, width);
+        addPageIfNeeded(lines.length * 5 + 1);
+        doc.text(lines, MARGIN, y);
+        y += lines.length * 5 + 1;
       }
+      y += 2;
+    };
 
-      // ✅ EXPORTAÇÃO DA I.A. NO PDF
-      if (this.aiData) {
-        hr();
-        section('Análise de IA (Nova)');
+    const preBlock = (title: string, text: any) => {
+    const raw = String(text ?? '');
+    if (!raw.trim()) return;
 
-        if (this.aiData.documentType) {
-          kvFullWidth('Tipo de Documento', this.aiData.documentType, true);
-        }
-        if (this.aiData.summary) {
-          addPageIfNeeded(10); doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
-          doc.text('Resumo do Documento:', MARGIN, y); y += 5;
-          para(this.aiData.summary, true); y += 2;
-        }
-        if (this.aiData.signatureType) {
-          kvFullWidth('Tipo de Assinatura', this.aiData.signatureType, true);
-        }
-        if (Array.isArray(this.aiData.signers) && this.aiData.signers.length > 0) {
-          addPageIfNeeded(10); doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
-          doc.text('Signatários identificados:', MARGIN, y); y += 5; doc.setFont('helvetica', 'normal');
-          this.aiData.signers.forEach((signer: string) => {
-            const line = signer; const width = WID - 2 * MARGIN;
-            const lines = doc.splitTextToSize(line, width);
-            addPageIfNeeded(lines.length * 5); doc.text(lines, MARGIN, y); y += lines.length * 5;
-          });
-          y += 2;
-        }
-        if (this.aiData.answer) {
-          addPageIfNeeded(10); doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
-          doc.text('Análise detalhada:', MARGIN, y); y += 5;
-          para(this.aiData.answer, true); y += 2;
-        }
-        if (this.aiData.confidenceNotes) {
-          addPageIfNeeded(10); doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
-          doc.text('Nota:', MARGIN, y); y += 5;
-          para(this.aiData.confidenceNotes, true);
-        }
-      }
+    addPageIfNeeded(14);
 
-      const pageCount = doc.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i); doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(120);
-        doc.text(`Gerado por ValidaDocs • ${new Date().toLocaleString('pt-BR')}`, M, H - 6);
-        doc.text(`${i} / ${pageCount}`, W - M, H - 6, { align: 'right' }); doc.setTextColor(0);
-      }
+    // Título
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text(this.normalizeAccents(title) + ':', MARGIN, y);
+    y += 5;
 
-      const base = this.baseName((this.result as any)?.fileName);
-      doc.save(`ValidaDocs_${base}.pdf`);
-    } catch (e: any) {
-      this.error = 'Falha ao gerar o relatório PDF: ' + (e?.message || e);
-      this.errorFullMessage = null; this.showErrorModal = false; console.error('Export PDF error', e);
-    } finally {
-      this.exporting = false; this.cdr.detectChanges();
+    // Conteúdo (mesma fonte das outras seções)
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.setTextColor(0);
+
+    const width = WID - 2 * MARGIN;
+
+    // Preserva quebras de linha como no UI
+    const linesIn = raw.replace(/\r\n/g, '\n').split('\n');
+
+    for (const ln of linesIn) {
+      const safeLine = ln?.length ? ln : ' ';
+      const chunk = doc.splitTextToSize(this.normalizeAccents(safeLine), width);
+      addPageIfNeeded(chunk.length * 5 + 1);
+      doc.text(chunk, MARGIN, y);
+      y += chunk.length * 5 + 1;
     }
+
+    y += 2;
+  };
+
+    section('Dados do documento');
+    const statusValue =
+      ((this.result as any)?.status && String((this.result as any).status).trim()) ||
+      ((this.result as any)?.isValid === true ? 'OK' : (this.result as any)?.isValid === false ? 'Inválido' : '—');
+
+    kvFullWidth('Nome do documento', (this.result as any)?.fileName || '—');
+    const rowStatusPattern: Array<[string, string | number]> = [['Status', statusValue]];
+    const padraoAssinatura = (((this.result as any)?.policy ?? (this.result as any)?.signatureType ?? '') as any).toString().trim();
+    if (padraoAssinatura) rowStatusPattern.push(['Padrão de assinatura', padraoAssinatura]);
+
+    kvInlineTwoCols(rowStatusPattern);
+
+    if (pdfValidations && (pdfValidations as any).bornDigital !== undefined) {
+      kvInlineTwoCols([['Nato digital', (pdfValidations as any).bornDigital ? 'Sim' : 'Não']]);
+    }
+
+    const pdfALabel = (this.result as any)?.validaDocsReturn?.pdfValidations?.isPDFACompliant ? 'Sim' : 'Não';
+    const pdfALevel = (this.result as any)?.validaDocsReturn?.pdfValidations?.pdfAStandard || 'Desconhecido';
+    kvInlineTwoCols([['PDF/A', pdfALabel], ['Nível do PDF/A', pdfALevel]]);
+    hr();
+
+    const drawAssinaturasHeader = (badgeText?: string) => {
+      addPageIfNeeded(14); const yTop = y;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.text('Assinaturas', MARGIN, yTop);
+      if (badgeText) {
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+        const textW = doc.getTextWidth(badgeText); doc.text(badgeText, W - MARGIN - textW, yTop);
+      }
+      y = yTop + 7;
+    };
+
+    let headerBadge = '';
+    if (sigsList.length === 1) headerBadge = sigsList[0].signatureValid ? 'Válida' : 'Inválida';
+    else if (sigsList.length > 1) headerBadge = sigsList.every(s => s.signatureValid) ? 'Todas válidas' : 'Com falhas';
+    drawAssinaturasHeader(headerBadge);
+
+    if (sigsList.length === 0) {
+      para('Não foram encontradas assinaturas no documento.');
+    } else {
+      sigsList.forEach((s, idx) => {
+        addPageIfNeeded(28);
+
+        const tipoTxt = this.sigTypeLabel(s);
+        const nome = this.displayCN(s) ?? '—';
+        const tipoPar = tipoTxt && tipoTxt !== '—' ? ` (${tipoTxt})` : '';
+
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
+        const maxW = W - 2 * MARGIN;
+
+        const certTitle = `Certificado ${idx + 1}: ${nome}${tipoPar}`;
+        const titleLines = doc.splitTextToSize(this.normalizeAccents(certTitle), maxW);
+        doc.text(titleLines, MARGIN, y);
+        y += Math.max(6, titleLines.length * 6);
+
+        // ✅ corrigido: não existe signatureTypeLabel no seu TS
+        const typeRaw = ((s as any)?.signatureType ?? '') as string;
+        const levelRaw = ((s as any)?.signatureLevel ?? (s as any)?.qualified ?? '') as any;
+
+        // assinaturaTypePt / signatureLevelLabel já devem existir na classe.
+        // Se você ainda não criou, use exatamente estes fallbacks:
+        const typePt =
+          (this as any).signatureTypePt
+            ? (this as any).signatureTypePt(typeRaw)
+            : (typeRaw ? String(typeRaw) : '—');
+
+        const levelPt = this.signatureLevelLabel(levelRaw);
+
+        const subt = [typePt, levelPt].filter(v => v && v !== '—').join(' ');
+        if (subt) {
+          doc.setFont('helvetica', 'normal'); doc.setTextColor(90); doc.setFontSize(11);
+          const subLines = doc.splitTextToSize(this.normalizeAccents(subt), maxW);
+          doc.text(subLines, MARGIN, y);
+          y += subLines.length * 6;
+          doc.setTextColor(0);
+        }
+
+        if ((s as any).signatureTime) {
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
+          doc.text(this.brDateShort((s as any).signatureTime), MARGIN, y);
+          y += 6;
+        }
+
+        const certPairs: Array<[string, string | number]> = [];
+        const pushIfLocal = (arr: Array<[string, string | number]>, label: string, value?: any) => {
+          if (value === undefined || value === null) return;
+          const txt = String(value).trim(); if (!txt || txt === '—' || txt === 'Desconhecido') return;
+          arr.push([label, txt]);
+        };
+
+        pushIfLocal(certPairs, 'CPF/CNPJ', (s as any).cpf);
+        pushIfLocal(certPairs, 'Assinado em', this.brDateShort((s as any).signatureTime));
+        pushIfLocal(certPairs, 'Emitido em', this.brDateShort((s as any).certificateStartDate));
+        pushIfLocal(certPairs, 'Válido até', this.brDateShort((s as any).certificateEndDate));
+
+        const issuer = (s as any).rootIssuer || (s as any).issuer;
+        if (issuer) pushIfLocal(certPairs, 'Emissor raiz', this.normalizeAccents(issuer));
+        pushIfLocal(certPairs, 'Autoridade', this.authorityOf(s));
+
+        if (certPairs.length) kvInlineTwoCols(certPairs);
+
+        const tsList: any[] =
+          (Array.isArray((s as any)?.timeStamps) && (s as any).timeStamps) ||
+          (Array.isArray((s as any)?.timestamps) && (s as any).timestamps) ||
+          (Array.isArray((s as any)?.timeStampValidations) && (s as any).timeStampValidations) || [];
+
+        if (tsList.length) {
+          addPageIfNeeded(14);
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+          doc.text('Carimbos de tempo', MARGIN, y); y += 6;
+
+          tsList.forEach((ts) => {
+            const signer = this.tsSigner(ts);
+            const tsPairs: Array<[string, string | number]> = [];
+            const pf = (arr: Array<[string, string | number]>, label: string, value?: any) => {
+              if (value === undefined || value === null) return;
+              const txt = String(value).trim(); if (!txt || txt === '—' || txt === 'Desconhecido') return;
+              arr.push([label, txt]);
+            };
+
+            pf(tsPairs, 'Data do carimbo', this.formatDate(this.tsDate(ts)));
+            if (signer?.issuer) pf(tsPairs, 'Assinante', this.normalizeAccents(signer.issuer));
+            if (signer?.tsa) pf(tsPairs, 'Emissor TSA', this.normalizeAccents(signer.tsa));
+            if (signer?.certificateStartDate) pf(tsPairs, 'Emitido em', this.formatDate(signer.certificateStartDate));
+            if (signer?.certificateEndDate) pf(tsPairs, 'Válido até', this.formatDate(signer.certificateEndDate));
+            if (tsPairs.length) kvInlineTwoCols(tsPairs);
+          });
+        }
+
+        const tooltip = this.getSignatureTooltip(s as any);
+        if (!(s as any).signatureValid && tooltip) { para(`Detalhes da falha: ${tooltip}`); }
+        if (idx < sigsList.length - 1) hr(8);
+      });
+    }
+
+    const shortMsg = (this.shortFinding || '').trim();
+    const longMsg = (this.errorFullMessage || '').trim();
+    if (shortMsg || longMsg) {
+      hr();
+      section('Apontamentos e notas da validação');
+      if (shortMsg) para(shortMsg);
+      if (longMsg && longMsg !== shortMsg) para(longMsg);
+    }
+
+    // ✅ EXPORTAÇÃO DA I.A. NO PDF
+    if (this.aiData) {
+      hr();
+      section('Análise de IA (Nova)');
+
+      if (this.aiData.documentType) kvFullWidth('Tipo de Documento', this.aiData.documentType, true);
+
+      if (this.aiData.summary) {
+        addPageIfNeeded(10);
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+        doc.text('Resumo do Documento:', MARGIN, y); y += 5;
+        para(this.aiData.summary, true); y += 2;
+      }
+
+      if (this.aiData.signatureType) kvFullWidth('Tipo de Assinatura', this.aiData.signatureType, true);
+
+      if (Array.isArray(this.aiData.signers) && this.aiData.signers.length > 0) {
+        addPageIfNeeded(10);
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+        doc.text('Signatários identificados:', MARGIN, y); y += 5;
+
+        doc.setFont('helvetica', 'normal');
+        this.aiData.signers.forEach((signer: string) => {
+          const width = WID - 2 * MARGIN;
+          const lines = doc.splitTextToSize(String(signer), width);
+          addPageIfNeeded(lines.length * 5);
+          doc.text(lines, MARGIN, y);
+          y += lines.length * 5;
+        });
+        y += 2;
+      }
+
+      if (this.aiData.answer) {
+        addPageIfNeeded(10);
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+        doc.text('Análise detalhada:', MARGIN, y); y += 5;
+        para(this.aiData.answer, true); y += 2;
+      }
+
+      const notesToExport = this.aiData.notes || this.aiData.confidenceNotes;
+      if (notesToExport) {
+        addPageIfNeeded(10);
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+        doc.text('Nota / Observações:', MARGIN, y); y += 5;
+        para(notesToExport, true);
+      }
+    }
+
+    // ✅ EXPORTAÇÃO DA EVIDÊNCIA TÉCNICA (IA) NO PDF (COMPLETA)
+    const te = this.aiData?.technicalEvidence;
+    if (te) {
+      hr();
+      section('Evidência Técnica');
+
+      // Arquivo (campo a campo)
+      if (te.file) {
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+        doc.text('Arquivo', MARGIN, y); y += 6;
+
+        if (te.file.path) kvFullWidth('Caminho', te.file.path, true);
+        if (te.file.hashAlgorithm) kvFullWidth('Algoritmo', te.file.hashAlgorithm, true);
+        if (te.file.processingNotes) kvFullWidth('Notas de Processamento', te.file.processingNotes, true);
+
+        y += 2;
+      }
+
+      // Detalhes dos Signatários
+      const details =
+        (Array.isArray(te?.signatures?.details) ? te.signatures.details : null) ||
+        (Array.isArray(te?.signatures?.signatures) ? te.signatures.signatures : null) ||
+        (Array.isArray(te?.signatures) ? te.signatures : null) ||
+        [];
+
+      const count =
+        te?.signatures?.count ??
+        (Array.isArray(details) ? details.length : 0);
+
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+      doc.text(`Detalhes dos Signatários (${count})`, MARGIN, y); y += 6;
+
+      if (Array.isArray(details) && details.length) {
+        details.forEach((sg: any, i: number) => {
+          addPageIfNeeded(30);
+
+          const title =
+            sg?.fieldName
+              ? `Assinatura ${i + 1} (${String(sg.fieldName)})`
+              : `Assinatura ${i + 1}`;
+
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+          doc.text(this.normalizeAccents(title), MARGIN, y); y += 6;
+
+          if (sg.signerName) kvFullWidth('Nome do Signatário', sg.signerName, true);
+          if (sg.signerDocument) kvFullWidth('Documento', sg.signerDocument, true);
+          if (sg.certificateIssuer) kvFullWidth('Emissor', sg.certificateIssuer, true);
+          if (sg.signingTime) kvFullWidth('Data/hora da Assinatura', sg.signingTime, true);
+          if (sg.signatureType) kvFullWidth('Tipo de Assinatura', sg.signatureType, true);
+          if (sg.hashAlgorithm) kvFullWidth('Algoritmo', sg.hashAlgorithm, true);
+
+          if (sg.documentIntegrity) kvFullWidth('Integridade do documento', sg.documentIntegrity, true);
+          if (sg.cryptographicValidity) kvFullWidth('Validade Criptográfica', sg.cryptographicValidity, true);
+          if (sg.certificateTrust) kvFullWidth('Confiança do Certificado', sg.certificateTrust, true);
+          if (sg.documentModifiedAfterSignature !== undefined) {
+            kvFullWidth('Documento modificado após assinatura?', sg.documentModifiedAfterSignature ? 'Sim' : 'Não', true);
+          }
+
+          y += 2;
+          if (i < details.length - 1) hr(8);
+        });
+      } else {
+        para('Nenhum detalhe de signatário disponível.', true);
+      }
+
+      // Verificação
+      if (te.verification) {
+        hr();
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+        doc.text('Verificação', MARGIN, y); y += 6;
+
+        if (te.verification.overallStatus) kvFullWidth('Estado Geral', te.verification.overallStatus, true);
+        if (te.verification.summary) kvFullWidth('Resumo', te.verification.summary, true);
+
+        const alerts = Array.isArray(te.verification.alerts) ? te.verification.alerts : [];
+        const warnings = Array.isArray(te.verification.warnings) ? te.verification.warnings : [];
+        const errors = Array.isArray(te.verification.errors) ? te.verification.errors : [];
+
+        if (alerts.length) bullets('Alertas', alerts);
+        if (warnings.length) bullets('Avisos', warnings);
+        if (errors.length) bullets('Erros', errors);
+
+        y += 2;
+      }
+
+      // Saída do PdfSig (texto completo com quebras)
+      const rawPdfSig =
+        te?.rawPdfsigOutput?.basic ??
+        te?.rawPdfsigOutput ??
+        '';
+
+      if (rawPdfSig) {
+        hr();
+        preBlock('Saída do PdfSig', rawPdfSig);
+      }
+    }
+
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(120);
+      doc.text(`Gerado por ValidaDocs • ${new Date().toLocaleString('pt-BR')}`, M, H - 6);
+      doc.text(`${i} / ${pageCount}`, W - M, H - 6, { align: 'right' });
+      doc.setTextColor(0);
+    }
+
+    const base = this.baseName((this.result as any)?.fileName);
+    doc.save(`ValidaDocs_${base}.pdf`);
+  } catch (e: any) {
+    this.error = 'Falha ao gerar o relatório PDF: ' + (e?.message || e);
+    this.errorFullMessage = null;
+    this.showErrorModal = false;
+    console.error('Export PDF error', e);
+  } finally {
+    this.exporting = false;
+    this.cdr.detectChanges();
   }
+}
 }

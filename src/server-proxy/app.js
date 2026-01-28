@@ -245,13 +245,14 @@ app.post('/consultar-webhook', upload.single('file'), async (req, res) => {
 
   try {
     // 👇 CONFIRA SE A URL ESTÁ CERTA PARA O SEU N8N
-    const URL_DO_WEBHOOK = 'https://n8n.albacore.com.br/webhook/validar-documento';
+    const URL_DO_WEBHOOK = 'https://n8n.albacore.com.br/webhook/4ff726e6-1666-400d-b23d-0ce0cf6f5cff';
 
     // 2. Prepara o formulário para repassar ao n8n
     const form = new FormData();
     
     // Lê o arquivo do disco e anexa no form
-    form.append('file', fs.createReadStream(filePath), req.file.originalname);
+    // Mudamos 'file' para 'data' para o n8n reconhecer automaticamente
+    form.append('data', fs.createReadStream(filePath), req.file.originalname);
     
     // Anexa os metadados
     form.append('id', idDocumento || 'Sem-ID');
