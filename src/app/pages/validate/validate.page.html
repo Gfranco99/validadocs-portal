@@ -22,7 +22,6 @@
   <input #fileInput type="file" accept="application/pdf" (change)="onFileChange($event)" hidden />
   <input #p7sInput type="file" accept=".p7s" (change)="onP7sChange($event)" hidden />
 
-  <!-- ================= UPLOAD ================= -->
   <ion-card class="upload-card" *ngIf="!result">
     <ion-card-header>
       <ion-card-title>
@@ -113,24 +112,18 @@
         </ion-item>
 
         <ion-item lines="none" class="ai-diagnostic-item">
-          <ion-checkbox
-            slot="start"
-            [(ngModel)]="useAI">
-          </ion-checkbox>
-
-  <ion-label>
-    Diagnóstico com I.A.
-    <a
-      class="ai-privacy-link"
-      href="http://homol.assinaweb.com.br/app/content/protocolos/politica_validadocs.html"
-      target="_blank"
-      rel="noopener noreferrer"
-      (click)="$event.stopPropagation()"
-    >
-      Termos de Uso
-    </a>
-  </ion-label>
-</ion-item>
+          <ion-checkbox slot="start" [(ngModel)]="useAI"></ion-checkbox>
+          <ion-label>
+            Diagnóstico com I.A.
+            <a class="ai-privacy-link"
+               href="http://homol.assinaweb.com.br/app/content/protocolos/politica_validadocs.html"
+               target="_blank"
+               rel="noopener noreferrer"
+               (click)="$event.stopPropagation()">
+              Termos de Uso
+            </a>
+          </ion-label>
+        </ion-item>
       </div>
 
       <ion-item lines="none" class="ion-margin-top">
@@ -161,83 +154,71 @@
     </ion-card-content>
   </ion-card>
 
-  <!-- ================= RESULTADO ================= -->
   <ng-container *ngIf="result as r">
     <ion-grid class="val-grid">
       <ion-row class="val-row ion-align-items-start">
 
-        <!-- ===== COLUNA ESQUERDA ===== -->
         <ion-col size="12" size-lg="6" class="left">
 
-        <!-- ✅ BANNER IA (sem loading) -->
-       <ion-card class="summary-card ai-banner-card" *ngIf="useAI">
+          <ion-card class="summary-card ai-banner-card" *ngIf="useAI">
             <ion-card-content class="ai-banner">
+              <img class="ai-banner-img" src="assets/validadocsai3.png" alt="Banner Análise de IA" />
 
-              <img
-                class="ai-banner-img"
-                src="assets/validadocsai3.png"
-                alt="Banner Análise de IA"
-              />
+              <ion-button fill="outline"
+                          shape="round"
+                          class="ai-banner-btn"
+                          (click)="setAiModalOpen(true)"
+                          [disabled]="aiLoading || !aiData">
 
-              <ion-button
-                fill="outline"
-                shape="round"
-                class="ai-banner-btn"
-                (click)="setAiModalOpen(true)"
-                [disabled]="aiLoading || !aiData"
-              >
                 <ng-container *ngIf="aiLoading">
                   <ion-spinner name="crescent" style="width: 14px; height: 14px; margin-right: 8px; --color: #ffffff;"></ion-spinner>
                   Analisando...
                 </ng-container>
 
                 <ng-container *ngIf="!aiLoading">
-                  Ver análise
+                  Ver Análise
                 </ng-container>
               </ion-button>
-
             </ion-card-content>
           </ion-card>
 
-        <ion-card class="summary-card">
-          <ion-card-header>
-            <ion-card-title>Resumo da validação</ion-card-title>
-          </ion-card-header>
+          <ion-card class="summary-card">
+            <ion-card-header>
+              <ion-card-title>Resumo da validação</ion-card-title>
+            </ion-card-header>
 
-          <ion-card-content>
-            <div class="summary-metrics">
-              <div class="kpi">{{ sigMetric() }}</div>
-            </div>
+            <ion-card-content>
+              <div class="summary-metrics">
+                <div class="kpi">{{ sigMetric() }}</div>
+              </div>
 
-            <ion-list class="ion-margin-top">
-              <ion-item *ngFor="let s of r.validaDocsReturn?.digitalSignatureValidations"
-                        lines="full"
-                        class="sig-item">
-                <ion-label>
-                  <div class="sig-head">Assinado por: {{ normalizeAccents(s.signerName) }}</div>
-                  <div *ngIf="s.cpf">CPF: {{ s.cpf }}</div>
-                  <div class="sig-sub">{{ s.signatureLevel }}</div>
-                  <div class="sig-sub">{{ s.trustedRoot }}</div>
-                  <div class="sig-sub" *ngIf="s.signatureTime">
-                    {{ s.signatureTime | date:'dd/MM/yyyy HH:mm' }}
+              <ion-list class="ion-margin-top">
+                <ion-item *ngFor="let s of r.validaDocsReturn?.digitalSignatureValidations"
+                          lines="full"
+                          class="sig-item">
+                  <ion-label>
+                    <div class="sig-head">Assinado por: {{ normalizeAccents(s.signerName) }}</div>
+                    <div *ngIf="s.cpf">CPF: {{ s.cpf }}</div>
+                    <div class="sig-sub">{{ signatureLevelLabel(s.signatureLevel) }}</div>
+                    <div class="sig-sub">{{ trustedRootLabel(s.trustedRoot) }}</div>
+                    <div class="sig-sub" *ngIf="s.signatureTime">
+                      {{ s.signatureTime | date:'dd/MM/yyyy HH:mm' }}
+                    </div>
+                    <div>
+                      {{ s.signatureValid ? 'Assinatura aprovada' : 'Assinatura reprovada' }}
+                    </div>
+                  </ion-label>
+
+                  <div slot="end" class="seal-box">
+                    <img [src]="getImgTrustedRoot(s)" class="seal-img-box" />
                   </div>
-
-                  <div>
-                    {{ s.signatureValid ? 'Assinatura aprovada' : 'Assinatura reprovada' }}
-                  </div>
-                </ion-label>
-
-                <div slot="end" class="seal-box">
-                  <img [src]="getImgTrustedRoot(s)" class="seal-img-box" />
-                </div>
-              </ion-item>
-            </ion-list>
-          </ion-card-content>
-        </ion-card>
+                </ion-item>
+              </ion-list>
+            </ion-card-content>
+          </ion-card>
 
         </ion-col>
 
-        <!-- ===== COLUNA DIREITA ===== -->
         <ion-col size="12" size-lg="6" class="right">
 
           <ion-card class="details-card">
@@ -276,12 +257,10 @@
                 <ion-note slot="end">{{ r.softwareVersion }}</ion-note>
               </ion-item>
 
-              <!-- ✅ REINSERIDO: PDF/A e Nível (você já usava antes) -->
               <ng-container *ngIf="r.validaDocsReturn?.pdfValidations as pdf">
                 <ion-item lines="full">
                   <ion-label>PDF/A</ion-label>
-                  <ion-badge slot="end"
-                             [color]="pdf.isPDFACompliant === false ? 'danger' : 'success'">
+                  <ion-badge slot="end" [color]="pdf.isPDFACompliant === false ? 'danger' : 'success'">
                     {{ pdf.isPDFACompliant === true ? 'Sim' : pdf.isPDFACompliant === false ? 'Não' : '—' }}
                   </ion-badge>
                 </ion-item>
@@ -294,7 +273,6 @@
             </ion-card-content>
           </ion-card>
 
-          <!-- ✅ REINSERIDO: Apontamentos -->
           <ion-card class="errorfindings-card" *ngIf="hasFindings">
             <ion-card-header class="card-title-row">
               <ion-card-title>Apontamentos da Validação</ion-card-title>
@@ -309,7 +287,6 @@
             </ion-card-content>
           </ion-card>
 
-          <!-- ✅ REINSERIDO: Certificados (o mesmo padrão que você já tinha) -->
           <ng-container *ngIf="r.validaDocsReturn?.digitalSignatureValidations as certList">
             <ng-container *ngFor="let s of certList; let i = index; trackBy: trackByName">
               <ion-card class="cert-card ion-margin-bottom">
@@ -354,26 +331,40 @@
                                     <ion-label>Data do carimbo</ion-label>
                                     <ion-note slot="end">{{ formatDate(tsDate(ts)) }}</ion-note>
                                   </ion-item>
-
                                   <ion-item *ngIf="tsSigner(ts)?.issuer">
                                     <ion-label>Assinante</ion-label>
                                     <ion-note slot="end">{{ normalizeAccents(tsSigner(ts)?.issuer) }}</ion-note>
                                   </ion-item>
-
                                   <ion-item *ngIf="tsSigner(ts)?.tsa">
                                     <ion-label>Emissor TSA</ion-label>
                                     <ion-note slot="end">{{ normalizeAccents(tsSigner(ts)?.tsa) }}</ion-note>
                                   </ion-item>
+                                  <ion-item *ngIf="(tsSigner(ts)?.certificateStartDate || tsSigner(ts)?.validFrom || tsSigner(ts)?.notBefore)">
+                                  <ion-label>Emitido em</ion-label>
+                                  <ion-note slot="end">
+                                    {{
+                                      formatDate(
+                                        tsSigner(ts)?.certificateStartDate ||
+                                        tsSigner(ts)?.validFrom ||
+                                        tsSigner(ts)?.notBefore
+                                      )
+                                    }}
+                                  </ion-note>
+                                </ion-item>
 
-                                  <ion-item *ngIf="tsSigner(ts)?.certificateStartDate">
-                                    <ion-label>Emitido em</ion-label>
-                                    <ion-note slot="end">{{ formatDate(tsSigner(ts)?.certificateStartDate) }}</ion-note>
-                                  </ion-item>
-
-                                  <ion-item *ngIf="tsSigner(ts)?.certificateEndDate">
-                                    <ion-label>Válido até</ion-label>
-                                    <ion-note slot="end">{{ formatDate(tsSigner(ts)?.certificateEndDate) }}</ion-note>
-                                  </ion-item>
+                                <!-- ✅ NOVO: Válido até -->
+                                <ion-item *ngIf="(tsSigner(ts)?.certificateEndDate || tsSigner(ts)?.validTo || tsSigner(ts)?.notAfter)">
+                                  <ion-label>Válido até</ion-label>
+                                  <ion-note slot="end">
+                                    {{
+                                      formatDate(
+                                        tsSigner(ts)?.certificateEndDate ||
+                                        tsSigner(ts)?.validTo ||
+                                        tsSigner(ts)?.notAfter
+                                      )
+                                    }}
+                                  </ion-note>
+                                </ion-item>
                                 </ion-list>
                               </div>
                             </ion-accordion>
@@ -388,32 +379,21 @@
           </ng-container>
 
         </ion-col>
-
       </ion-row>
     </ion-grid>
   </ng-container>
 
-  <!-- MODAL IA -->
-  <ion-modal
-    [isOpen]="isAiModalOpen"
-    (didDismiss)="setAiModalOpen(false)"
-    [backdropDismiss]="true"
-    [keyboardClose]="true"
-    class="ai-details-modal"
-  >
+  <ion-modal [isOpen]="isAiModalOpen"
+             (didDismiss)="setAiModalOpen(false)"
+             [backdropDismiss]="true"
+             [keyboardClose]="true"
+             class="ai-details-modal">
     <ng-template #content>
       <ion-header class="ion-no-border">
         <ion-toolbar class="ai-modal-toolbar">
-          <ion-title class="ai-modal-title">Análise de IA (Nova)</ion-title>
-
+          <ion-title class="ai-modal-title">Análise de IA</ion-title>
           <ion-buttons slot="end">
-            <ion-button
-              type="button"
-              fill="clear"
-              class="ai-modal-close"
-              aria-label="Fechar"
-              (click)="setAiModalOpen(false)"
-            >
+            <ion-button fill="clear" (click)="setAiModalOpen(false)">
               <ion-icon slot="icon-only" name="close-outline"></ion-icon>
             </ion-button>
           </ion-buttons>
@@ -421,57 +401,182 @@
       </ion-header>
 
       <ion-content class="ai-modal-content">
+
         <div class="ai-wrap" *ngIf="aiData; else noAi">
 
-          <div class="ai-section" *ngIf="aiData.documentType">
-            <h3>Tipo de Documento</h3>
-            <p>{{ aiData.documentType }}</p>
-          </div>
+          <div class="ion-margin-bottom">
+            <h2 style="font-weight: 700; font-size: 1.4rem; margin-bottom: 16px; color: var(--ion-color-dark);">
+              Diagnóstico Inteligente
+            </h2>
 
-          <div class="ai-section" *ngIf="aiData.summary">
-            <h3>Resumo do Documento</h3>
-            <p>{{ aiData.summary }}</p>
-          </div>
+            <div class="ai-section" *ngIf="aiData.documentType">
+              <h3>{{ labelOf('documentType') }}</h3>
+              <p>{{ aiData.documentType }}</p>
+            </div>
 
-          <div class="ai-section" *ngIf="aiData.signatureType">
-            <h3>Tipo de Assinatura</h3>
-            <p>{{ aiData.signatureType }}</p>
-          </div>
+            <div class="ai-section" *ngIf="aiData.summary">
+              <h3>{{ labelOf('summary') }}</h3>
+              <p>{{ aiData.summary }}</p>
+            </div>
 
-          <div class="ai-section" *ngIf="aiData.signers?.length">
-            <h3>Signatários Identificados</h3>
-            <div class="signers-list">
-              <div *ngFor="let signer of aiData.signers" class="signer-item">
-                {{ signer }}
+            <div class="ai-section" *ngIf="aiData.signatureType">
+              <h3>{{ labelOf('signatureType') }}</h3>
+              <p>{{ aiData.signatureType }}</p>
+            </div>
+
+            <div class="ai-section" *ngIf="aiData.signers?.length">
+              <h3>{{ labelOf('signers') }}</h3>
+              <div class="signers-list">
+                <ng-container *ngIf="isArray(aiData.signers)">
+                  <div *ngFor="let signer of aiData.signers" class="signer-item">
+                    <span>{{ signer }}</span>
+                  </div>
+                </ng-container>
+                <ng-container *ngIf="!isArray(aiData.signers)">
+                  <div class="signer-item">
+                    <ion-icon name="person-outline"></ion-icon>
+                    <span>{{ aiData.signers }}</span>
+                  </div>
+                </ng-container>
               </div>
+            </div>
+
+            <div class="ai-section main-answer" *ngIf="aiData.answer">
+              <h3>{{ labelOf('answer') }}</h3>
+              <p>{{ aiData.answer }}</p>
+            </div>
+
+            <div class="ai-section" *ngIf="aiData.notes">
+              <h3>{{ labelOf('notes') }}</h3>
+              <p>{{ aiData.notes }}</p>
             </div>
           </div>
 
-          <div class="ai-section main-answer" *ngIf="aiData.answer">
-            <h3>Análise Detalhada da IA</h3>
-            <p>{{ aiData.answer }}</p>
-          </div>
+          <!-- ✅ Evidência Técnica + alinhamento dos headers dos accordions -->
+          <div class="technical-block tech-block" *ngIf="aiData.technicalEvidence">
 
-          <div class="ai-section" *ngIf="aiData.confidenceNotes">
-            <h3>Nota / Observações</h3>
-            <p>{{ aiData.confidenceNotes }}</p>
+            <h3 class="tech-title">
+              {{ labelOf('technicalEvidence') }}
+            </h3>
+
+            <ion-accordion-group class="tech-acc">
+
+              <ion-accordion value="file-info" *ngIf="aiData.technicalEvidence.file">
+                <ion-item slot="header" color="light" lines="none" class="tech-acc-header">
+                  <ion-label>{{ labelOf('file') }}</ion-label>
+                </ion-item>
+
+                <!-- ✅ removido background cinza -->
+                <div class="ion-padding" slot="content">
+                  <!-- <p><strong>{{ labelOf('path') }}:</strong> {{ aiData.technicalEvidence.file.path }}</p> -->
+                  <p><strong>{{ labelOf('hashAlgorithm') }}:</strong> {{ aiData.technicalEvidence.file.hashAlgorithm }}</p>
+                  <p><strong>{{ labelOf('processingNotes') }}:</strong> {{ aiData.technicalEvidence.file.processingNotes }}</p>
+                </div>
+              </ion-accordion>
+
+              <ion-accordion value="sig-details" *ngIf="aiData.technicalEvidence.signatures?.details?.length">
+                <ion-item slot="header" color="light" lines="none" class="tech-acc-header">
+                  <ion-label>{{ labelOf('details') }} das {{ labelOf('signatures') }} ({{ aiData.technicalEvidence.signatures.count }})</ion-label>
+                </ion-item>
+
+                <!-- ✅ removido background cinza -->
+                <div class="ion-padding" slot="content">
+
+                  <div *ngFor="let sig of aiData.technicalEvidence.signatures.details; let i = index"
+                       style="margin-bottom: 20px; border-bottom: 1px dashed #ccc; padding-bottom: 15px;">
+
+                    <p style="font-weight: 700; color: var(--ion-color-medium); margin-bottom: 8px;">
+                      Assinatura {{ i + 1 }} ({{ sig.fieldName }})
+                    </p>
+
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 6px; font-size: 0.9rem;">
+                      <div><strong>{{ labelOf('signerName') }}:</strong> {{ sig.signerName }}</div>
+                      <div><strong>{{ labelOf('signerDocument') }}:</strong> {{ sig.signerDocument }}</div>
+                      <div><strong>{{ labelOf('certificateIssuer') }}:</strong> {{ sig.certificateIssuer }}</div>
+                      <div><strong>{{ labelOf('signingTime') }}:</strong> {{ sig.signingTime | date:'dd/MM/yyyy HH:mm:ss' }}</div>
+                      <div><strong>{{ labelOf('signatureType') }}:</strong> {{ sig.signatureType }}</div>
+                      <div><strong>{{ labelOf('hashAlgorithm') }}:</strong> {{ sig.hashAlgorithm }}</div>
+
+                      <div style="margin-top: 6px; padding: 8px; background: rgba(0,0,0,0.03); border-radius: 6px;">
+                        <div><strong>{{ labelOf('documentIntegrity') }}:</strong> {{ sig.documentIntegrity }}</div>
+                        <div><strong>{{ labelOf('cryptographicValidity') }}:</strong> {{ sig.cryptographicValidity }}</div>
+                        <div><strong>{{ labelOf('certificateTrust') }}:</strong> {{ sig.certificateTrust }}</div>
+                        <div><strong>{{ labelOf('documentModifiedAfterSignature') }}</strong> {{ sig.documentModifiedAfterSignature ? 'Sim' : 'Não' }}</div>
+                      </div>
+
+                      <!-- opcional
+                      <div style="font-size: 0.8em; color: #666; margin-top: 6px;">
+                        <strong>{{ labelOf('distinguishedName') }}:</strong> {{ sig.distinguishedName }}
+                      </div>
+                      <div style="font-size: 0.8em; color: #666;">
+                        <strong>{{ labelOf('byteRange') }}:</strong> {{ sig.byteRange?.join(', ') }}
+                      </div>
+                      -->
+                    </div>
+                  </div>
+
+                </div>
+              </ion-accordion>
+
+              <ion-accordion value="verification" *ngIf="aiData.technicalEvidence.verification">
+                <ion-item slot="header" color="light" lines="none" class="tech-acc-header">
+                  <ion-label>{{ labelOf('verification') }}</ion-label>
+                </ion-item>
+
+                <!-- ✅ removido background cinza -->
+                <div class="ion-padding" slot="content">
+                  <p><strong>{{ labelOf('overallStatus') }}:</strong> {{ aiData.technicalEvidence.verification.overallStatus }}</p>
+                  <p><strong>{{ labelOf('summary') }}:</strong> {{ aiData.technicalEvidence.verification.summary }}</p>
+
+                  <div *ngIf="aiData.technicalEvidence.verification.warnings?.length" style="margin-top: 12px;">
+                    <strong style="color: var(--ion-color-warning);">{{ labelOf('warnings') }}:</strong>
+                    <ul style="margin: 5px 0; padding-left: 20px; font-size: 0.9rem;">
+                      <li *ngFor="let warn of aiData.technicalEvidence.verification.warnings">{{ warn }}</li>
+                    </ul>
+                  </div>
+
+                  <div *ngIf="aiData.technicalEvidence.verification.errors?.length" style="margin-top: 12px;">
+                    <strong style="color: var(--ion-color-danger);">{{ labelOf('errors') }}:</strong>
+                    <ul style="margin: 5px 0; padding-left: 20px; font-size: 0.9rem;">
+                      <li *ngFor="let err of aiData.technicalEvidence.verification.errors">{{ err }}</li>
+                    </ul>
+                  </div>
+                </div>
+              </ion-accordion>
+
+              <ion-accordion value="raw-log" *ngIf="aiData.technicalEvidence.rawPdfsigOutput?.basic">
+                <ion-item slot="header" color="light" lines="none" class="tech-acc-header">
+                  <ion-label>{{ labelOf('rawPdfsigOutput') }}</ion-label>
+                </ion-item>
+
+                <!-- ✅ removido background cinza -->
+                <div class="ion-padding" slot="content">
+                  <pre class="raw-log-pre">{{ formatRawLog(aiData.technicalEvidence.rawPdfsigOutput.basic) }}</pre>
+                </div>
+              </ion-accordion>
+
+            </ion-accordion-group>
           </div>
 
         </div>
 
         <ng-template #noAi>
-          <div class="ai-wrap">
-            <p>Sem dados da análise para exibir.</p>
+          <div class="ai-wrap" style="text-align: center; padding: 40px 20px;">
+            <ion-spinner name="crescent" color="primary"></ion-spinner>
+            <p style="margin-top: 16px; font-weight: 500; color: var(--ion-color-medium);">
+              Processando análise inteligente...
+            </p>
           </div>
         </ng-template>
+
       </ion-content>
     </ng-template>
   </ion-modal>
-
-
 
   <app-error-modal
     [open]="showErrorModal"
     [message]="errorFullMessage ?? null"
     (closed)="closeErrorDetails()">
   </app-error-modal>
+
+</ion-content>
